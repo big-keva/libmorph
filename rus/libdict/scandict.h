@@ -60,6 +60,34 @@ namespace LIBMORPH_NAMESPACE
       }
   };
 
+  template <class aflags, class result, class action>
+  result  ScanDict( action&         output, const byte08_t* thedic,
+                    const byte08_t* thestr, unsigned        cchstr )
+  {
+    scan_stack<aflags>  astack[0x40];     // never longer words
+    scan_stack<aflags>* pstack;
+    result              retval;
+
+    for ( (pstack = astack)->setlevel( thedic, thestr, cchstr ); pstack >= astack; )
+    {
+      const byte08_t* subdic;
+
+    // check if not found or no more data
+      if ( (subdic = pstack->findchar()) != 0 )
+      {
+        pstack = (pstack + 1)->setlevel( subdic, pstack->thestr + 1, pstack->cchstr - 1 );
+        continue;
+      }
+
+      if ( pstack->aflags.extended() )
+        if ( (retval = output( pstack->thedic, pstack->thestr, pstack->cchstr )) != (result)0 )
+          return retval;
+
+      --pstack;
+    }
+    return (result)0;
+  }
+
   class gramLoader
   {
     SGramInfo*  output;
@@ -285,34 +313,6 @@ namespace LIBMORPH_NAMESPACE
       }
 
   };
-
-  template <class aflags, class result, class action>
-  result  ScanDict( action&         output, const byte08_t* thedic,
-                    const byte08_t* thestr, unsigned        cchstr )
-  {
-    scan_stack<aflags>  astack[0x40];     // never longer words
-    scan_stack<aflags>* pstack;
-    result              retval;
-
-    for ( (pstack = astack)->setlevel( thedic, thestr, cchstr ); pstack >= astack; )
-    {
-      const byte08_t* subdic;
-
-    // check if not found or no more data
-      if ( (subdic = pstack->findchar()) != 0 )
-      {
-        pstack = (pstack + 1)->setlevel( subdic, pstack->thestr + 1, pstack->cchstr - 1 );
-        continue;
-      }
-
-      if ( pstack->aflags.extended() )
-        if ( (retval = output( pstack->thedic, pstack->thestr, pstack->cchstr )) != (result)0 )
-          return retval;
-
-      --pstack;
-    }
-    return (result)0;
-  }
 
   template <class aflags, class result, class action>
   result  EnumDict( action& output, const byte08_t* thedic )
