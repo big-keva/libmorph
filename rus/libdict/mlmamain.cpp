@@ -600,10 +600,12 @@ short   MLMA_API  EXPORT  mlmaruBuildFormGI( const char*    pszstr,
   ON_ERRORS( -1 )
 }
 
-short MLMA_API EXPORT mlmaruEnumWords( TEnumWords enumproc, void *lpv )
+short MLMA_API EXPORT mlmaruEnumWords( TEnumWords enumfn, void *vparam )
 {
   CATCH_ALL
-    return EnumDict<byte08_t, int>( doEnumList( enumproc, lpv ), stemtree ) >= 0 ? 1 : 0;
+    doEnumList  doenum( enumfn, vparam );
+
+    return EnumDict<byte08_t, int>( doenum, stemtree ) >= 0 ? 1 : 0;
   ON_ERRORS( -1 )
 }
 
