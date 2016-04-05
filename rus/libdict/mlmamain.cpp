@@ -203,11 +203,12 @@ namespace LIBMORPH_NAMESPACE
   {
     CATCH_ALL
       byte08_t        lidkey[0x10];
+      getDictPos      getpos();
       const byte08_t* ofsptr;
 
     // Оригинальная форма слова не задана, следует применять модификацию алгоритма, "прыгающую"
     // по словарю идентификаторов лексем сразу в нужную точку на странице.
-      if ( (ofsptr = ScanDict<word16_t, const byte08_t*>( getDictPos(), lidstree, lidkey, lexkeylen( lidkey, nlexid ) )) != NULL )
+      if ( (ofsptr = ScanDict<word16_t, const byte08_t*>( getpos, lidstree, lidkey, lexkeylen( lidkey, nlexid ) )) != NULL )
       {
         const byte08_t* dicpos = stemtree + getserial( ofsptr );
         byte08_t        szstem[0x80];
