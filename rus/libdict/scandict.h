@@ -61,7 +61,7 @@ namespace LIBMORPH_NAMESPACE
   };
 
   template <class aflags, class result, class action>
-  result  ScanDict( action&         output, const byte08_t* thedic,
+  result  ScanDict( const action&   reader, const byte08_t* thedic,
                     const byte08_t* thestr, unsigned        cchstr )
   {
     scan_stack<aflags>  astack[0x40];     // never longer words
@@ -80,7 +80,7 @@ namespace LIBMORPH_NAMESPACE
       }
 
       if ( pstack->aflags.extended() )
-        if ( (retval = output( pstack->thedic, pstack->thestr, pstack->cchstr )) != (result)0 )
+        if ( (retval = reader( pstack->thedic, pstack->thestr, pstack->cchstr )) != (result)0 )
           return retval;
 
       --pstack;
@@ -88,34 +88,53 @@ namespace LIBMORPH_NAMESPACE
     return (result)0;
   }
 
+  class gramBuffer
+  {
+    SGramInfo*  outorg;
+    SGramInfo*  outptr;
+
+  public:     // construction
+    gramBuffer( SGramInfo* p ): outorg( p ), outptr( p )
+      {
+      }
+    int   size() const
+      {
+        return outptr - outorg;
+      }
+    void  append( word16_t grinfo, byte08_t bflags )
+      {
+        outptr->gInfo = grinfo;
+        outptr->other = bflags;
+        ++outptr;
+      }
+  };
+
   class gramLoader
   {
-    SGramInfo*  output;
+    gramBuffer& output;
     unsigned    wdinfo;
     unsigned    mpower;
 
   public:     // construction
-    gramLoader( SGramInfo* p, unsigned w, unsigned m ): output( p ), wdinfo( w ), mpower( m )
+    gramLoader( gramBuffer& a, unsigned w, unsigned m ): output( a ), wdinfo( w ), mpower( m )
       {
       }
 
   protected:
-    int   CopyGramAA( const byte08_t* thedic )    // no forced multiple, any interchange
+    int   CopyGramAA( const byte08_t* thedic ) const // no forced multiple, any interchange
       {
-        SGramInfo*  outorg = output;
         int         nforms = getserial( thedic );
 
         assert( (wdinfo & wfMultiple) == 0 );
         assert( mpower == (unsigned)-1 );
 
         while ( nforms-- > 0 )
-          SetGramInfo( *output++, getword16( thedic ), *thedic++ );
+          output.append( getword16( thedic ), *thedic++ );
 
-        return output - outorg;
+        return output.size();
       }
-    int   CopyGramMA( const byte08_t* thedic )    // no forced multiple, any interchange
+    int   CopyGramMA( const byte08_t* thedic ) const  // no forced multiple, any interchange
       {
-        SGramInfo*  outorg = output;
         int         nforms = getserial( thedic );
 
         assert( (wdinfo & wfMultiple) != 0 );
@@ -127,14 +146,13 @@ namespace LIBMORPH_NAMESPACE
           byte08_t  bflags = *thedic++;
 
           if ( (grInfo & gfMultiple) != 0 )
-            SetGramInfo( *output++, grInfo, bflags );
+            output.append( grInfo, bflags );
         }
 
-        return output - outorg;
+        return output.size();
       }
-    int   CopyGramAP( const byte08_t* thedic )    // no forced multiple, any interchange
+    int   CopyGramAP( const byte08_t* thedic ) const  // no forced multiple, any interchange
       {
-        SGramInfo*  outorg = output;
         int         nforms = getserial( thedic );
 
         assert( (wdinfo & wfMultiple) == 0 );
@@ -149,14 +167,13 @@ namespace LIBMORPH_NAMESPACE
           assert( desire >= 1 );
             
           if ( (mpower & (1 << (desire - 1))) != 0 )
-            SetGramInfo( *output++, grInfo, bflags );
+            output.append( grInfo, bflags );
         }
 
-        return output - outorg;
+        return output.size();
       }
-    int   CopyGramMP( const byte08_t* thedic )    // no forced multiple, any interchange
+    int   CopyGramMP( const byte08_t* thedic ) const  // no forced multiple, any interchange
       {
-        SGramInfo*  outorg = output;
         int         nforms = getserial( thedic );
 
         assert( (wdinfo & wfMultiple) != 0 );
@@ -171,14 +188,14 @@ namespace LIBMORPH_NAMESPACE
           assert( desire >= 1 );
             
           if ( (grInfo & gfMultiple) != 0 && (mpower & (1 << (desire - 1))) != 0 )
-            SetGramInfo( *output++, grInfo, bflags );
+            output.append( grInfo, bflags );
         }
 
-        return output - outorg;
+        return output.size();
       }
 
   public:     // gramLoader functor
-    int   operator () ( const byte08_t* thedic, const byte08_t* thestr, unsigned cchstr )
+    int   operator () ( const byte08_t* thedic, const byte08_t* thestr, unsigned cchstr ) const
       {
         return cchstr == 0 ?
           (mpower == (unsigned)-1 ? ((wdinfo & wfMultiple) != 0 ? CopyGramMA( thedic ) : CopyGramAA( thedic )) :
@@ -187,13 +204,16 @@ namespace LIBMORPH_NAMESPACE
 
   };
 
-  template <class stemLister>
-  struct  listLookup: public stemLister
+  template <class action>
+  class listLookup
   {
-    listLookup( const byte08_t* szbase = NULL, unsigned uflags = 0 ): stemLister( szbase, uflags )
+    action& output;
+
+  public:
+    listLookup( action& a ): output( a )
       {
       }
-    int   operator () ( const byte08_t* pstems, const byte08_t* thestr, unsigned cchstr )
+    int   operator () ( const byte08_t* pstems, const byte08_t* thestr, unsigned cchstr ) const
       {
         SGramInfo fxlist[0x40];     // ћассив отождествлений на окончани€х
         unsigned  ucount = getserial( pstems );
@@ -228,7 +248,7 @@ namespace LIBMORPH_NAMESPACE
           }
 
         // check capitalization scheme
-          if ( !VerifyCaps( stinfo.wdinfo ) )
+          if ( !output.VerifyCaps( stinfo.wdinfo ) )
             continue;
 
         // check if non-flective
@@ -239,7 +259,7 @@ namespace LIBMORPH_NAMESPACE
               SGramInfo grprep = { 0, 0, stinfo.tfoffs, 0 };
                 stinfo.tfoffs = 0;
 
-              if ( (nerror = InsertStem( nlexid, thestr, stinfo, &grprep, 1 )) != 0 )
+              if ( (nerror = output.InsertStem( nlexid, thestr, stinfo, &grprep, 1 )) != 0 )
                 return nerror;
             }
             continue;
@@ -261,11 +281,13 @@ namespace LIBMORPH_NAMESPACE
         // будет флективным.
           if ( (stinfo.wdinfo & wfMixTab) == 0 )
           {
-            if ( (nforms = ScanDict<byte08_t, int>( gramLoader( fxlist, stinfo.wdinfo, (unsigned)-1 ),
+            gramBuffer  grbuff( fxlist );
+
+            if ( (nforms = ScanDict<byte08_t, int>( gramLoader( grbuff, stinfo.wdinfo, (unsigned)-1 ),
               flexTree + (stinfo.tfoffs << 4), thestr, ccflex )) == 0 )
                 continue;
 
-            if ( (nerror = InsertStem( nlexid, thestr, stinfo, fxlist, nforms )) != 0 )
+            if ( (nerror = output.InsertStem( nlexid, thestr, stinfo, fxlist, nforms )) != 0 )
               return nerror;
           }
             else
@@ -279,6 +301,7 @@ namespace LIBMORPH_NAMESPACE
 
             for ( mindex = nforms = 0; mindex < mixcnt; ++mindex, mixtab += 1 + (0x0f & *mixtab) )
             {
+              gramBuffer      grbuff( fxlist );
               const byte08_t* curmix = mixtab;
               unsigned        mixlen = 0x0f & *curmix;
               unsigned        powers = *curmix++ >> 4;
@@ -301,10 +324,10 @@ namespace LIBMORPH_NAMESPACE
               if ( rescmp < 0 ) continue;
 
             // ѕостроить массив грамматических отождествлений в предположении, что используетс€ правильна€ ступень чередовани€ основы
-              if ( (nforms = ScanDict<byte08_t, int>( gramLoader( fxlist, stinfo.wdinfo, powers ), flexTree + (stinfo.tfoffs << 4), flextr, flexcc )) == 0 )
+              if ( (nforms = ScanDict<byte08_t, int>( gramLoader( grbuff, stinfo.wdinfo, powers ), flexTree + (stinfo.tfoffs << 4), flextr, flexcc )) == 0 )
                 continue;
 
-              if ( (nerror = InsertStem( nlexid, thestr, stinfo, fxlist, nforms )) != 0 )
+              if ( (nerror = output.InsertStem( nlexid, thestr, stinfo, fxlist, nforms )) != 0 )
                 return nerror;
             }
           }

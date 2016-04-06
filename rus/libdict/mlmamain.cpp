@@ -20,7 +20,7 @@ namespace LIBMORPH_NAMESPACE
 {
   struct getDictPos
   {
-    const byte08_t* operator () ( const byte08_t* thedic, const byte08_t*, unsigned cchstr )
+    const byte08_t* operator () ( const byte08_t* thedic, const byte08_t*, unsigned cchstr ) const
       {
         return cchstr == 0 ? thedic : NULL;
       }
@@ -139,8 +139,8 @@ namespace LIBMORPH_NAMESPACE
                             unsigned    dwsets )
   {
     CATCH_ALL
-      byte08_t                locase[256];
-      listLookup<doCheckWord> scheck( locase, dwsets );
+      byte08_t    locase[256];
+      doCheckWord scheck( locase, dwsets );
 
     // check string length
       if ( cchstr == (unsigned)-1 )
@@ -154,7 +154,7 @@ namespace LIBMORPH_NAMESPACE
       scheck.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
 
       // fill scheck structure
-      return ScanDict<byte08_t, int>( scheck, stemtree, locase, cchstr );
+      return ScanDict<byte08_t, int>( listLookup<doCheckWord>( scheck ), stemtree, locase, cchstr );
     ON_ERRORS( -1 )
   }
 
@@ -169,8 +169,8 @@ namespace LIBMORPH_NAMESPACE
                             unsigned      dwsets )
   {
     CATCH_ALL
-      byte08_t                locase[256];
-      listLookup<doLemmatize> lemact( locase, dwsets );
+      byte08_t    locase[256];
+      doLemmatize lemact( locase, dwsets );
 
     // check string length
       if ( cchstr == (unsigned)-1 )
@@ -192,7 +192,7 @@ namespace LIBMORPH_NAMESPACE
         lemact.cgrams = ngrams;
 
     // call dictionary scanner
-      return ScanDict<byte08_t, int>( lemact, stemtree, locase, cchstr ) < 0 ? lemact.nerror : lemact.rcount;
+      return ScanDict<byte08_t, int>( listLookup<doLemmatize>( lemact ), stemtree, locase, cchstr ) < 0 ? lemact.nerror : lemact.rcount;
     ON_ERRORS( -1 )
   }
 
@@ -203,12 +203,11 @@ namespace LIBMORPH_NAMESPACE
   {
     CATCH_ALL
       byte08_t        lidkey[0x10];
-      getDictPos      getpos();
       const byte08_t* ofsptr;
 
     // Оригинальная форма слова не задана, следует применять модификацию алгоритма, "прыгающую"
     // по словарю идентификаторов лексем сразу в нужную точку на странице.
-      if ( (ofsptr = ScanDict<word16_t, const byte08_t*>( getpos, lidstree, lidkey, lexkeylen( lidkey, nlexid ) )) != NULL )
+      if ( (ofsptr = ScanDict<word16_t, const byte08_t*>( getDictPos(), lidstree, lidkey, lexkeylen( lidkey, nlexid ) )) != NULL )
       {
         const byte08_t* dicpos = stemtree + getserial( ofsptr );
         byte08_t        szstem[0x80];
@@ -234,8 +233,8 @@ namespace LIBMORPH_NAMESPACE
                             unsigned char   idform )
   {
     CATCH_ALL
-      byte08_t                locase[256];
-      listLookup<doBuildForm> abuild( locase, 0 );
+      byte08_t    locase[256];
+      doBuildForm abuild( locase, 0 );
 
     // check string length
       if ( cchstr == (unsigned)-1 )
@@ -252,7 +251,7 @@ namespace LIBMORPH_NAMESPACE
       abuild.bflags = 0;
       abuild.idform = idform;
 
-      if ( !ScanDict<byte08_t, int>( abuild, stemtree, locase, cchstr ) )
+      if ( !ScanDict<byte08_t, int>( listLookup<doBuildForm>( abuild ), stemtree, locase, cchstr ) )
         return 0;
 
       return abuild.nerror != 0 ? abuild.nerror : abuild.rcount;
@@ -559,9 +558,9 @@ short   MLMA_API  EXPORT  mlmaruBuildFormGI( const char*    pszstr,
                                              word16_t       cchout )
 {
   CATCH_ALL
-    byte08_t                locase[256];
-    unsigned                cchstr = 0;
-    listLookup<doBuildForm> abuild( locase, 0 );
+    byte08_t    locase[256];
+    unsigned    cchstr = 0;
+    doBuildForm abuild( locase, 0 );
 
     abuild.output = output;
     abuild.cchout = cchout;
@@ -577,7 +576,7 @@ short   MLMA_API  EXPORT  mlmaruBuildFormGI( const char*    pszstr,
 
       abuild.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
 
-      if ( !ScanDict<byte08_t, int>( abuild, stemtree, locase, cchstr ) )
+      if ( !ScanDict<byte08_t, int>( listLookup<doBuildForm>( abuild ), stemtree, locase, cchstr ) )
         return 0;
     }
       else

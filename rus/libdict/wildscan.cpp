@@ -21,15 +21,12 @@ namespace LIBMORPH_NAMESPACE
       p[c / (sizeof(*p) * CHAR_BIT)] |= (1 << (c % (sizeof(*p) * CHAR_BIT)));
     }
 
-  struct  doFastCheck: public doCheckWord
+  struct  doFastCheck
   {
-    doFastCheck( const byte08_t* szbase, unsigned uflags ): doCheckWord( szbase, uflags | sfIgnoreCapitals )
-      {
-      }
-    int   InsertStem( lexeme_t, const byte08_t*, const steminfo&, const SGramInfo*, unsigned )
-      {
-        return 1;
-      }
+    int   InsertStem( lexeme_t, const byte08_t*, const steminfo&, const SGramInfo*, unsigned ) const
+      {  return 1;  }
+    bool  VerifyCaps( word16_t ) const
+      {  return true;  }
   };
   
   static
@@ -37,10 +34,11 @@ namespace LIBMORPH_NAMESPACE
                   const byte08_t* thestr, unsigned        cchstr,
                   unsigned        wdinfo, unsigned        mpower )
   {
-    SGramInfo grbuff[0x20];
-    byte08_t  bflags = *thedic++;
-    int       ncount = bflags & 0x7f;
-    byte08_t  chfind = *thestr;
+    SGramInfo   grbuff[0x20];
+    gramBuffer  grlist( grbuff );
+    byte08_t    bflags = *thedic++;
+    int         ncount = bflags & 0x7f;
+    byte08_t    chfind = *thestr;
 
     assert( IsWildMask( thestr, cchstr ) );
 
@@ -56,7 +54,7 @@ namespace LIBMORPH_NAMESPACE
       {
         case '*': InsertChar( output, chnext );
                   continue;
-        case '?': if ( ScanDict<byte08_t, int>( gramLoader( grbuff, wdinfo, mpower ), subdic, thestr + 1, cchstr - 1 ) ) InsertChar( output, chnext );
+        case '?': if ( ScanDict<byte08_t, int>( gramLoader( grlist, wdinfo, mpower ), subdic, thestr + 1, cchstr - 1 ) ) InsertChar( output, chnext );
                   continue;
         default:  if ( chnext == chfind ) WildFlex( output, subdic, thestr + 1, cchstr - 1, wdinfo, mpower );
                   continue;
@@ -141,12 +139,13 @@ namespace LIBMORPH_NAMESPACE
             else
           if ( *flextr == '?' )
           {
-            byte08_t  chsave;
+            gramBuffer  grbuff( fxlist );
+            byte08_t    chsave;
 
             for ( chsave = *curmix++, ++flextr, --flexcc, --mixlen; flexcc > 0 && mixlen > 0 && *flextr == *curmix;
               --flexcc, --mixlen, ++flextr, ++curmix ) (void)NULL;
 
-            if ( mixlen == 0 && ScanDict<byte08_t, int>( gramLoader( fxlist, stinfo.wdinfo, powers ), flexTree + (stinfo.tfoffs << 4), flextr, flexcc ) > 0 )
+            if ( mixlen == 0 && ScanDict<byte08_t, int>( gramLoader( grbuff, stinfo.wdinfo, powers ), flexTree + (stinfo.tfoffs << 4), flextr, flexcc ) > 0 )
               InsertChar( output, chsave );
           }
             else
@@ -183,7 +182,7 @@ namespace LIBMORPH_NAMESPACE
           byte08_t  chnext = *thedic++;
           unsigned  sublen = getserial( thedic );
 
-          if ( ScanDict<byte08_t, int>( listLookup<doFastCheck>(), thedic, thestr + 1, cchstr - 1 ) > 0 )
+          if ( ScanDict<byte08_t, int>( listLookup<const doFastCheck>( doFastCheck() ), thedic, thestr + 1, cchstr - 1 ) > 0 )
             InsertChar( output, chnext );
           thedic += sublen;
         }

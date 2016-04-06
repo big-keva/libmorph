@@ -35,7 +35,7 @@ namespace LIBMORPH_NAMESPACE
 
   inline  bool  IsGoodShemeMin1( unsigned scheme )
   {
-    return scheme == 0x0101 || scheme == 0x0205 || scheme == 0x0206 || scheme == 0x0311
+    return scheme == 0x0101 || scheme == 0x0205 || scheme == 0x0311
         || IsGoodShemeMin2( scheme );
   }
 

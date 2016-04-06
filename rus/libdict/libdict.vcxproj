@@ -13,7 +13,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{16BD471E-1D5C-462F-8514-9EB109807E82}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>libfast</RootNamespace>
+    <RootNamespace>libdict</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -80,13 +80,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\libdict\classmap.cpp" />
-    <ClCompile Include="..\libdict\flextree.cpp" />
-    <ClCompile Include="..\libdict\lidstree.cpp" />
-    <ClCompile Include="..\libdict\mixTypes.cpp" />
-    <ClCompile Include="..\libdict\mxTables.cpp" />
-    <ClCompile Include="..\libdict\stemtree.cpp" />
-    <ClCompile Include="..\library\capsheme.cpp" />
+    <ClCompile Include="..\dictree\classmap.cpp" />
+    <ClCompile Include="..\dictree\flextree.cpp" />
+    <ClCompile Include="..\dictree\lidstree.cpp" />
+    <ClCompile Include="..\dictree\mixTypes.cpp" />
+    <ClCompile Include="..\dictree\mxTables.cpp" />
+    <ClCompile Include="..\dictree\stemtree.cpp" />
+    <ClCompile Include="capsheme.cpp" />
     <ClCompile Include="flexmake.cpp" />
     <ClCompile Include="lemmatiz.cpp" />
     <ClCompile Include="libfast.cpp" />

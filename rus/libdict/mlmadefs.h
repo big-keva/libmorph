@@ -139,13 +139,6 @@ namespace LIBMORPH_NAMESPACE
       return p - o;
   }
 
-  inline  SGramInfo&  SetGramInfo( SGramInfo& r, word16_t g, byte08_t f )
-  {
-    r.gInfo = g;
-    r.other = f;
-    return r;
-  }
-
   // Функции доступа к таблицам окончаний
 
   inline  word16_t  GetFlexInfo( const void* item )   // extract grammatical information;

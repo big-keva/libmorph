@@ -18,6 +18,12 @@ namespace LIBMORPH_NAMESPACE
   extern unsigned char capStateMatrix[6][4];
   extern unsigned char charTypeMatrix[256];
 
+  template <class chartype>
+  inline  unsigned  CharType( chartype c )
+  {
+    return charTypeMatrix[(unsigned char)c];
+  }
+
   unsigned GetCapScheme( unsigned char* output, unsigned outlen, const char*  srctop, unsigned srclen )
   {
     unsigned char*  outend = output + outlen;
@@ -34,7 +40,7 @@ namespace LIBMORPH_NAMESPACE
       unsigned  subcap = SCHEME_UNDEFINED;
       unsigned  chtype;
 
-      while ( srctop < srcend && output < outend && (chtype = charTypeMatrix[(unsigned char)*srctop]) != CT_DLMCHAR )
+      while ( srctop < srcend && output < outend && (chtype = CharType( *srctop )) != CT_DLMCHAR )
       {
         subcap = capStateMatrix[subcap][chtype];
           *output++ = toLoCaseMatrix[(unsigned char)*srctop++];
@@ -46,7 +52,7 @@ namespace LIBMORPH_NAMESPACE
       bvalid &= ((subcap = capStateMatrix[subcap][CT_DLMCHAR]) != SCHEME_ERROR_CAP);
         scheme |= (subcap - 1) << (cdefis << 1);
 
-      if ( (*output = *srctop) == '-' )
+      if ( CharType( *output = *srctop ) == CT_DLMCHAR && *output != '\0' )
       {
         ++output;
         ++srctop;
@@ -57,7 +63,7 @@ namespace LIBMORPH_NAMESPACE
     if ( output < outend ) *output = '\0';
       else return (unsigned)-1;
 
-    return (output + outlen - outend) << 16 | (bvalid ? scheme | (cdefis << 8) : 0xffff);
+    return (output + outlen - outend) << 16 | ((cdefis + 1) << 8) | (bvalid ? scheme : 0xff);
   }
 
 # if defined( unit_test )
@@ -140,7 +146,7 @@ namespace LIBMORPH_NAMESPACE
     CT_INVALID, CT_INVALID, CT_INVALID, CT_INVALID,
   // Space till plus, characters in range 32 - 47
     CT_INVALID, CT_INVALID, CT_INVALID, CT_INVALID,
-    CT_INVALID, CT_INVALID, CT_INVALID, CT_INVALID,
+    CT_INVALID, CT_INVALID, CT_INVALID, CT_DLMCHAR,
     CT_INVALID, CT_INVALID, CT_INVALID, CT_INVALID,
     CT_REGULAR,         // Comma is a regular char
     CT_DLMCHAR,         // Minus - a defis - is a delimiter
@@ -318,10 +324,10 @@ namespace LIBMORPH_NAMESPACE
     {
       unsigned  strcap = scheme & 0x03;   // Извлечь схему капитализации фрагмента - 0 (a), 1 (Aa) или 2 (AA)
 
-      for ( ; *pszstr != '\0' && *pszstr != '-'; strcap &= ~0x01, ++pszstr )
+      for ( ; *pszstr != '\0' && CharType( *pszstr ) != CT_DLMCHAR; strcap &= ~0x01, ++pszstr )
         *pszstr = strcap ? (char)toUpCaseMatrix[(unsigned char)*pszstr] : *pszstr;
 
-      pszstr += (*pszstr == '-' ? 1 : 0);
+      pszstr += (CharType( *pszstr ) == CT_DLMCHAR ? 1 : 0);
     }
     return strorg;
   }
@@ -330,7 +336,7 @@ namespace LIBMORPH_NAMESPACE
   {
   // Если не задано количество частей слова, вычислить это количество
     if ( nparts == 0 && lpword != 0 )
-      for ( nparts = 1; *lpword != '\0'; ++lpword ) nparts += (*lpword == '-');
+      for ( nparts = 1; *lpword != '\0'; ++lpword ) nparts += (CharType( *lpword ) == CT_DLMCHAR);
     if ( nparts == 0 )
       nparts = 1;
 
