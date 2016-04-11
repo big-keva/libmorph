@@ -69,6 +69,11 @@
 
 # endif  /* mlma_grammarecord_defined */
 
+# if !defined( formid_defined )
+# define  formid_defined
+  typedef unsigned char formid_t;
+# endif // formid_t defined
+
 # if !defined( mlma_lexemerecord_defined )
 # define  mlma_lexemerecord_defined
 
@@ -230,54 +235,54 @@
 
   MLMA_INTERFACE( IMlmaMb )
     MLMA_METHOD( SetLoCase )( MLMA_THIS
-                              char*           pszstr, unsigned  cchstr )  MLMA_PURE;
+                              char*           pszstr, size_t  cchstr )  MLMA_PURE;
     MLMA_METHOD( SetUpCase )( MLMA_THIS
-                              char*           pszstr, unsigned  cchstr )  MLMA_PURE;
+                              char*           pszstr, size_t  cchstr )  MLMA_PURE;
     MLMA_METHOD( CheckWord )( MLMA_THIS
-                              const char*     pszstr, unsigned  cchstr,
+                              const char*     pszstr, size_t  cchstr,
                               unsigned        dwsets ) MLMA_PURE;
     MLMA_METHOD( Lemmatize )( MLMA_THIS
-                              const char*     pszstr, unsigned  cchstr,
-                              SLemmInfoA*     plexid, unsigned  clexid,
-                              char*           plemma, unsigned  clemma,
-                              SGramInfo*      pgrams, unsigned  ngrams,
-                              unsigned        dwsets ) MLMA_PURE;
+                              const char*     pszstr, size_t  cchstr,
+                              SLemmInfoA*     plexid, size_t  clexid,
+                              char*           plemma, size_t  clemma,
+                              SGramInfo*      pgrams, size_t  ngrams,
+                              unsigned        dwsets                 ) MLMA_PURE;
     MLMA_METHOD( BuildForm )( MLMA_THIS
-                              char*           output, unsigned      cchout,
-                              lexeme_t        nlexid, unsigned char idform ) MLMA_PURE;
+                              char*           output, size_t    cchout,
+                              lexeme_t        nlexid, formid_t  idform ) MLMA_PURE;
     MLMA_METHOD( FindForms )( MLMA_THIS
-                              char*           output, unsigned      cchout,
-                              const char*     pszstr, unsigned      cchstr,
-                              unsigned char   idform ) MLMA_PURE;
+                              char*           output, size_t    cchout,
+                              const char*     pszstr, size_t    cchstr,
+                                                      formid_t  idform ) MLMA_PURE;
     MLMA_METHOD( CheckHelp )( MLMA_THIS
-                              char*           output, unsigned      cchout,
-                              const char*     pszstr, unsigned      cchstr ) MLMA_PURE;
+                              char*           output, size_t  cchout,
+                              const char*     pszstr, size_t  cchstr ) MLMA_PURE;
   MLMA_END;
 
   MLMA_INTERFACE( IMlmaWc )
     MLMA_METHOD( SetLoCase )( MLMA_THIS
-                              widechar*       pszstr, unsigned  cchstr )  MLMA_PURE;
+                              widechar*       pszstr, size_t  cchstr )  MLMA_PURE;
     MLMA_METHOD( SetUpCase )( MLMA_THIS
-                              widechar*       pwsstr, unsigned  cchstr )  MLMA_PURE;
+                              widechar*       pwsstr, size_t  cchstr )  MLMA_PURE;
     MLMA_METHOD( CheckWord )( MLMA_THIS
-                              const widechar* pszstr, unsigned  cchstr,
+                              const widechar* pszstr, size_t  cchstr,
                               unsigned        dwsets ) MLMA_PURE;
     MLMA_METHOD( Lemmatize )( MLMA_THIS
-                              const widechar* pszstr, unsigned  cchstr,
-                              SLemmInfoW*     plexid, unsigned  clexid,
-                              widechar*       plemma, unsigned  clemma,
-                              SGramInfo*      pgrams, unsigned  ngrams,
+                              const widechar* pszstr, size_t  cchstr,
+                              SLemmInfoW*     plexid, size_t  clexid,
+                              widechar*       plemma, size_t  clemma,
+                              SGramInfo*      pgrams, size_t  ngrams,
                               unsigned        dwsets ) MLMA_PURE;
     MLMA_METHOD( BuildForm )( MLMA_THIS
-                              widechar*       output, unsigned      cchout,
-                              lexeme_t        nlexid, unsigned char idform ) MLMA_PURE;
+                              widechar*       output, size_t    cchout,
+                              lexeme_t        nlexid, formid_t  idform ) MLMA_PURE;
     MLMA_METHOD( FindForms )( MLMA_THIS
-                              widechar*       output, unsigned      cchout,
-                              const widechar* pszstr, unsigned      cchstr,
-                              unsigned char   idform ) MLMA_PURE;
+                              widechar*       output, size_t    cchout,
+                              const widechar* pszstr, size_t    cchstr,
+                                                      formid_t  idform ) MLMA_PURE;
     MLMA_METHOD( CheckHelp )( MLMA_THIS
-                              widechar*       output, unsigned      cchout,
-                              const widechar* pwsstr, unsigned      cchstr ) MLMA_PURE;
+                              widechar*       output, size_t  cchout,
+                              const widechar* pwsstr, size_t  cchstr ) MLMA_PURE;
   MLMA_END;
 
 # if !defined( __cplusplus )
@@ -319,40 +324,6 @@ extern "C" {
 
   int   MLMAPROC        mlmaruLoadMbAPI( IMlmaMb** );
   int   MLMAPROC        mlmaruLoadWcAPI( IMlmaWc** );
-
-  short MLMA_API EXPORT mlmaruCheckWord( const char*    lpword,
-                                         unsigned short dwsets );
-  short MLMA_API EXPORT mlmaruLemmatize( const char*    lpword,
-                                         unsigned short dwsets,
-                                         char*          lpLemm,
-                                         lexeme_t*      lpLIDs,
-                                         char*          lpGram,
-                                         unsigned short ccLemm,
-                                         unsigned short cdwLID,
-                                         unsigned short cbGram );
-  short MLMA_API EXPORT mlmaruBuildForm( const char*    lpword,
-                                         lexeme_t       nLexID,
-                                         unsigned short dwsets,
-                                         unsigned char  idForm,
-                                         char*          lpDest,
-                                         unsigned short ccDest );
-  short MLMA_API EXPORT mlmaruBuildFormGI( const char*    lpword,
-                                           lexeme_t       nLexID,
-                                           unsigned short dwsets,
-                                           unsigned short grInfo,
-                                           unsigned char  bFlags,
-                                           char*          lpDest,
-                                           unsigned short ccDest );
-  short MLMA_API EXPORT mlmaruEnumWords( TEnumWords enumproc,
-                                         void*      lpvparam );
-  short MLMA_API EXPORT mlmaruCheckHelp( const char* lpword,
-                                         char*       lpList );
-  short MLMA_API EXPORT mlmaruListForms( lexeme_t       nlexid,
-                                         char*          lpbuff,
-                                         unsigned       ccbuff );
-/* toolhelper functions */
-  short MLMA_API EXPORT mlmaruGetWordInfo( lexeme_t         nLexID,
-                                           unsigned char*   lpinfo );
 
 # if defined( __cplusplus )
 }
