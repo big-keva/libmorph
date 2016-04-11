@@ -6,6 +6,16 @@
 # endif
 
 # include <limits.h>
+# include <stdint.h>
+
+# if !defined( __widechar_defined__ )
+# define  __widechar_defined__
+#   if defined(WCHAR_MAX) && (WCHAR_MAX >> 16) == 0
+    typedef wchar_t         widechar;
+#   else
+    typedef unsigned short  widechar;
+#   endif  // size
+# endif  // __widechar_defined__
 
 # if !defined( __lexeme_t_defined__ )
 #   define  __lexeme_t_defined__
@@ -64,18 +74,18 @@
 
   typedef struct
   {
-    lexeme_t              nlexid;
-    const char*           plemma;
-    SGramInfo*            pgrams;
-    unsigned              ngrams;
+    lexeme_t        nlexid;
+    const char*     plemma;
+    SGramInfo*      pgrams;
+    unsigned        ngrams;
   } SLemmInfoA;
 
   typedef struct
   {
-    lexeme_t              nlexid;
-    const unsigned short* plemma;
-    SGramInfo*            pgrams;
-    unsigned              ngrams;
+    lexeme_t        nlexid;
+    const widechar* plemma;
+    SGramInfo*      pgrams;
+    unsigned        ngrams;
   } SLemmInfoW;
 
 # endif  // ! mlma_lexemerecord_defined
@@ -220,54 +230,54 @@
 
   MLMA_INTERFACE( IMlmaMb )
     MLMA_METHOD( SetLoCase )( MLMA_THIS
-                              char*                 pszstr, unsigned  cchstr )  MLMA_PURE;
+                              char*           pszstr, unsigned  cchstr )  MLMA_PURE;
     MLMA_METHOD( SetUpCase )( MLMA_THIS
-                              char*                 pszstr, unsigned  cchstr )  MLMA_PURE;
+                              char*           pszstr, unsigned  cchstr )  MLMA_PURE;
     MLMA_METHOD( CheckWord )( MLMA_THIS
-                              const char*           pszstr, unsigned  cchstr,
-                              unsigned              dwsets ) MLMA_PURE;
+                              const char*     pszstr, unsigned  cchstr,
+                              unsigned        dwsets ) MLMA_PURE;
     MLMA_METHOD( Lemmatize )( MLMA_THIS
-                              const char*           pszstr, unsigned  cchstr,
-                              SLemmInfoA*           plexid, unsigned  clexid,
-                              char*                 plemma, unsigned  clemma,
-                              SGramInfo*            pgrams, unsigned  ngrams,
-                              unsigned              dwsets ) MLMA_PURE;
+                              const char*     pszstr, unsigned  cchstr,
+                              SLemmInfoA*     plexid, unsigned  clexid,
+                              char*           plemma, unsigned  clemma,
+                              SGramInfo*      pgrams, unsigned  ngrams,
+                              unsigned        dwsets ) MLMA_PURE;
     MLMA_METHOD( BuildForm )( MLMA_THIS
-                              char*                 output, unsigned      cchout,
-                              lexeme_t              nlexid, unsigned char idform ) MLMA_PURE;
+                              char*           output, unsigned      cchout,
+                              lexeme_t        nlexid, unsigned char idform ) MLMA_PURE;
     MLMA_METHOD( FindForms )( MLMA_THIS
-                              char*                 output, unsigned      cchout,
-                              const char*           pszstr, unsigned      cchstr,
-                              unsigned char         idform ) MLMA_PURE;
+                              char*           output, unsigned      cchout,
+                              const char*     pszstr, unsigned      cchstr,
+                              unsigned char   idform ) MLMA_PURE;
     MLMA_METHOD( CheckHelp )( MLMA_THIS
-                              char*                 output, unsigned      cchout,
-                              const char*           pszstr, unsigned      cchstr ) MLMA_PURE;
+                              char*           output, unsigned      cchout,
+                              const char*     pszstr, unsigned      cchstr ) MLMA_PURE;
   MLMA_END;
 
   MLMA_INTERFACE( IMlmaWc )
     MLMA_METHOD( SetLoCase )( MLMA_THIS
-                              unsigned short*       pszstr, unsigned  cchstr )  MLMA_PURE;
+                              widechar*       pszstr, unsigned  cchstr )  MLMA_PURE;
     MLMA_METHOD( SetUpCase )( MLMA_THIS
-                              unsigned short*       pwsstr, unsigned  cchstr )  MLMA_PURE;
+                              widechar*       pwsstr, unsigned  cchstr )  MLMA_PURE;
     MLMA_METHOD( CheckWord )( MLMA_THIS
-                              const unsigned short* pszstr, unsigned  cchstr,
-                              unsigned              dwsets ) MLMA_PURE;
+                              const widechar* pszstr, unsigned  cchstr,
+                              unsigned        dwsets ) MLMA_PURE;
     MLMA_METHOD( Lemmatize )( MLMA_THIS
-                              const unsigned short* pszstr, unsigned  cchstr,
-                              SLemmInfoW*           plexid, unsigned  clexid,
-                              unsigned short*       plemma, unsigned  clemma,
-                              SGramInfo*            pgrams, unsigned  ngrams,
-                              unsigned              dwsets ) MLMA_PURE;
+                              const widechar* pszstr, unsigned  cchstr,
+                              SLemmInfoW*     plexid, unsigned  clexid,
+                              widechar*       plemma, unsigned  clemma,
+                              SGramInfo*      pgrams, unsigned  ngrams,
+                              unsigned        dwsets ) MLMA_PURE;
     MLMA_METHOD( BuildForm )( MLMA_THIS
-                              unsigned short*       output, unsigned      cchout,
-                              lexeme_t              nlexid, unsigned char idform ) MLMA_PURE;
+                              widechar*       output, unsigned      cchout,
+                              lexeme_t        nlexid, unsigned char idform ) MLMA_PURE;
     MLMA_METHOD( FindForms )( MLMA_THIS
-                              unsigned short*       output, unsigned      cchout,
-                              const unsigned short* pszstr, unsigned      cchstr,
-                              unsigned char         idform ) MLMA_PURE;
+                              widechar*       output, unsigned      cchout,
+                              const widechar* pszstr, unsigned      cchstr,
+                              unsigned char   idform ) MLMA_PURE;
     MLMA_METHOD( CheckHelp )( MLMA_THIS
-                              unsigned short*       output, unsigned      cchout,
-                              const unsigned short* pwsstr, unsigned      cchstr ) MLMA_PURE;
+                              widechar*       output, unsigned      cchout,
+                              const widechar* pwsstr, unsigned      cchstr ) MLMA_PURE;
   MLMA_END;
 
 # if !defined( __cplusplus )
