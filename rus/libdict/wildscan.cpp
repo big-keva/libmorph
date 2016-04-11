@@ -10,7 +10,7 @@ namespace LIBMORPH_NAMESPACE
     {
       return c == '*' || c == '?';
     }
-  inline  bool      IsWildMask( const byte08_t* s, int l )
+  inline  bool      IsWildMask( const byte08_t* s, size_t l )
     {
       while ( l-- > 0 ) 
         if ( IsWildChar( *s++ ) )  return true;
@@ -30,9 +30,8 @@ namespace LIBMORPH_NAMESPACE
   };
   
   static
-  void  WildFlex( word32_t*       output, const byte08_t* thedic,
-                  const byte08_t* thestr, unsigned        cchstr,
-                  unsigned        wdinfo, unsigned        mpower )
+  void  WildFlex( word32_t* output, const byte08_t* thedic, const byte08_t* thestr, size_t  cchstr,
+                  unsigned  wdinfo, unsigned mpower )
   {
     SGramInfo   grbuff[0x20];
     gramBuffer  grlist( grbuff );
@@ -82,8 +81,7 @@ namespace LIBMORPH_NAMESPACE
   }
 
   static
-  int   WildList( word32_t*       output, const byte08_t* pstems,
-                  const byte08_t* thestr, unsigned        cchstr )
+  int   WildList( word32_t* output, const byte08_t* pstems, const byte08_t* thestr, size_t  cchstr )
   {
     SGramInfo fxlist[0x40];     // Массив отождествлений на окончаниях
     unsigned  ucount = getserial( pstems );
@@ -92,9 +90,9 @@ namespace LIBMORPH_NAMESPACE
 
     while ( ucount-- > 0 )
     {
-      steminfo        stinfo ( getserial( pstems ) + classmap );
-      lexeme_t        nlexid = getserial( pstems );
-      unsigned        ccflex = cchstr;
+      steminfo  stinfo ( getserial( pstems ) + classmap );
+      lexeme_t  nlexid = getserial( pstems );
+      size_t    ccflex = cchstr;
 
     // check if non-flective
       if ( (stinfo.wdinfo & wfFlexes) == 0 || (stinfo.wdinfo & 0x3f) == 51 )
@@ -121,7 +119,7 @@ namespace LIBMORPH_NAMESPACE
           unsigned        mixlen = 0x0f & *curmix;
           unsigned        powers = *curmix++ >> 4;
           const byte08_t* flextr = thestr;
-          unsigned        flexcc = cchstr;
+          size_t          flexcc = cchstr;
           int             rescmp;
 
         // scan top match
@@ -158,8 +156,7 @@ namespace LIBMORPH_NAMESPACE
   }
 
   static
-  int   WildScan( word32_t*       output, const byte08_t* thedic,
-                  const byte08_t* thestr, unsigned        cchstr )
+  int   WildScan( word32_t* output, const byte08_t* thedic, const byte08_t* thestr, size_t cchstr )
   {
     countflags<byte08_t>  bflags;
     int                   ncount = bflags.load( thedic ).getcount();
@@ -201,18 +198,21 @@ namespace LIBMORPH_NAMESPACE
     return bflags.extended() ? WildList( output, thedic, thestr, cchstr ) : 0;
   }
 
-  int  WildScan( byte08_t* output, const byte08_t* ptempl, unsigned cchstr )
+  size_t  WildScan( byte08_t* output, size_t  cchout, const byte08_t* ptempl, size_t cchstr )
   {
     byte08_t* outorg = output;
+    byte08_t* outend = output + cchout;
     word32_t  chmask[256 / (sizeof(word32_t) * CHAR_BIT)];
     int       nindex;
     int       cindex;
 
-    for ( memset( chmask, nindex = 0, sizeof(chmask) ), WildScan( chmask, stemtree, ptempl, cchstr );
-      nindex < sizeof(chmask) / sizeof(chmask[0]); ++nindex )
-        for ( cindex = 0; cindex < sizeof(word32_t) * CHAR_BIT; ++cindex )
-          if ( (chmask[nindex] & (1 << cindex)) != 0 )
-            *output++ = nindex * sizeof(word32_t) * CHAR_BIT + cindex;
+    WildScan( (word32_t*)memset( chmask, 0, sizeof(chmask) ), stemtree, ptempl, cchstr );
+
+    for ( nindex = 0; nindex < sizeof(chmask) / sizeof(chmask[0]); ++nindex )
+      for ( cindex = 0; cindex < sizeof(word32_t) * CHAR_BIT; ++cindex )
+        if ( (chmask[nindex] & (1 << cindex)) != 0 )
+          if ( output < outend ) *output++ = (byte08_t)(nindex * sizeof(word32_t) * CHAR_BIT + cindex);
+            else  return WORDBUFF_FAILED;
 
     return output - outorg;
   }

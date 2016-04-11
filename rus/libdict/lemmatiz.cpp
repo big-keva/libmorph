@@ -22,13 +22,16 @@ namespace LIBMORPH_NAMESPACE
   struct  uniqlist
   {
     char*       lpbuff;       // the output buffer
-    unsigned    ccbuff;       // buffer size
+    size_t      ccbuff;       // buffer size
     const char* pforms[256];  // the forms cache
     int         nforms;
+
   public:
-                uniqlist( char* lpdest, unsigned ccdest );
+                uniqlist( char* lpdest, size_t ccdest ): lpbuff( lpdest ), ccbuff( ccdest ), nforms( 0 )
+                  {
+                  }
     int         Append();
-    char*       GetBuf( unsigned );
+    char*       GetBuf( size_t );
   protected:
     bool        Search( const char* pszstr, int& sindex );
   };
@@ -42,14 +45,14 @@ namespace LIBMORPH_NAMESPACE
     const steminfo& rfstem;
     uniqlist        output;
     const byte08_t* szstem;
-    unsigned        ccstem;
+    size_t          ccstem;
     const byte08_t* mixtab;
 
   public:     // construction
                     FormsBuilder( char*           lpdest,
-                                  unsigned        ccdest,
+                                  size_t          ccdest,
                                   const byte08_t* szbase,
-                                  unsigned        ccbase,
+                                  size_t          ccbase,
                                   const steminfo& stinfo ): rfstem( stinfo ),
                                                             output( lpdest, ccdest ),
                                                             szstem( szbase ),
@@ -63,13 +66,6 @@ namespace LIBMORPH_NAMESPACE
   };
 
 // uniqlist inline implementation
-
-  inline          uniqlist::uniqlist( char*     lpdest,
-                                      unsigned  ccdest ): lpbuff( lpdest ),
-                                                          ccbuff( ccdest ),
-                                                          nforms( 0 )
-    {
-    }
 
   inline  int     uniqlist::Append()
     {
@@ -93,7 +89,7 @@ namespace LIBMORPH_NAMESPACE
       return 0;
     }
 
-  inline  char*   uniqlist::GetBuf( unsigned length )
+  inline  char*   uniqlist::GetBuf( size_t length )
     {
       return length >= ccbuff ? NULL : lpbuff;
     }
@@ -129,7 +125,7 @@ namespace LIBMORPH_NAMESPACE
     {
       const byte08_t* pszmix = NULL;
       unsigned        cchmix = 0;
-      unsigned        ccform;
+      size_t          ccform;
       char*           lptail;
       char*           buforg;
       int             mpower;
@@ -198,7 +194,7 @@ namespace LIBMORPH_NAMESPACE
     if ( (plemma->plemma = pforms) != NULL )
     {
       byte08_t  fmbuff[256];
-      unsigned  ccstem;
+      size_t    ccstem;
 
     // ѕостроить основу из словар€ без измен€емой ее части
       memcpy( fmbuff, szstem, ccstem = (pszstr - szstem) );
@@ -263,15 +259,15 @@ namespace LIBMORPH_NAMESPACE
                                  const SGramInfo* flexes,
                                  unsigned         fcount )
   {
-    char*           outend = output + cchout;
-    byte08_t        szform[64];
-    byte08_t        stails[256];
-    byte08_t*       lptail = stails;
-    unsigned        ccstem;
-    int             ntails;
-    unsigned        tfoffs = stinfo.tfoffs;
-    word16_t        grInfo;
-    byte08_t        bFlags;
+    char*       outend = output + cchout;
+    byte08_t    szform[64];
+    byte08_t    stails[256];
+    byte08_t*   lptail = stails;
+    size_t      ccstem;
+    int         ntails;
+    unsigned    tfoffs = stinfo.tfoffs;
+    word16_t    grInfo;
+    byte08_t    bFlags;
 
   // check the arguments
     assert( output != NULL );

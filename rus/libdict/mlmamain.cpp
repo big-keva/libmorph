@@ -20,7 +20,7 @@ namespace LIBMORPH_NAMESPACE
 {
   struct getDictPos
   {
-    const byte08_t* operator () ( const byte08_t* thedic, const byte08_t*, unsigned cchstr ) const
+    const byte08_t* operator () ( const byte08_t* thedic, const byte08_t*, size_t cchstr ) const
       {
         return cchstr == 0 ? thedic : NULL;
       }
@@ -55,42 +55,42 @@ namespace LIBMORPH_NAMESPACE
   //
   struct  CMlmaMb: public IMlmaMb
   {
-    virtual int MLMAPROC  SetLoCase( char*                  pszstr, unsigned  cchstr );
-    virtual int MLMAPROC  SetUpCase( char*                  pszstr, unsigned  cchstr );
-    virtual int MLMAPROC  CheckWord( const char*            pszstr, unsigned  cchstr,
-                                     unsigned               dwsets );
-    virtual int MLMAPROC  Lemmatize( const char*            pszstr, unsigned  cchstr,
-                                     SLemmInfoA*            output, unsigned  cchout,
-                                     char*                  plemma, unsigned  clemma,
-                                     SGramInfo*             pgrams, unsigned  ngrams,
-                                     unsigned               dwsets );
-    virtual int MLMAPROC  BuildForm( char*                  output, unsigned      cchout,
-                                     unsigned               nlexid, unsigned char idform );
-    virtual int MLMAPROC  FindForms( char*                  output, unsigned      cchout,
-                                     const char*            pszstr, unsigned      cchstr,
-                                     unsigned char          idform );
-    virtual int MLMAPROC  CheckHelp( char*                  output, unsigned      cchout,
-                                     const char*            pszstr, unsigned      cchstr );
+    virtual int MLMAPROC  SetLoCase( char*            pszstr, size_t    cchstr );
+    virtual int MLMAPROC  SetUpCase( char*            pszstr, size_t    cchstr );
+    virtual int MLMAPROC  CheckWord( const char*      pszstr, size_t    cchstr,
+                                     unsigned         dwsets );
+    virtual int MLMAPROC  Lemmatize( const char*      pszstr, size_t    cchstr,
+                                     SLemmInfoA*      output, size_t    cchout,
+                                     char*            plemma, size_t    clemma,
+                                     SGramInfo*       pgrams, size_t    ngrams,
+                                     unsigned         dwsets );
+    virtual int MLMAPROC  BuildForm( char*            output, size_t    cchout,
+                                     unsigned         nlexid, byte08_t  idform );
+    virtual int MLMAPROC  FindForms( char*            output, size_t    cchout,
+                                     const char*      pszstr, size_t    cchstr,
+                                     unsigned char    idform );
+    virtual int MLMAPROC  CheckHelp( char*            output, size_t    cchout,
+                                     const char*      pszstr, size_t    cchstr );
   };
 
   struct  CMlmaWc
   {
-    virtual int MLMAPROC  SetLoCase( widechar*        pwsstr, unsigned  cchstr );
-    virtual int MLMAPROC  SetUpCase( widechar*        pwsstr, unsigned  cchstr );
-    virtual int MLMAPROC  CheckWord( const widechar*  pszstr, unsigned  cchstr,
+    virtual int MLMAPROC  SetLoCase( widechar*        pwsstr, size_t    cchstr );
+    virtual int MLMAPROC  SetUpCase( widechar*        pwsstr, size_t    cchstr );
+    virtual int MLMAPROC  CheckWord( const widechar*  pszstr, size_t    cchstr,
                                      unsigned         dwsets );
-    virtual int MLMAPROC  Lemmatize( const widechar*  pszstr, unsigned  cchstr,
-                                     SLemmInfoW*      output, unsigned  cchout,
-                                     widechar*        plemma, unsigned  clemma,
-                                     SGramInfo*       pgrams, unsigned  ngrams,
+    virtual int MLMAPROC  Lemmatize( const widechar*  pszstr, size_t    cchstr,
+                                     SLemmInfoW*      output, size_t    cchout,
+                                     widechar*        plemma, size_t    clemma,
+                                     SGramInfo*       pgrams, size_t    ngrams,
                                      unsigned         dwsets );
-    virtual int MLMAPROC  BuildForm( widechar*        output, unsigned      cchout,
-                                     unsigned         nlexid, unsigned char idform );
-    virtual int MLMAPROC  FindForms( widechar*        output, unsigned      cchout,
-                                     const widechar*  pwsstr, unsigned      cchstr,
+    virtual int MLMAPROC  BuildForm( widechar*        output, size_t    cchout,
+                                     unsigned         nlexid, byte08_t  idform );
+    virtual int MLMAPROC  FindForms( widechar*        output, size_t    cchout,
+                                     const widechar*  pwsstr, size_t    cchstr,
                                      unsigned char    idform );
-    virtual int MLMAPROC  CheckHelp( widechar*        output, unsigned      cchout,
-                                     const widechar*  pwsstr, unsigned      cchstr );
+    virtual int MLMAPROC  CheckHelp( widechar*        output, size_t    cchout,
+                                     const widechar*  pwsstr, size_t    cchstr );
   };
 
   CMlmaMb mlmaMbInstance;
@@ -100,8 +100,7 @@ namespace LIBMORPH_NAMESPACE
 
   // CMlmaMb implementation
 
-  int   CMlmaMb::SetLoCase( char*       pszstr,
-                            unsigned    cchstr )
+  int   CMlmaMb::SetLoCase( char* pszstr, size_t  cchstr )
   {
     CATCH_ALL
       strtolower( codepage_1251, pszstr, cchstr, pszstr, cchstr );
@@ -109,8 +108,7 @@ namespace LIBMORPH_NAMESPACE
     ON_ERRORS( -1 )
   }
 
-  int   CMlmaMb::SetUpCase( char*       pszstr,
-                            unsigned    cchstr )
+  int   CMlmaMb::SetUpCase( char* pszstr, size_t  cchstr )
   {
     CATCH_ALL
       strtoupper( codepage_1251, pszstr, cchstr, pszstr, cchstr );
@@ -118,9 +116,7 @@ namespace LIBMORPH_NAMESPACE
     ON_ERRORS( -1 )
   }
 
-  int   CMlmaMb::CheckWord( const char* pszstr,
-                            unsigned    cchstr,
-                            unsigned    dwsets )
+  int   CMlmaMb::CheckWord( const char* pszstr, size_t  cchstr, unsigned  dwsets )
   {
     CATCH_ALL
       byte08_t    locase[256];
@@ -142,15 +138,10 @@ namespace LIBMORPH_NAMESPACE
     ON_ERRORS( -1 )
   }
 
-  int   CMlmaMb::Lemmatize( const char*   pszstr,
-                            unsigned      cchstr,
-                            SLemmInfoA*   output,
-                            unsigned      cchout,
-                            char*         plemma,
-                            unsigned      clemma,
-                            SGramInfo*    pgrams,
-                            unsigned      ngrams,
-                            unsigned      dwsets )
+  int   CMlmaMb::Lemmatize( const char* pszstr, size_t  cchstr,
+                            SLemmInfoA* output, size_t  cchout,
+                            char*       plemma, size_t  clemma,
+                            SGramInfo*  pgrams, size_t  ngrams, unsigned  dwsets )
   {
     CATCH_ALL
       byte08_t    locase[256];
@@ -180,10 +171,7 @@ namespace LIBMORPH_NAMESPACE
     ON_ERRORS( -1 )
   }
 
-  int   CMlmaMb::BuildForm( char*         output,
-                            unsigned      cchout,
-                            lexeme_t      nlexid,
-                            unsigned char idform )
+  int   CMlmaMb::BuildForm( char* output, size_t  cchout, lexeme_t  nlexid, formid_t  idform )
   {
     CATCH_ALL
       byte08_t        lidkey[0x10];
@@ -210,11 +198,7 @@ namespace LIBMORPH_NAMESPACE
     ON_ERRORS( -1 )
   }
 
-  int   CMlmaMb::FindForms( char*           output,
-                            unsigned        cchout,
-                            const char*     pszstr,
-                            unsigned        cchstr,
-                            unsigned char   idform )
+  int   CMlmaMb::FindForms( char* output, size_t  cchout, const char* pszstr, size_t  cchstr, formid_t idform )
   {
     CATCH_ALL
       byte08_t    locase[256];
@@ -242,15 +226,10 @@ namespace LIBMORPH_NAMESPACE
     ON_ERRORS( -1 )
   }
 
-  int   CMlmaMb::CheckHelp( char*                  output,
-                            unsigned               cchout,
-                            const char*            pszstr,
-                            unsigned               cchstr )
+  int   CMlmaMb::CheckHelp( char* output, size_t  cchout, const char* pszstr, size_t  cchstr )
   {
     CATCH_ALL
-      byte08_t  szbuff[256];
       byte08_t  locase[256];
-      int       nchars;
 
     // check string length
       if ( cchstr == (unsigned)-1 )
@@ -266,21 +245,13 @@ namespace LIBMORPH_NAMESPACE
       SetLowerCase( locase );
 
     // scan the dictionary
-      if ( (nchars = WildScan( szbuff, locase, cchstr )) <= 0 )
-        return nchars;
-
-    // check if overflow
-      if ( (unsigned)nchars > cchout )
-        return WORDBUFF_FAILED;
-
-      memcpy( output, szbuff, nchars );
-        return nchars;
+      return (int)WildScan( (byte08_t*)output, cchout, locase, cchstr );
     ON_ERRORS( -1 )
   }
 
   // CMlmaWc wrapper implementation
 
-  int   CMlmaWc::SetLoCase( widechar* pwsstr, unsigned  cchstr )
+  int   CMlmaWc::SetLoCase( widechar* pwsstr, size_t  cchstr )
   {
     CATCH_ALL
       strtolower( (widechar*)pwsstr, cchstr, (const widechar*)pwsstr, cchstr );
@@ -288,7 +259,7 @@ namespace LIBMORPH_NAMESPACE
     ON_ERRORS( -1 )
   }
                                
-  int   CMlmaWc::SetUpCase( widechar* pwsstr, unsigned  cchstr )
+  int   CMlmaWc::SetUpCase( widechar* pwsstr, size_t  cchstr )
   {
     CATCH_ALL
       strtoupper( (widechar*)pwsstr, cchstr, (const widechar*)pwsstr, cchstr );
@@ -296,33 +267,33 @@ namespace LIBMORPH_NAMESPACE
     ON_ERRORS( -1 )
   }
                                
-  int   CMlmaWc::CheckWord( const widechar* pwsstr, unsigned  cchstr, unsigned  dwsets )
+  int   CMlmaWc::CheckWord( const widechar* pwsstr, size_t  cchstr, unsigned  dwsets )
   {
-    char      szword[0x100];
-    unsigned  ccword;
+    char    szword[0x100];
+    size_t  ccword;
 
   // get string length and convert to ansi
-    if ( (ccword = widetombcs( codepage_1251, szword, 0x100, (const widechar*)pwsstr, cchstr )) == (unsigned)-1 )
+    if ( (ccword = widetombcs( codepage_1251, szword, 0x100, (const widechar*)pwsstr, cchstr )) == (size_t)-1 )
       return WORDBUFF_FAILED;
     return mlmaMbInstance.CheckWord( szword, ccword, dwsets );
   }
 
-  int   CMlmaWc::Lemmatize( const widechar* pwsstr, unsigned  cchstr,
-                            SLemmInfoW*     output, unsigned  cchout,
-                            widechar*       plemma, unsigned  clemma,
-                            SGramInfo*      pgrams, unsigned  ngrams,
+  int   CMlmaWc::Lemmatize( const widechar* pwsstr, size_t  cchstr,
+                            SLemmInfoW*     output, size_t  cchout,
+                            widechar*       plemma, size_t  clemma,
+                            SGramInfo*      pgrams, size_t  ngrams,
                             unsigned        dwsets )
   {
     SLemmInfoA  lmbuff[0x20];
     char        szlemm[0xf0];
     char        szword[0xf0];
     char*       lplemm;
-    unsigned    ccword;
+    size_t      ccword;
     int         lcount;
     int         lindex;
 
   // get string length and convert to ansi
-    if ( (ccword = widetombcs( codepage_1251, szword, 0xf0, (const widechar*)pwsstr, cchstr )) == (unsigned)-1 )
+    if ( (ccword = widetombcs( codepage_1251, szword, 0xf0, (const widechar*)pwsstr, cchstr )) == (size_t)-1 )
       return WORDBUFF_FAILED;
 
   // call default lemmatizer
@@ -345,7 +316,7 @@ namespace LIBMORPH_NAMESPACE
     if ( plemma != NULL )
       for ( lindex = 0, lplemm = szlemm; lindex < lcount; ++lindex )
       {
-        unsigned  nccstr = mbcstowide( codepage_1251, (widechar*)plemma, clemma, lplemm ) + 1;
+        size_t    nccstr = mbcstowide( codepage_1251, (widechar*)plemma, clemma, lplemm ) + 1;
           
         plemma += nccstr;
         clemma -= nccstr;
@@ -354,8 +325,8 @@ namespace LIBMORPH_NAMESPACE
     return lcount;
   }
 
-  int   CMlmaWc::BuildForm( widechar* output, unsigned      cchout,
-                            lexeme_t  nlexid, unsigned char idform )
+  int   CMlmaWc::BuildForm( widechar* output, size_t    cchout,
+                            lexeme_t  nlexid, formid_t  idform )
   {
     char        szform[98];
     char*       lpform;
@@ -370,7 +341,7 @@ namespace LIBMORPH_NAMESPACE
   // convert
     for ( findex = 0, lpform = szform; findex < fcount; ++findex )
     {
-      unsigned  nccstr = mbcstowide( codepage_1251, output, cchout, lpform ) + 1;
+      size_t    nccstr = mbcstowide( codepage_1251, output, cchout, lpform ) + 1;
 
       output += nccstr;
       cchout -= nccstr;
@@ -380,16 +351,15 @@ namespace LIBMORPH_NAMESPACE
     return fcount;
   }
 
-  int   CMlmaWc::FindForms( widechar*       output, unsigned  cchout,
-                            const widechar* pwsstr, unsigned  cchstr,
-                            unsigned char   idform )
+  int   CMlmaWc::FindForms(       widechar* output, size_t  cchout,
+                            const widechar* pwsstr, size_t  cchstr, formid_t  idform )
   {
-    char        szword[98];
-    char        szform[98];
-    char*       lpform;
-    unsigned    ccword;
-    int         fcount;
-    int         findex;
+    char    szword[98];
+    char    szform[98];
+    char*   lpform;
+    size_t  ccword;
+    int     fcount;
+    int     findex;
 
   // get string length and convert to ansi
     if ( (ccword = widetombcs( codepage_1251, szword, sizeof(szword) - 1, pwsstr, cchstr )) == (unsigned)-1 )
@@ -403,7 +373,7 @@ namespace LIBMORPH_NAMESPACE
   // convert
     for ( findex = 0, lpform = szform; findex < fcount; ++findex )
     {
-      unsigned  nccstr = mbcstowide( codepage_1251, output, cchout, lpform ) + 1;
+      size_t    nccstr = mbcstowide( codepage_1251, output, cchout, lpform ) + 1;
 
       output += nccstr;
       cchout -= nccstr;
@@ -413,13 +383,13 @@ namespace LIBMORPH_NAMESPACE
     return fcount;
   }
 
-  int   CMlmaWc::CheckHelp( widechar*       output, unsigned cchout,
-                            const widechar* pwsstr, unsigned cchstr )
+  int   CMlmaWc::CheckHelp(       widechar* output, size_t  cchout,
+                            const widechar* pwsstr, size_t  cchstr )
   {
-    char        szword[98];
-    char        chhelp[98];
-    unsigned    ccword;
-    int         ccount;
+    char    szword[98];
+    char    chhelp[98];
+    size_t  ccword;
+    int     ccount;
 
   // get string length and convert to ansi
     if ( (ccword = widetombcs( codepage_1251, szword, sizeof(szword) - 1, pwsstr, cchstr )) == (unsigned)-1 )
@@ -436,192 +406,11 @@ namespace LIBMORPH_NAMESPACE
   }
 }
 
-using namespace LIBMORPH_NAMESPACE;
-
-short MLMA_API EXPORT mlmaruCheckWord( const char* lpWord, unsigned short options )
-{
-  return mlmaMbInstance.CheckWord( lpWord, (unsigned)-1, options );
-}
-
-short MLMA_API EXPORT mlmaruLemmatize( const char*    lpWord,
-                                       word16_t       dwsets,
-                                       char*          lpLemm,
-                                       lexeme_t*      lpLIDs,
-                                       char*          lpGram,
-                                       word16_t       ccLemm,
-                                       word16_t       cdwLID,
-                                       word16_t       cbGram )
-{
-  SLemmInfoA  lmbuff[32];   // the lemmatization buffer
-  SGramInfo   grbuff[64];
-  int         lcount;       // the lemmatization result
-  int         lindex;
-
-// call the lemmatizer
-  if ( (lcount = mlmaMbInstance.Lemmatize( lpWord, (unsigned)-1,
-                                           lmbuff, sizeof(lmbuff) / sizeof(lmbuff[0]),
-                                           lpLemm, ccLemm,
-                                           grbuff, sizeof(grbuff) / sizeof(grbuff[0]),
-                                           dwsets )) <= 0 )
-    return lcount;
-
-// check if the fields needed
-  if ( lpGram == NULL && lpLIDs == NULL )
-    return lcount;
-
-// fill selected fields
-  for ( lindex = 0; lindex < lcount; lindex++ )
-  {
-    if ( lpGram != NULL )
-    {
-      unsigned  gcount = lmbuff[lindex].ngrams;
-
-      if ( cbGram < 1 + gcount * sizeof(SGramInfo) )
-        return GRAMBUFF_FAILED;
-      else *lpGram++ = gcount;
-        memcpy( lpGram, lmbuff[lindex].pgrams, gcount * sizeof(SGramInfo) );
-      lpGram += gcount * sizeof(SGramInfo);
-      cbGram -= gcount * sizeof(SGramInfo);
-    }
-    if ( lpLIDs != NULL )
-    {
-      if ( cdwLID == 0 )
-        return LIDSBUFF_FAILED;
-      *lpLIDs++ = lmbuff[lindex].nlexid;
-        --cdwLID;
-    }
-  }
-  return lcount;
-}
-
-short   MLMA_API  EXPORT  mlmaruBuildForm( const char*    pszstr,
-                                           lexeme_t       nLexId,
-                                           word16_t       dwsets,
-                                           unsigned char  formId,
-                                           char*          output,
-                                           word16_t       cchout )
-{
-  return pszstr != NULL ? mlmaMbInstance.FindForms( output, cchout,
-    pszstr, (unsigned)-1, formId ) : mlmaMbInstance.BuildForm( output, cchout, nLexId, formId );
-}
-
-short   MLMA_API  EXPORT  mlmaruBuildFormGI( const char*    pszstr,
-                                             lexeme_t       nlexid,
-                                             word16_t       dwsets,
-                                             word16_t       grinfo,
-                                             unsigned char  bflags,
-                                             char*          output,
-                                             word16_t       cchout )
-{
-  CATCH_ALL
-    byte08_t    locase[256];
-    unsigned    cchstr = 0;
-    doBuildForm abuild( locase, 0 );
-
-    abuild.output = output;
-    abuild.cchout = cchout;
-    abuild.grinfo = grinfo;
-    abuild.bflags = bflags;
-    abuild.idform = (unsigned)-1;
-
-  // check for overflow
-    if ( pszstr != NULL )
-    {
-      if ( (cchstr = strlen( pszstr )) >= sizeof(locase) )
-        return WORDBUFF_FAILED;
-
-      abuild.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
-
-      if ( !ScanDict<byte08_t, int>( listLookup<doBuildForm>( abuild ), stemtree, locase, cchstr ) )
-        return 0;
-    }
-      else
-    {
-      byte08_t        lidkey[0x10];
-      const byte08_t* ofsptr;
-
-    // Оригинальная форма слова не задана, следует применять модификацию алгоритма, "прыгающую"
-    // по словарю идентификаторов лексем сразу в нужную точку на странице.
-      if ( (ofsptr = ScanDict<word16_t, const byte08_t*>( getDictPos(), lidstree, lidkey, lexkeylen( lidkey, nlexid ) )) != NULL )
-      {
-        const byte08_t* dicpos = stemtree + getserial( ofsptr );
-
-        if ( FindStem( abuild, stemtree, locase, dicpos ) == 0 )
-          return 0;
-      }
-    }
-
-    return abuild.nerror != 0 ? abuild.nerror : abuild.rcount;
-  ON_ERRORS( -1 )
-}
-
-short MLMA_API EXPORT mlmaruEnumWords( TEnumWords enumfn, void *vparam )
-{
-  CATCH_ALL
-    doEnumList  doenum( enumfn, vparam );
-
-    return EnumDict<byte08_t, int>( doenum, stemtree ) >= 0 ? 1 : 0;
-  ON_ERRORS( -1 )
-}
-
-short MLMA_API EXPORT mlmaruCheckHelp( const char*  lpWord,
-                                       char*        lpList )
-{
-  return mlmaMbInstance.CheckHelp( lpList, 32, lpWord, (unsigned)-1 );
-}
-
-short MLMA_API EXPORT mlmaruListForms( lexeme_t       nlexid,
-                                       char*          output,
-                                       unsigned       cchout )
-{
-  CATCH_ALL
-    byte08_t        lidkey[0x10];
-    const byte08_t* ofsptr;
-
-  // Оригинальная форма слова не задана, следует применять модификацию алгоритма, "прыгающую"
-  // по словарю идентификаторов лексем сразу в нужную точку на странице.
-    if ( (ofsptr = ScanDict<word16_t, const byte08_t*>( getDictPos(), lidstree, lidkey, lexkeylen( lidkey, nlexid ) )) != NULL )
-    {
-      const byte08_t* dicpos = stemtree + getserial( ofsptr );
-      byte08_t        szstem[0x80];
-      doListForms     aforms( szstem, 0 );
-
-      aforms.output = output;
-      aforms.cchout = cchout;
-
-      return FindStem( aforms, stemtree, szstem, dicpos ) == 0 || aforms.nerror != 0 ?
-        aforms.nerror : aforms.rcount;
-    }
-    return 0;
-  ON_ERRORS( -1 )
-}
-
-short MLMA_API EXPORT mlmaruGetWordInfo( lexeme_t       nlexid,
-                                         unsigned char* wdinfo )
-{
-  CATCH_ALL
-    byte08_t        lidkey[0x10];
-    const byte08_t* ofsptr;
-
-  // Оригинальная форма слова не задана, следует применять модификацию алгоритма, "прыгающую"
-  // по словарю идентификаторов лексем сразу в нужную точку на странице.
-    if ( (ofsptr = ScanDict<word16_t, const byte08_t*>( getDictPos(), lidstree, lidkey, lexkeylen( lidkey, nlexid ) )) != NULL )
-    {
-      const byte08_t* dicpos = stemtree + getserial( ofsptr );
-      byte08_t        szstem[0x80];
-      doGetWdInfo     getwdi( wdinfo, 0 );
-
-      return FindStem( getwdi, stemtree, szstem, dicpos );
-    }
-    return 0;
-  ON_ERRORS( -1 )
-}
-
 int   MLMAPROC        mlmaruLoadMbAPI( IMlmaMb**  ptrAPI )
 {
   if ( ptrAPI == NULL )
     return -1;
-  *ptrAPI = (IMlmaMb*)&mlmaMbInstance;
+  *ptrAPI = (IMlmaMb*)&LIBMORPH_NAMESPACE::mlmaMbInstance;
     return 0;
 }
 
@@ -629,6 +418,6 @@ int   MLMAPROC        mlmaruLoadWcAPI( IMlmaWc**  ptrAPI )
 {
   if ( ptrAPI == NULL )
     return -1;
-  *ptrAPI = (IMlmaWc*)&mlmaWcInstance;
+  *ptrAPI = (IMlmaWc*)&LIBMORPH_NAMESPACE::mlmaWcInstance;
     return 0;
 }

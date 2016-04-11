@@ -29,14 +29,14 @@ namespace LIBMORPH_NAMESPACE
   struct  scan_stack
   {
     const byte08_t*       thestr;
-    unsigned              cchstr;
+    size_t                cchstr;
     byte08_t              chfind;
     const byte08_t*       thedic;
     countflags<flagtype>  aflags;
     int                   ccount;
 
   public:     // init
-    scan_stack*     setlevel( const byte08_t* p, const byte08_t* s, unsigned l )
+    scan_stack*     setlevel( const byte08_t* p, const byte08_t* s, size_t l )
       {
         ccount = aflags.load( thedic = p ).getcount();
           thestr = s;
@@ -62,7 +62,7 @@ namespace LIBMORPH_NAMESPACE
 
   template <class aflags, class result, class action>
   result  ScanDict( const action&   reader, const byte08_t* thedic,
-                    const byte08_t* thestr, unsigned        cchstr )
+                    const byte08_t* thestr, size_t          cchstr )
   {
     scan_stack<aflags>  astack[0x40];     // never longer words
     scan_stack<aflags>* pstack;
@@ -97,7 +97,7 @@ namespace LIBMORPH_NAMESPACE
     gramBuffer( SGramInfo* p ): outorg( p ), outptr( p )
       {
       }
-    int   size() const
+    size_t  size() const
       {
         return outptr - outorg;
       }
@@ -121,7 +121,7 @@ namespace LIBMORPH_NAMESPACE
       }
 
   protected:
-    int   CopyGramAA( const byte08_t* thedic ) const // no forced multiple, any interchange
+    size_t  CopyGramAA( const byte08_t* thedic ) const // no forced multiple, any interchange
       {
         int         nforms = getserial( thedic );
 
@@ -133,7 +133,7 @@ namespace LIBMORPH_NAMESPACE
 
         return output.size();
       }
-    int   CopyGramMA( const byte08_t* thedic ) const  // no forced multiple, any interchange
+    size_t  CopyGramMA( const byte08_t* thedic ) const  // no forced multiple, any interchange
       {
         int         nforms = getserial( thedic );
 
@@ -151,7 +151,7 @@ namespace LIBMORPH_NAMESPACE
 
         return output.size();
       }
-    int   CopyGramAP( const byte08_t* thedic ) const  // no forced multiple, any interchange
+    size_t  CopyGramAP( const byte08_t* thedic ) const  // no forced multiple, any interchange
       {
         int         nforms = getserial( thedic );
 
@@ -172,7 +172,7 @@ namespace LIBMORPH_NAMESPACE
 
         return output.size();
       }
-    int   CopyGramMP( const byte08_t* thedic ) const  // no forced multiple, any interchange
+    size_t  CopyGramMP( const byte08_t* thedic ) const  // no forced multiple, any interchange
       {
         int         nforms = getserial( thedic );
 
@@ -195,11 +195,11 @@ namespace LIBMORPH_NAMESPACE
       }
 
   public:     // gramLoader functor
-    int   operator () ( const byte08_t* thedic, const byte08_t* thestr, unsigned cchstr ) const
+    int   operator () ( const byte08_t* thedic, const byte08_t* thestr, size_t cchstr ) const
       {
-        return cchstr == 0 ?
+        return (int)(cchstr == 0 ?
           (mpower == (unsigned)-1 ? ((wdinfo & wfMultiple) != 0 ? CopyGramMA( thedic ) : CopyGramAA( thedic )) :
-                                    ((wdinfo & wfMultiple) != 0 ? CopyGramMP( thedic ) : CopyGramAP( thedic ))) : 0;
+                                    ((wdinfo & wfMultiple) != 0 ? CopyGramMP( thedic ) : CopyGramAP( thedic ))) : 0);
       }
 
   };
@@ -213,7 +213,7 @@ namespace LIBMORPH_NAMESPACE
     listLookup( action& a ): output( a )
       {
       }
-    int   operator () ( const byte08_t* pstems, const byte08_t* thestr, unsigned cchstr ) const
+    int   operator () ( const byte08_t* pstems, const byte08_t* thestr, size_t cchstr ) const
       {
         SGramInfo fxlist[0x40];     // Массив отождествлений на окончаниях
         unsigned  ucount = getserial( pstems );
@@ -222,7 +222,7 @@ namespace LIBMORPH_NAMESPACE
         {
           steminfo        stinfo ( getserial( pstems ) + classmap );
           lexeme_t        nlexid = getserial( pstems );
-          unsigned        ccflex = cchstr;
+          size_t          ccflex = cchstr;
           const byte08_t* flestr;
           const byte08_t* matstr;
           int             rescmp;
@@ -232,7 +232,7 @@ namespace LIBMORPH_NAMESPACE
         // check for postfix
           if ( stinfo.ccpost != 0 )
           {
-            unsigned  ccpost;
+            size_t  ccpost;
 
             if ( stinfo.ccpost > ccflex )
               continue;
@@ -303,11 +303,11 @@ namespace LIBMORPH_NAMESPACE
             {
               gramBuffer      grbuff( fxlist );
               const byte08_t* curmix = mixtab;
-              unsigned        mixlen = 0x0f & *curmix;
+              size_t          mixlen = 0x0f & *curmix;
               unsigned        powers = *curmix++ >> 4;
               const byte08_t* flextr = thestr;
-              unsigned        flexcc = cchstr;
-              unsigned        cmplen;
+              size_t          flexcc = cchstr;
+              size_t          cmplen;
               int             rescmp;
 
             // перейти к следующей строке чередования

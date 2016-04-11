@@ -48,11 +48,11 @@ namespace LIBMORPH_NAMESPACE
   struct  doLemmatize: public doCheckWord
   {
     SLemmInfoA*     plemma;   // the output buffer for descriptions
-    unsigned        clemma;   // the buffer length
+    size_t          clemma;   // the buffer length
     char*           pforms;   // the buffer for the forms
-    unsigned        cforms;   // the buffer size
+    size_t          cforms;   // the buffer size
     SGramInfo*      pgrams;   // the buffer for grammar descriptions
-    unsigned        cgrams;   // gramma descriptions length
+    size_t          cgrams;   // gramma descriptions length
 
     int             rcount;   // the count of built descriptions
     int             nerror;
@@ -93,15 +93,15 @@ namespace LIBMORPH_NAMESPACE
 
   struct  doBuildForm: public doCheckWord
   {
-    char*           output;
-    unsigned        cchout;
+    char*       output;
+    size_t      cchout;
 
-    word16_t        grinfo;
-    byte08_t        bflags;
-    unsigned        idform;
+    word16_t    grinfo;
+    byte08_t    bflags;
+    unsigned    idform;
 
-    int             rcount;
-    int             nerror;
+    int         rcount;
+    int         nerror;
 
   public: // the registration API
     doBuildForm( const byte08_t* szbase, unsigned uflags ): doCheckWord( szbase, uflags ),
@@ -120,11 +120,11 @@ namespace LIBMORPH_NAMESPACE
 
   struct  doListForms: public doCheckWord
   {
-    char*           output;
-    unsigned        cchout;
+    char*   output;
+    size_t  cchout;
 
-    int             rcount;
-    int             nerror;
+    int     rcount;
+    int     nerror;
 
   public: // the registration API
     doListForms( const byte08_t* szbase, unsigned uflags ): doCheckWord( szbase, uflags ),

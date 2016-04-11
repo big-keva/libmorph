@@ -129,7 +129,7 @@ namespace LIBMORPH_NAMESPACE
     while ( t < e ) {  byte08_t c = *t;  *t++ = *--e;  *e = c;  }
   }
 
-  inline  int       lexkeylen( byte08_t* p, unsigned nlexid )
+  inline  size_t    lexkeylen( byte08_t* p, unsigned nlexid )
   {
     byte08_t* o = p;
 

@@ -5,7 +5,7 @@
 
 namespace LIBMORPH_NAMESPACE
 {
-  int  WildScan( byte08_t* output, const byte08_t* ptempl, unsigned cchstr );
+  size_t  WildScan( byte08_t* output, size_t cchout, const byte08_t* ptempl, size_t  cchstr );
 }
 
 # endif // _wildscan_h_

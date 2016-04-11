@@ -24,7 +24,7 @@ namespace LIBMORPH_NAMESPACE
     return charTypeMatrix[(unsigned char)c];
   }
 
-  unsigned GetCapScheme( unsigned char* output, unsigned outlen, const char*  srctop, unsigned srclen )
+  unsigned GetCapScheme( unsigned char* output, size_t  outlen, const char*  srctop, size_t srclen )
   {
     unsigned char*  outend = output + outlen;
     const char*     srcend;
@@ -63,7 +63,7 @@ namespace LIBMORPH_NAMESPACE
     if ( output < outend ) *output = '\0';
       else return (unsigned)-1;
 
-    return (output + outlen - outend) << 16 | ((cdefis + 1) << 8) | (bvalid ? scheme : 0xff);
+    return (((unsigned)(output + outlen - outend)) << 16) | ((cdefis + 1) << 8) | (bvalid ? scheme : 0xff);
   }
 
 # if defined( unit_test )
