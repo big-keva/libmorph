@@ -7,6 +7,7 @@
 
 # include <limits.h>
 # include <stdint.h>
+# include <stddef.h>
 
 # if !defined( __widechar_defined__ )
 # define  __widechar_defined__
