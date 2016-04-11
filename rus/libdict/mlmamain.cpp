@@ -6,7 +6,7 @@
 # include "capsheme.h"
 # include "../include/mlma1049.h"
 # include <string.h>
-# include "../../unicode/libmorph_unicode.h"
+# include <libcodes/codes.h>
 
 # if !defined( _WIN32_WCE )
   # define  CATCH_ALL         try {
@@ -64,8 +64,8 @@ namespace LIBMORPH_NAMESPACE
                                      char*                  plemma, unsigned  clemma,
                                      SGramInfo*             pgrams, unsigned  ngrams,
                                      unsigned               dwsets );
-    virtual int MLMAPROC  BuildForm( char*          output, unsigned      cchout,
-                                     unsigned       nlexid, unsigned char idform );
+    virtual int MLMAPROC  BuildForm( char*                  output, unsigned      cchout,
+                                     unsigned               nlexid, unsigned char idform );
     virtual int MLMAPROC  FindForms( char*                  output, unsigned      cchout,
                                      const char*            pszstr, unsigned      cchstr,
                                      unsigned char          idform );
@@ -75,26 +75,28 @@ namespace LIBMORPH_NAMESPACE
 
   struct  CMlmaWc
   {
-    virtual int MLMAPROC  SetLoCase( unsigned short*        pwsstr, unsigned  cchstr );
-    virtual int MLMAPROC  SetUpCase( unsigned short*        pwsstr, unsigned  cchstr );
-    virtual int MLMAPROC  CheckWord( const unsigned short*  pszstr, unsigned  cchstr,
-                                     unsigned               dwsets );
-    virtual int MLMAPROC  Lemmatize( const unsigned short*  pszstr, unsigned  cchstr,
-                                     SLemmInfoW*            output, unsigned  cchout,
-                                     unsigned short*        plemma, unsigned  clemma,
-                                     SGramInfo*             pgrams, unsigned  ngrams,
-                                     unsigned       dwsets );
-    virtual int MLMAPROC  BuildForm( unsigned short*        output, unsigned      cchout,
-                                     unsigned               nlexid, unsigned char idform );
-    virtual int MLMAPROC  FindForms( unsigned short*        output, unsigned      cchout,
-                                     const unsigned short*  pwsstr, unsigned      cchstr,
-                                     unsigned char          idform );
-    virtual int MLMAPROC  CheckHelp( unsigned short*        output, unsigned      cchout,
-                                     const unsigned short*  pwsstr, unsigned      cchstr );
+    virtual int MLMAPROC  SetLoCase( widechar*        pwsstr, unsigned  cchstr );
+    virtual int MLMAPROC  SetUpCase( widechar*        pwsstr, unsigned  cchstr );
+    virtual int MLMAPROC  CheckWord( const widechar*  pszstr, unsigned  cchstr,
+                                     unsigned         dwsets );
+    virtual int MLMAPROC  Lemmatize( const widechar*  pszstr, unsigned  cchstr,
+                                     SLemmInfoW*      output, unsigned  cchout,
+                                     widechar*        plemma, unsigned  clemma,
+                                     SGramInfo*       pgrams, unsigned  ngrams,
+                                     unsigned         dwsets );
+    virtual int MLMAPROC  BuildForm( widechar*        output, unsigned      cchout,
+                                     unsigned         nlexid, unsigned char idform );
+    virtual int MLMAPROC  FindForms( widechar*        output, unsigned      cchout,
+                                     const widechar*  pwsstr, unsigned      cchstr,
+                                     unsigned char    idform );
+    virtual int MLMAPROC  CheckHelp( widechar*        output, unsigned      cchout,
+                                     const widechar*  pwsstr, unsigned      cchstr );
   };
 
   CMlmaMb mlmaMbInstance;
   CMlmaWc mlmaWcInstance;
+
+  using namespace codepages;
 
   // CMlmaMb implementation
 
@@ -102,17 +104,8 @@ namespace LIBMORPH_NAMESPACE
                             unsigned    cchstr )
   {
     CATCH_ALL
-
-    if ( cchstr == (unsigned)-1 )
-      cchstr = strlen( pszstr );
-
-    while ( cchstr-- > 0 )
-    {
-      *pszstr = (char)toLoCaseMatrix[(unsigned char)*pszstr];
-        ++pszstr;
-    }
-    return 0;
-
+      strtolower( codepage_1251, pszstr, cchstr, pszstr, cchstr );
+      return 0;
     ON_ERRORS( -1 )
   }
 
@@ -120,17 +113,8 @@ namespace LIBMORPH_NAMESPACE
                             unsigned    cchstr )
   {
     CATCH_ALL
-
-    if ( cchstr == (unsigned)-1 )
-      cchstr = strlen( pszstr );
-
-    while ( cchstr-- > 0 )
-    {
-      *pszstr = (char)toUpCaseMatrix[(unsigned char)*pszstr];
-        ++pszstr;
-    }
-    return 0;
-
+      strtoupper( codepage_1251, pszstr, cchstr, pszstr, cchstr );
+      return 0;
     ON_ERRORS( -1 )
   }
 
@@ -296,71 +280,49 @@ namespace LIBMORPH_NAMESPACE
 
   // CMlmaWc wrapper implementation
 
-  int   CMlmaWc::SetLoCase( unsigned short*        pwsstr,
-                            unsigned               cchstr )
+  int   CMlmaWc::SetLoCase( widechar* pwsstr, unsigned  cchstr )
   {
     CATCH_ALL
-      char      szword[0x400];
-      unsigned  ccword;
-
-    // get string length and convert to ansi
-      if ( (ccword = wctoansi( szword, sizeof(szword) - 1, pwsstr, cchstr )) == (unsigned)-1 )
-        return WORDBUFF_FAILED;
-      mlmaMbInstance.SetLoCase( szword, ccword );
-        ansitowc( pwsstr, cchstr, szword, ccword );
+      strtolower( (widechar*)pwsstr, cchstr, (const widechar*)pwsstr, cchstr );
       return 0;
     ON_ERRORS( -1 )
   }
                                
-  int   CMlmaWc::SetUpCase( unsigned short*        pwsstr,
-                            unsigned               cchstr )
+  int   CMlmaWc::SetUpCase( widechar* pwsstr, unsigned  cchstr )
   {
     CATCH_ALL
-      char      szword[0x400];
-      unsigned  ccword;
-
-    // get string length and convert to ansi
-      if ( (ccword = wctoansi( szword, sizeof(szword) - 1, pwsstr, cchstr )) == (unsigned)-1 )
-        return WORDBUFF_FAILED;
-      mlmaMbInstance.SetUpCase( szword, ccword );
-        ansitowc( pwsstr, cchstr, szword, ccword );
+      strtoupper( (widechar*)pwsstr, cchstr, (const widechar*)pwsstr, cchstr );
       return 0;
     ON_ERRORS( -1 )
   }
                                
-  int   CMlmaWc::CheckWord( const unsigned short*  pwsstr,
-                            unsigned               cchstr,
-                            unsigned               dwsets )
+  int   CMlmaWc::CheckWord( const widechar* pwsstr, unsigned  cchstr, unsigned  dwsets )
   {
-    char      szword[98];
+    char      szword[0x100];
     unsigned  ccword;
 
   // get string length and convert to ansi
-    if ( (ccword = wctoansi( szword, sizeof(szword) - 1, pwsstr, cchstr )) == (unsigned)-1 )
+    if ( (ccword = widetombcs( codepage_1251, szword, 0x100, (const widechar*)pwsstr, cchstr )) == (unsigned)-1 )
       return WORDBUFF_FAILED;
     return mlmaMbInstance.CheckWord( szword, ccword, dwsets );
   }
 
-  int   CMlmaWc::Lemmatize( const unsigned short*  pwsstr,
-                            unsigned               cchstr,
-                            SLemmInfoW*            output,
-                            unsigned               cchout,
-                            unsigned short*        plemma,
-                            unsigned               clemma,
-                            SGramInfo*             pgrams,
-                            unsigned               ngrams,
-                            unsigned               dwsets )
+  int   CMlmaWc::Lemmatize( const widechar* pwsstr, unsigned  cchstr,
+                            SLemmInfoW*     output, unsigned  cchout,
+                            widechar*       plemma, unsigned  clemma,
+                            SGramInfo*      pgrams, unsigned  ngrams,
+                            unsigned        dwsets )
   {
-    SLemmInfoA  lmbuff[32];
-    char        szlemm[98];
-    char        szword[98];
+    SLemmInfoA  lmbuff[0x20];
+    char        szlemm[0xf0];
+    char        szword[0xf0];
     char*       lplemm;
     unsigned    ccword;
     int         lcount;
     int         lindex;
 
   // get string length and convert to ansi
-    if ( (ccword = wctoansi( szword, sizeof(szword) - 1, pwsstr, cchstr )) == (unsigned)-1 )
+    if ( (ccword = widetombcs( codepage_1251, szword, 0xf0, (const widechar*)pwsstr, cchstr )) == (unsigned)-1 )
       return WORDBUFF_FAILED;
 
   // call default lemmatizer
@@ -383,7 +345,7 @@ namespace LIBMORPH_NAMESPACE
     if ( plemma != NULL )
       for ( lindex = 0, lplemm = szlemm; lindex < lcount; ++lindex )
       {
-        unsigned  nccstr = ansitowc( plemma, clemma, lplemm ) + 1;
+        unsigned  nccstr = mbcstowide( codepage_1251, (widechar*)plemma, clemma, lplemm ) + 1;
           
         plemma += nccstr;
         clemma -= nccstr;
@@ -392,10 +354,8 @@ namespace LIBMORPH_NAMESPACE
     return lcount;
   }
 
-  int   CMlmaWc::BuildForm( unsigned short*      output,
-                            unsigned             cchout,
-                            lexeme_t             nlexid,
-                            unsigned char        idform )
+  int   CMlmaWc::BuildForm( widechar* output, unsigned      cchout,
+                            lexeme_t  nlexid, unsigned char idform )
   {
     char        szform[98];
     char*       lpform;
@@ -410,7 +370,7 @@ namespace LIBMORPH_NAMESPACE
   // convert
     for ( findex = 0, lpform = szform; findex < fcount; ++findex )
     {
-      unsigned  nccstr = ansitowc( output, cchout, lpform ) + 1;
+      unsigned  nccstr = mbcstowide( codepage_1251, output, cchout, lpform ) + 1;
 
       output += nccstr;
       cchout -= nccstr;
@@ -420,11 +380,9 @@ namespace LIBMORPH_NAMESPACE
     return fcount;
   }
 
-  int   CMlmaWc::FindForms( unsigned short*        output,
-                            unsigned               cchout,
-                            const unsigned short*  pwsstr,
-                            unsigned               cchstr,
-                            unsigned char          idform )
+  int   CMlmaWc::FindForms( widechar*       output, unsigned  cchout,
+                            const widechar* pwsstr, unsigned  cchstr,
+                            unsigned char   idform )
   {
     char        szword[98];
     char        szform[98];
@@ -434,7 +392,7 @@ namespace LIBMORPH_NAMESPACE
     int         findex;
 
   // get string length and convert to ansi
-    if ( (ccword = wctoansi( szword, sizeof(szword) - 1, pwsstr, cchstr )) == (unsigned)-1 )
+    if ( (ccword = widetombcs( codepage_1251, szword, sizeof(szword) - 1, pwsstr, cchstr )) == (unsigned)-1 )
       return WORDBUFF_FAILED;
 
   // build the form
@@ -445,7 +403,7 @@ namespace LIBMORPH_NAMESPACE
   // convert
     for ( findex = 0, lpform = szform; findex < fcount; ++findex )
     {
-      unsigned  nccstr = ansitowc( output, cchout, lpform ) + 1;
+      unsigned  nccstr = mbcstowide( codepage_1251, output, cchout, lpform ) + 1;
 
       output += nccstr;
       cchout -= nccstr;
@@ -455,10 +413,8 @@ namespace LIBMORPH_NAMESPACE
     return fcount;
   }
 
-  int   CMlmaWc::CheckHelp( unsigned short*        output,
-                            unsigned               cchout,
-                            const unsigned short*  pwsstr,
-                            unsigned               cchstr )
+  int   CMlmaWc::CheckHelp( widechar*       output, unsigned cchout,
+                            const widechar* pwsstr, unsigned cchstr )
   {
     char        szword[98];
     char        chhelp[98];
@@ -466,7 +422,7 @@ namespace LIBMORPH_NAMESPACE
     int         ccount;
 
   // get string length and convert to ansi
-    if ( (ccword = wctoansi( szword, sizeof(szword) - 1, pwsstr, cchstr )) == (unsigned)-1 )
+    if ( (ccword = widetombcs( codepage_1251, szword, sizeof(szword) - 1, pwsstr, cchstr )) == (unsigned)-1 )
       return WORDBUFF_FAILED;
 
   // build the form
@@ -475,7 +431,7 @@ namespace LIBMORPH_NAMESPACE
         return ccount;
 
   // convert
-    ansitowc( output, cchout, chhelp, ccount );
+    mbcstowide( codepage_1251, output, cchout, chhelp, ccount );
     return ccount;
   }
 }

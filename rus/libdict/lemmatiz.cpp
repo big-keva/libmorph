@@ -246,7 +246,7 @@ namespace LIBMORPH_NAMESPACE
       
     // copy...
       for ( ; fcount-- > 0; ++pgrams, ++flexes )
-        pgrams->iForm = (byte08_t)MapWordInfo( (byte08_t)(pgrams->wInfo = stinfo.wdinfo),
+        pgrams->iForm = (byte08_t)MapWordInfo( pgrams->wInfo = (byte08_t)stinfo.wdinfo,
           pgrams->gInfo = flexes->gInfo, pgrams->other = flexes->other );
     }
     ++plemma;
