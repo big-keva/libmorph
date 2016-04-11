@@ -1,0 +1,3 @@
+EXPORTS
+  mlmaruLoadMbAPI    @100
+  mlmaruLoadWcAPI    @110
