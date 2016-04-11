@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="dic">
+      <UniqueIdentifier>{e82c8449-4061-4e4a-8a27-9ceaf4d5b45b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{3f58b635-689f-44ef-a7f7-6148678dd73a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="capsheme.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="flexmake.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="lemmatiz.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mlmamain.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="wildscan.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dictree\classmap.cpp">
+      <Filter>dic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dictree\flexTree.cpp">
+      <Filter>dic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dictree\lidstree.cpp">
+      <Filter>dic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dictree\mixTypes.cpp">
+      <Filter>dic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dictree\mxTables.cpp">
+      <Filter>dic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\dictree\stemtree.cpp">
+      <Filter>dic</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="capsheme.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="flexmake.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="grammap.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="lemmatiz.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="mlmadefs.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="namespace.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="scandict.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="wildscan.h">
+      <Filter>src</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
