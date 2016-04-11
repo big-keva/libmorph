@@ -1,6 +1,7 @@
 # if !defined( _capsheme_h_ )
 # define _capsheme_h_
 # include <namespace.h>
+# include <stddef.h>
 
 // For better compatibility and neighbour usage of different morphological
 // modules in one UNIX application all the objects are packed to the
