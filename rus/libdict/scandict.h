@@ -1,4 +1,4 @@
-# if !defined( __scandict_h__ )
+if !defined( __scandict_h__ )
 # define  __scandict_h__
 # include <namespace.h>
 # include "mlmadefs.h"
@@ -335,21 +335,21 @@ namespace LIBMORPH_NAMESPACE
 
   };
 
-  template <class aflags, class result, class action>
+  template <class flagtype, class result, class action>
   result  EnumDict( action& output, const byte08_t* thedic )
   {
-    countflags<aflags>  bflags;
-    result              retval;
-    int                 acount;
+    flagtype  bflags;
+    result    retval;
+    int       acount;
 
-    for ( acount = bflags.load( thedic ).getcount(); acount-- > 0 ; )
+    for ( acount = getlower(bflags = *(flagtype*)thedic), thedic += sizeof(flagtype); acount-- > 0 ; )
     {
-      unsigned        sublen = getserial( ++thedic );
+      unsigned  sublen = getserial( ++thedic );
 
-      if ( (retval = EnumDict<aflags, result>( output, thedic )) != 0 ) return retval;
+      if ( (retval = EnumDict<flagtype, result>( output, thedic )) != 0 ) return retval;
         else  thedic += sublen;
     }
-    return bflags.extended() ? output( thedic ) : (result)0;
+    return hasupper( bflags ) ? output( thedic ) : (result)0;
   }
 
   template <class action>
