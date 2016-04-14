@@ -16,7 +16,7 @@ struct  storecounter
   template <class O>
   static O*         Serialize( O* o, int ncount, bool extended )
     {
-      val   acount = ncount | (extended ? (1 < (sizeof(val) * CHAR_BIT - 1)) : 0);
+      val   acount = ncount | (extended ? (1 << (sizeof(val) * CHAR_BIT - 1)) : 0);
 
       return ::Serialize( o, &acount, sizeof(acount) );
     }
