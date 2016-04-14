@@ -228,24 +228,14 @@ namespace LIBMORPH_NAMESPACE
     word16_t        wdinfo;
     word16_t        tfoffs;
     word16_t        mtoffs;
-    byte08_t        chrmin;
-    byte08_t        chrmax;
-    unsigned        ccpost;
-    const byte08_t* szpost;
 
   public:     // init
-    steminfo()
+    steminfo& Load( const byte08_t* pclass )
       {
-      }
-    steminfo( const byte08_t* pclass )
-      {
-        chrmin = *pclass++;
-        chrmax = *pclass++;
         wdinfo = getword16( pclass );
         tfoffs = (wdinfo & wfFlexes) != 0 || (wdinfo & 0x3f) == 51 ? getword16( pclass ) : 0;
         mtoffs = (wdinfo & wfMixTab) != 0 ? getword16( pclass ) : 0;
-        ccpost = (wdinfo & wfPostSt) != 0 ? *pclass++ : 0;
-        szpost = pclass;
+        return *this;
       }
   };
 
