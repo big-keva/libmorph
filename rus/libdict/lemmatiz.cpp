@@ -195,7 +195,7 @@ namespace LIBMORPH_NAMESPACE
     // check if a word has a postfix; append the postfix; check if overflow
       if ( (srctop = szpost) != NULL )
       {
-        for ( srcend = 1 + srctop + *srctop; output < outend && srctop < srcend; )
+        for ( srcend = ++srctop + *szpost; output < outend && srctop < srcend; )
           *output++ = (char)*srctop++;
         if ( output >= outend )
           return (nerror = LEMMBUFF_FAILED);
