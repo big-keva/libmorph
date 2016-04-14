@@ -41,11 +41,13 @@ namespace LIBMORPH_NAMESPACE
 
         while ( ucount-- > 0 )
         {
+/*
           steminfo  stinfo( thedic );
           lexeme_t  nlexid = getserial( thedic );
 
           if ( !lpfunc( nlexid, vparam ) )
             return -1;
+*/
         }
         return 0;
       }
@@ -219,10 +221,7 @@ namespace LIBMORPH_NAMESPACE
       abuild.bflags = 0;
       abuild.idform = idform;
 
-      if ( !ScanDict<byte08_t, int>( listLookup<doBuildForm>( abuild ), stemtree, locase, cchstr ) )
-        return 0;
-
-      return abuild.nerror != 0 ? abuild.nerror : abuild.rcount;
+      return ScanDict<byte08_t, int>( listLookup<doBuildForm>( abuild ), stemtree, locase, cchstr ) < 0 ? abuild.nerror : abuild.rcount;
     ON_ERRORS( -1 )
   }
 

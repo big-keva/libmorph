@@ -123,6 +123,7 @@ namespace LIBMORPH_NAMESPACE
                                                   word16_t        grinfo,
                                                   byte08_t        bflags )
     {
+/*
       const byte08_t* pszmix = NULL;
       unsigned        cchmix = 0;
       size_t          ccform;
@@ -153,7 +154,7 @@ namespace LIBMORPH_NAMESPACE
 
     // set capitalization scheme
       SetCapScheme( buforg, GetMinScheme( pspMinCapValue[rfstem.wdinfo & 0x3F], buforg ) );
-
+      */
     // set next form
       return output.Append();
     }
@@ -174,8 +175,9 @@ namespace LIBMORPH_NAMESPACE
 // to make code more readable
 //=========================================================================================
   int   doLemmatize::InsertStem( lexeme_t         nlexid,
-                                 const byte08_t*  pszstr,
                                  const steminfo&  stinfo,
+                                 const byte08_t*  szpost,
+                                 const byte08_t*  pszstr,
                                  const SGramInfo* flexes,
                                  unsigned         fcount )
   {
@@ -214,10 +216,10 @@ namespace LIBMORPH_NAMESPACE
       fmbuff[ccstem] = 0;
 
     // Слово может иметь текст в постпозиции
-      if ( stinfo.szpost != NULL )
+      if ( szpost != NULL )
       {
-        memcpy( fmbuff + ccstem, stinfo.szpost, stinfo.ccpost );
-          fmbuff[ccstem = ccstem + stinfo.ccpost] = '\0';
+        memcpy( fmbuff + ccstem, szpost + 1, *szpost );
+          fmbuff[ccstem = ccstem + *szpost] = '\0';
       }
 
     // Привести слово к минимальной возможной капитализации
@@ -254,8 +256,9 @@ namespace LIBMORPH_NAMESPACE
 // doBuildForm implementation
 
   int   doBuildForm::InsertStem( lexeme_t         nlexid,
-                                 const byte08_t*  pszstr,
                                  const steminfo&  stinfo,
+                                 const byte08_t*  szpost,
+                                 const byte08_t*  pszstr,
                                  const SGramInfo* flexes,
                                  unsigned         fcount )
   {
@@ -344,9 +347,9 @@ namespace LIBMORPH_NAMESPACE
       else ++lptail;
 
     // check if a word has a postfix; append the postfix; check if overflow
-      if ( (srctop = stinfo.szpost) != NULL )
+      if ( (srctop = szpost) != NULL )
       {
-        for ( srcend = srctop + stinfo.ccpost; output < outend && srctop < srcend; )
+        for ( srcend = 1 + srctop + *srctop; output < outend && srctop < srcend; )
           *output++ = (char)*srctop++;
         if ( output >= outend )
           return (nerror = LEMMBUFF_FAILED);
@@ -362,7 +365,7 @@ namespace LIBMORPH_NAMESPACE
       cchout -= (output - outorg);
         ++rcount;
     }
-    return rcount;
+    return 0;
   }
 
 // doListForms implementation

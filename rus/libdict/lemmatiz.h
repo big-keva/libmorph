@@ -30,7 +30,7 @@ namespace LIBMORPH_NAMESPACE
                                                             scheme( 0 ), dwsets( uflags )
       {
       }
-    int   InsertStem( lexeme_t, const byte08_t*, const steminfo&, const SGramInfo*, unsigned )
+    int   InsertStem( lexeme_t, const steminfo&, const byte08_t*, const byte08_t*, const SGramInfo*, unsigned )
       {
         return 1;
       }
@@ -67,8 +67,9 @@ namespace LIBMORPH_NAMESPACE
             {
             }
     int   InsertStem( lexeme_t          nlexid,
-                      const byte08_t*   pszstr,
                       const steminfo&   stinfo,
+                      const byte08_t*   szpost,
+                      const byte08_t*   pszstr,
                       const SGramInfo*  flexes,
                       unsigned          fcount );
 
@@ -111,8 +112,9 @@ namespace LIBMORPH_NAMESPACE
       {
       }
     int   InsertStem( lexeme_t          nlexid,
-                      const byte08_t*   strend,
                       const steminfo&   stinfo,
+                      const byte08_t*   szpost,
+                      const byte08_t*   strend,
                       const SGramInfo*  flexes,
                       unsigned          fcount );
 

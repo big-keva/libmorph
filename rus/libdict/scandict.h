@@ -8,22 +8,13 @@
 
 namespace LIBMORPH_NAMESPACE
 {
-  template <class flagtype>
-  struct  countflags
-  {
-    flagtype  uflags;
+  template <class flattype>
+  inline  bool  hasupper( flattype a )
+    {  return (a & (1 << (sizeof(a) * CHAR_BIT - 1))) != 0;  }
 
-    countflags& load( const byte08_t*& p )
-      {
-        uflags = *(const flagtype*)p;
-          p += sizeof(flagtype); 
-        return *this;
-      }
-    bool  extended() const
-      {  return (uflags & (1 << (sizeof(flagtype) * CHAR_BIT - 1))) != 0;  }
-    int   getcount() const
-      {  return uflags & ((1 << (sizeof(flagtype) * CHAR_BIT - 1)) - 1);   }
-  };
+  template <class flagtype>
+  inline  int   getlower( flagtype a )
+    {  return a & ~(1 << (sizeof(a) * CHAR_BIT - 1));  }
 
   template <class flagtype>
   struct  scan_stack
@@ -32,16 +23,17 @@ namespace LIBMORPH_NAMESPACE
     size_t                cchstr;
     byte08_t              chfind;
     const byte08_t*       thedic;
-    countflags<flagtype>  aflags;
+    flagtype              aflags;
     int                   ccount;
 
   public:     // init
     scan_stack*     setlevel( const byte08_t* p, const byte08_t* s, size_t l )
       {
-        ccount = aflags.load( thedic = p ).getcount();
-          thestr = s;
-        chfind = (cchstr = l) > 0 ? *thestr : 0;
-          return this;
+        ccount = getlower( aflags = *(flagtype*)(thedic = p) );
+          thedic += sizeof(flagtype);
+        thestr = s;
+          chfind = (cchstr = l) > 0 ? *thestr : 0;
+        return this;
       }
     const byte08_t* findchar()
       {
@@ -53,7 +45,7 @@ namespace LIBMORPH_NAMESPACE
 
           if ( chfind == chnext )
             return subdic;
-          if ( chfind >  chnext && !aflags.extended() )
+          if ( chfind >  chnext && !hasupper( aflags ) )
             return 0;
         }
         return 0;
@@ -79,7 +71,7 @@ namespace LIBMORPH_NAMESPACE
         continue;
       }
 
-      if ( pstack->aflags.extended() )
+      if ( hasupper( pstack->aflags ) )
         if ( (retval = reader( pstack->thedic, pstack->thestr, pstack->cchstr )) != (result)0 )
           return retval;
 
@@ -220,35 +212,50 @@ namespace LIBMORPH_NAMESPACE
 
         while ( ucount-- > 0 )
         {
-          steminfo        stinfo ( getserial( pstems ) + classmap );
+          byte08_t        chrmin = *pstems++;
+          byte08_t        chrmax = *pstems++;
           lexeme_t        nlexid = getserial( pstems );
+          word16_t        oclass = getword16( pstems );
+          const byte08_t* szpost;
           size_t          ccflex = cchstr;
-          const byte08_t* flestr;
-          const byte08_t* matstr;
+          steminfo        stinfo;
           int             rescmp;
           int             nforms;
           int             nerror;
 
-        // check for postfix
-          if ( stinfo.ccpost != 0 )
+        // check lower && upper characters
+          if ( (oclass & 0x8000) != 0 )
           {
-            size_t  ccpost;
+            const byte08_t* flestr;
+            const byte08_t* matstr;
+            size_t          ccpost;
 
-            if ( stinfo.ccpost > ccflex )
+            ccpost = *(szpost = pstems);
+              pstems += 1 + ccpost;
+
+            if ( ccpost > ccflex )
               continue;
 
-            for ( ccpost = stinfo.ccpost,
-                  matstr = stinfo.szpost,
-                  flestr = thestr + ccflex - ccpost,
-                  ccflex -= ccpost; ccpost-- > 0 && (rescmp = *flestr++ - *matstr++) == 0; )
+            for ( flestr = thestr + ccflex - ccpost, ccflex -= ccpost, matstr = szpost + 1; ccpost-- > 0 && (rescmp = *flestr++ - *matstr++) == 0; )
               (void)0;
 
             if ( rescmp != 0 )
               continue;
           }
+            else
+          szpost = NULL;
+
+        // оценить, может ли хот€ бы потенциально такое окончание быть у основ начина€ с этой и далее
+          if ( ccflex > 0 )
+          {
+            if ( *thestr > chrmax )
+              break;
+            if ( *thestr < chrmin )
+              continue;
+          }
 
         // check capitalization scheme
-          if ( !output.VerifyCaps( stinfo.wdinfo ) )
+          if ( !output.VerifyCaps( stinfo.Load( classmap + (oclass & 0x7fff) ).wdinfo ) )
             continue;
 
         // check if non-flective
@@ -259,19 +266,10 @@ namespace LIBMORPH_NAMESPACE
               SGramInfo grprep = { 0, 0, stinfo.tfoffs, 0 };
                 stinfo.tfoffs = 0;
 
-              if ( (nerror = output.InsertStem( nlexid, thestr, stinfo, &grprep, 1 )) != 0 )
+              if ( (nerror = output.InsertStem( nlexid, stinfo, szpost, thestr, &grprep, 1 )) != 0 )
                 return nerror;
             }
             continue;
-          }
-
-        // оценить, может ли хот€ бы потенциально такое окончание быть у основ начина€ с этой и далее
-          if ( ccflex > 0 )
-          {
-            if ( *thestr > stinfo.chrmax )
-              break;
-            if ( *thestr < stinfo.chrmin )
-              continue;
           }
 
         // “еперь - обработка флективных слов. —начала обработаем более
@@ -287,7 +285,7 @@ namespace LIBMORPH_NAMESPACE
               flexTree + (stinfo.tfoffs << 4), thestr, ccflex )) == 0 )
                 continue;
 
-            if ( (nerror = output.InsertStem( nlexid, thestr, stinfo, fxlist, nforms )) != 0 )
+            if ( (nerror = output.InsertStem( nlexid, stinfo, szpost, thestr, fxlist, nforms )) != 0 )
               return nerror;
           }
             else
@@ -327,7 +325,7 @@ namespace LIBMORPH_NAMESPACE
               if ( (nforms = ScanDict<byte08_t, int>( gramLoader( grbuff, stinfo.wdinfo, powers ), flexTree + (stinfo.tfoffs << 4), flextr, flexcc )) == 0 )
                 continue;
 
-              if ( (nerror = output.InsertStem( nlexid, thestr, stinfo, fxlist, nforms )) != 0 )
+              if ( (nerror = output.InsertStem( nlexid, stinfo, szpost, thestr, fxlist, nforms )) != 0 )
                 return nerror;
             }
           }
@@ -377,12 +375,14 @@ namespace LIBMORPH_NAMESPACE
 
       while ( ncount-- > 0 )
       {
+/*
         const byte08_t* stmpos = thedic;
         steminfo        stinfo ( getserial( thedic ) + classmap );
         lexeme_t        nlexid = getserial( thedic );
 
         if ( stmpos == dicpos )
           return output.InsertStem( nlexid, thestr, stinfo, NULL, 0 );
+*/
       }
       return 0;
     }
