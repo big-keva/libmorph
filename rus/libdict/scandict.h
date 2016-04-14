@@ -375,14 +375,17 @@ namespace LIBMORPH_NAMESPACE
 
       while ( ncount-- > 0 )
       {
-/*
         const byte08_t* stmpos = thedic;
-        steminfo        stinfo ( getserial( thedic ) + classmap );
-        lexeme_t        nlexid = getserial( thedic );
+        lexeme_t        nlexid = getserial( thedic += 2 * sizeof(byte08_t) );
+        word16_t        oclass = getword16( thedic );
+        const byte08_t* szpost;
+        steminfo        stinfo;
+
+        if ( (oclass & wfPostSt) != 0 ) thedic = *(szpost = thedic) + thedic;
+          else  szpost = NULL;
 
         if ( stmpos == dicpos )
-          return output.InsertStem( nlexid, thestr, stinfo, NULL, 0 );
-*/
+          return output.InsertStem( nlexid, stinfo.Load( (oclass & ~wfPostSt) + classmap ), szpost, thestr, NULL, 0 );
       }
       return 0;
     }

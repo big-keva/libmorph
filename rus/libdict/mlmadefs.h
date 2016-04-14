@@ -84,17 +84,6 @@ namespace LIBMORPH_NAMESPACE
   extern unsigned char  stemtree[];
   extern unsigned char  lidstree[];
 
-  // Функции min и max - свои, так как в разных компиляторах
-  // используются разные способы определения этих функций
-
-  template <class T>
-  inline T minimal( T v1, T v2 )
-    {  return ( v1 <= v2 ? v1 : v2 );  }
-
-  template <class T>
-  inline T maximal( T v1, T v2 )
-    {  return ( v1 >= v2 ? v1 : v2 );  }
-
   inline  word32_t  getserial( const byte08_t*& p )
   {
     byte08_t  bfetch = *p++;
@@ -106,46 +95,27 @@ namespace LIBMORPH_NAMESPACE
     return serial;
   }
 
-  template <class T>
-  inline  word16_t  getword16( const T*& p )
+  inline  word16_t  getword16( const byte08_t*& p )
   {
     word16_t  v = *(word16_t*)p;
-      p = (T*)(sizeof(word16_t) + (char*)p);
+      p = sizeof(word16_t) + p;
     return v;
-  }
-
-  inline  bool      haslevels( byte08_t b )
-  {
-    return (b & (ffNNext | ffONext)) != 0;
-  }
-
-  inline  bool      haslevels( const byte08_t* p )
-  {
-    return (*p & (ffNNext | ffONext)) != 0;
-  }
-
-  inline  void      invertstr( byte08_t* t, byte08_t* e )
-  {
-    while ( t < e ) {  byte08_t c = *t;  *t++ = *--e;  *e = c;  }
   }
 
   inline  size_t    lexkeylen( byte08_t* p, unsigned nlexid )
   {
     byte08_t* o = p;
 
-    do *p++ = nlexid & 0xff;
-      while ( (nlexid >>= 8) != 0 );
-    invertstr( o, p );
-      return p - o;
+    if ( (nlexid & ~0x000000ff) == 0 )  { *p++ = (byte08_t)nlexid;  }
+      else
+    if ( (nlexid & ~0x0000ffff) == 0 )  { *p++ = (byte08_t)(nlexid >> 8); *p++ = (byte08_t)nlexid;  }
+      else
+    if ( (nlexid & ~0x00ffffff) == 0 )  { *p++ = (byte08_t)(nlexid >> 16);  *p++ = (byte08_t)(nlexid >> 8); *p++ = (byte08_t)nlexid;  }
+      else
+    {  *p++ = (byte08_t)(nlexid >> 24);  *p++ = (byte08_t)(nlexid >> 16);  *p++ = (byte08_t)(nlexid >> 8); *p++ = (byte08_t)nlexid;  }
+
+    return p - o;
   }
-
-  // Функции доступа к таблицам окончаний
-
-  inline  word16_t  GetFlexInfo( const void* item )   // extract grammatical information;
-    {  return GetWord16( ((char*)item) + 1 ); }
-
-  inline  word16_t  GetFlexNext( const void* item )
-    {  return GetWord16( ((char*)item) + 4 + ((char*)item)[3]  ); }
 
   // Макроопределения для вычмсления легальной ступени чередования
 

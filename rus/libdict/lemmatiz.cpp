@@ -15,153 +15,6 @@
 
 namespace LIBMORPH_NAMESPACE
 {
-//
-// the strings uniquelizer
-// provides unique output for forms list
-//
-  struct  uniqlist
-  {
-    char*       lpbuff;       // the output buffer
-    size_t      ccbuff;       // buffer size
-    const char* pforms[256];  // the forms cache
-    int         nforms;
-
-  public:
-                uniqlist( char* lpdest, size_t ccdest ): lpbuff( lpdest ), ccbuff( ccdest ), nforms( 0 )
-                  {
-                  }
-    int         Append();
-    char*       GetBuf( size_t );
-  protected:
-    bool        Search( const char* pszstr, int& sindex );
-  };
-
-//
-// the list maker - fills the specified list with partial-parsed forms
-// on grammatical descriptions
-//
-  struct  FormsBuilder
-  {
-    const steminfo& rfstem;
-    uniqlist        output;
-    const byte08_t* szstem;
-    size_t          ccstem;
-    const byte08_t* mixtab;
-
-  public:     // construction
-                    FormsBuilder( char*           lpdest,
-                                  size_t          ccdest,
-                                  const byte08_t* szbase,
-                                  size_t          ccbase,
-                                  const steminfo& stinfo ): rfstem( stinfo ),
-                                                            output( lpdest, ccdest ),
-                                                            szstem( szbase ),
-                                                            ccstem( ccbase )
-                      {
-                      }
-    int             RegisterFlex( const byte08_t* pszstr,
-                                  unsigned        cchstr,
-                                  word16_t        grinfo,
-                                  byte08_t        bflags );
-  };
-
-// uniqlist inline implementation
-
-  inline  int     uniqlist::Append()
-    {
-      int       search;
-
-    // check if string is present
-      if ( Search( lpbuff, search ) )
-        return 0;
-
-    // check for overflow
-      if ( nforms >= (int)(sizeof(pforms) / sizeof(pforms[0])) )
-        return WORDBUFF_FAILED;
-
-    // register in the output list; check for the overflow
-      if ( search < nforms )
-        memmove( pforms + search + 1, pforms + search,
-          (nforms - search) * sizeof(const char*) );
-      pforms[search] = lpbuff;
-        ++nforms;
-      do  --ccbuff;  while ( *lpbuff++ != '\0' );
-      return 0;
-    }
-
-  inline  char*   uniqlist::GetBuf( size_t length )
-    {
-      return length >= ccbuff ? NULL : lpbuff;
-    }
-
-  inline  bool    uniqlist::Search( const char* pszstr, int& sindex )
-    {
-      int   lo = 0;
-      int   hi = (int)nforms - 1;
-      bool  ok = false;
-
-      while ( lo <= hi )
-      {
-        int   md = (lo + hi) >> 1;
-        int   rc = strcmp( pforms[md], pszstr );
-
-        if ( rc < 0 ) lo = md + 1;
-          else
-        {
-          hi = md - 1;
-          ok |= (rc == 0);
-        }
-      }
-      sindex = lo;
-      return ok;
-    }
-
-  // FormsBuilder inline implementation
-
-    inline  int       FormsBuilder::RegisterFlex( const byte08_t* pszstr,
-                                                  unsigned        cchstr,
-                                                  word16_t        grinfo,
-                                                  byte08_t        bflags )
-    {
-/*
-      const byte08_t* pszmix = NULL;
-      unsigned        cchmix = 0;
-      size_t          ccform;
-      char*           lptail;
-      char*           buforg;
-      int             mpower;
-
-    // detect mix power
-      if ( mixtab != NULL )
-      {
-        if ( (mpower = GetMixPower( rfstem.wdinfo, grinfo, bflags )) > *mixtab )
-          mpower = 1;
-        for ( pszmix = mixtab + 1, mpower = 0x10 < (mpower - 1); (*pszmix & mpower) == 0;
-          pszmix += 1 + (0x0f & *pszmix) )  (void)NULL;
-        cchmix = 0x0f & *pszmix++;
-      }
-
-    // access the buffer
-      if ( (lptail = buforg = output.GetBuf( (ccform = ccstem + cchmix + cchstr + rfstem.ccpost) + 1 )) == NULL )
-        return WORDBUFF_FAILED;
-
-    // append the string
-      lptail = (char*)memcpy( lptail, szstem, ccstem ) + ccstem;
-      lptail = (char*)memcpy( lptail, pszmix, cchmix ) + cchmix;
-      lptail = (char*)memcpy( lptail, pszstr, cchstr ) + cchstr;
-      lptail = (char*)memcpy( lptail, rfstem.szpost, rfstem.ccpost ) + rfstem.ccpost;
-        *lptail++ = '\0';
-
-    // set capitalization scheme
-      SetCapScheme( buforg, GetMinScheme( pspMinCapValue[rfstem.wdinfo & 0x3F], buforg ) );
-      */
-    // set next form
-      return output.Append();
-    }
-
-  static int  CreateFormList( FormsBuilder& rfmake, const byte08_t* ptable,
-                              byte08_t*     curstr, unsigned        curlen );
-
   static int  CreateFormFlex( byte08_t*     lpDest, word16_t        wdinfo,
                               unsigned      mtoffs, unsigned        tfoffs,
                               word16_t      grInfo, byte08_t        bflags );
@@ -185,11 +38,8 @@ namespace LIBMORPH_NAMESPACE
     assert( plemma != 0 );
 
   // check if overflow will occur in this call
-    if ( clemma == 0 )
-      return (nerror = LIDSBUFF_FAILED);
-
-  // output lexeme id
-    plemma->nlexid = nlexid;
+    if ( plemma < elemma )  plemma->nlexid = nlexid;
+      else  return (nerror = LIDSBUFF_FAILED);
 
   // check if there is a buffer for normal forms; create normal forms
   // and store single form to the buffer selected for forms
@@ -226,30 +76,26 @@ namespace LIBMORPH_NAMESPACE
       SetCapScheme( (char*)fmbuff, GetMinScheme( pspMinCapValue[stinfo.wdinfo & 0x3F], (const char*)fmbuff, scheme >> 8 ) );
 
     // check for overflow
-      if ( ccstem >= cforms )
+      if ( pforms + ccstem >= eforms )
         return (nerror = LEMMBUFF_FAILED);
 
     // register normal form
       memcpy( pforms, fmbuff, ccstem + 1 );
         pforms += ccstem + 1;
-        cforms -= ccstem + 1;
     }
 
   // Проверить, надо ли восстанавливать грамматические описания
     if ( (plemma->pgrams = pgrams) != NULL )
     {
-    // check possible overflow
-      if ( cgrams < fcount )
-        return (nerror = GRAMBUFF_FAILED);
-      
-    // copy...
-      for ( ; fcount-- > 0; ++pgrams, ++flexes )
+      for ( ; fcount > 0; ++pgrams, ++flexes, --fcount )
+      {
         pgrams->iForm = (byte08_t)MapWordInfo( pgrams->wInfo = (byte08_t)stinfo.wdinfo,
           pgrams->gInfo = flexes->gInfo, pgrams->other = flexes->other );
+      }
+      if ( fcount > 0 )
+        return (nerror = GRAMBUFF_FAILED);
     }
     ++plemma;
-      --clemma;
-    ++rcount;
     return 0;
   }
 
@@ -368,74 +214,6 @@ namespace LIBMORPH_NAMESPACE
     return 0;
   }
 
-// doListForms implementation
-
-  int   doListForms::InsertStem( lexeme_t         nlexid,
-                                 const byte08_t*  pszstr,
-                                 const steminfo&  stinfo,
-                                 const SGramInfo* flexes,
-                                 unsigned         fcount )
-  {
-    FormsBuilder  mklist( output, cchout, szstem, pszstr - szstem, stinfo );
-    byte08_t      strbuf[0x20];
-
-  // check for faults
-    assert( nerror == 0 );
-    assert( output != 0 );
-
-  // check if the word is NOT flective
-    if ( stinfo.tfoffs == 0 )
-    {
-    // register null string
-      if ( mklist.RegisterFlex( (const byte08_t*)"", 0, 0, 0 ) != 0 )
-        return (nerror = WORDBUFF_FAILED);
-    }
-      else
-    if ( CreateFormList( mklist, flexTree + (stinfo.tfoffs << 4), strbuf, 0 ) != 0 )
-      return (nerror = WORDBUFF_FAILED);
-
-  // fill output structure
-    output  = mklist.output.lpbuff;
-    cchout  = mklist.output.ccbuff;
-    rcount += mklist.output.nforms;
-
-    return 0;
-  }
-
-  static int  CreateFormList( FormsBuilder&   rfmake,
-                              const byte08_t* ptable,
-                              byte08_t*       curstr,
-                              unsigned        curlen = 0 )
-  {
-    byte08_t        bflags;
-    int             ccount = (bflags = *ptable++) & 0x7f;
-    int             nerror;
-
-    while ( ccount-- > 0 )
-    {
-      const byte08_t* subdic;
-      int             sublen;
-
-      curstr[curlen] = *ptable++;
-        sublen = getserial( ptable );
-      ptable = sublen + (subdic = ptable);
-
-      if ( (nerror = CreateFormList( rfmake, subdic, curstr, curlen )) != 0 )
-        return nerror;
-    }
-
-    if ( (bflags & 0x80) != 0 )
-    {
-      int   ngrams = *ptable++;
-
-      while ( ngrams-- > 0 )
-        if ( (nerror = rfmake.RegisterFlex( curstr, curlen, getword16( ptable ), *ptable++ )) != 0 )
-          return nerror;
-    }
-
-    return 0;
-  }
-
   //=====================================================================
   // Meth: CreateFormFlex
   // Функция синтезирует варианты флективной части слова, исходя из его
@@ -497,4 +275,3 @@ namespace LIBMORPH_NAMESPACE
   }
 
 }  // namespace
-

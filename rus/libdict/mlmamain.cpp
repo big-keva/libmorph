@@ -161,15 +161,13 @@ namespace LIBMORPH_NAMESPACE
       lemact.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
 
     // fill other fields
-      lemact.plemma = output;
-        lemact.clemma = cchout;
-      lemact.pforms = plemma;
-        lemact.cforms = clemma;
-      lemact.pgrams = pgrams;
-        lemact.cgrams = ngrams;
+      lemact.elemma = (lemact.plemma = output) + cchout;
+      lemact.eforms = (lemact.pforms = plemma) + clemma;
+      lemact.egrams = (lemact.pgrams = pgrams) + ngrams;
 
     // call dictionary scanner
-      return ScanDict<byte08_t, int>( listLookup<doLemmatize>( lemact ), stemtree, locase, cchstr ) < 0 ? lemact.nerror : lemact.rcount;
+      return ScanDict<byte08_t, int>( listLookup<doLemmatize>( lemact ), stemtree, locase, cchstr ) < 0 ?
+        lemact.nerror : lemact.plemma - output;
     ON_ERRORS( -1 )
   }
 
@@ -193,8 +191,7 @@ namespace LIBMORPH_NAMESPACE
         abuild.bflags = 0;
         abuild.idform = idform;
 
-        return FindStem( abuild, stemtree, szstem, dicpos ) == 0 || abuild.nerror != 0 ?
-          abuild.nerror : abuild.rcount;
+        return FindStem( abuild, stemtree, szstem, dicpos ) >= 0 ? abuild.rcount : abuild.nerror;
       }
       return 0;
     ON_ERRORS( -1 )
