@@ -167,7 +167,7 @@ namespace LIBMORPH_NAMESPACE
 
     // call dictionary scanner
       return ScanDict<byte08_t, int>( listLookup<doLemmatize>( lemact ), stemtree, locase, cchstr ) < 0 ?
-        lemact.nerror : lemact.plemma - output;
+        lemact.nerror : (int)(lemact.plemma - output);
     ON_ERRORS( -1 )
   }
 
