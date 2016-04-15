@@ -2,6 +2,7 @@
 # include "capsheme.h"
 # include "flexmake.h"
 # include "grammap.h"
+# include <libcodes/codes.h>
 
 # if defined( NO_ASSERT )
 #   if defined( NDEBUG )
@@ -75,13 +76,25 @@ namespace LIBMORPH_NAMESPACE
     // ѕривести слово к минимальной возможной капитализации
       SetCapScheme( (char*)fmbuff, GetMinScheme( pspMinCapValue[stinfo.wdinfo & 0x3F], (const char*)fmbuff, scheme >> 8 ) );
 
+    // create output string
     // check for overflow
-      if ( pforms + ccstem >= eforms )
-        return (nerror = LEMMBUFF_FAILED);
+      if ( encode != codepages::codepage_1251 )
+      {
+        size_t  cchout;
 
-    // register normal form
-      memcpy( pforms, fmbuff, ccstem + 1 );
-        pforms += ccstem + 1;
+        if ( (cchout = codepages::mbcstombcs( encode, pforms, eforms - pforms, codepages::codepage_1251,
+          (const char*)fmbuff, ccstem + 1 )) == (size_t)-1 )  return LEMMBUFF_FAILED;
+        else pforms += cchout;
+      }
+        else
+      {
+        if ( pforms + ccstem >= eforms )
+          return (nerror = LEMMBUFF_FAILED);
+
+      // register normal form
+        memcpy( pforms, fmbuff, ccstem + 1 );
+          pforms += ccstem + 1;
+      }
     }
 
   // ѕроверить, надо ли восстанавливать грамматические описани€
@@ -108,7 +121,6 @@ namespace LIBMORPH_NAMESPACE
                                  const SGramInfo* flexes,
                                  unsigned         fcount )
   {
-    char*       outend = output + cchout;
     byte08_t    szform[64];
     byte08_t    stails[256];
     byte08_t*   lptail = stails;
@@ -175,41 +187,29 @@ namespace LIBMORPH_NAMESPACE
   // flexion
     while ( ntails-- > 0 )
     {
-      const unsigned char*  srctop = szform;
-      const unsigned char*  srcend = srctop + ccstem;
-      char*                 outorg = output;
-
-    // check the length of the output buffer
-      if ( cchout <= ccstem )
-        return (nerror = LEMMBUFF_FAILED);
-      while ( srctop < srcend )
-        *output++ = (char)*srctop++;
+      byte08_t* outptr;
+      size_t    cbcopy;
 
     // append next tail
-      while ( output < outend && *lptail != '\0' )
-        *output++ = (char)*lptail++;
-      if ( output >= outend )
-        return (nerror = LEMMBUFF_FAILED);
-      else ++lptail;
+      for ( outptr = szform + ccstem; (*outptr = *lptail++) != '\0'; ++outptr )
+        (void)NULL;
 
     // check if a word has a postfix; append the postfix; check if overflow
-      if ( (srctop = szpost) != NULL )
-      {
-        for ( srcend = ++srctop + *szpost; output < outend && srctop < srcend; )
-          *output++ = (char)*srctop++;
-        if ( output >= outend )
-          return (nerror = LEMMBUFF_FAILED);
-      }
+      if ( szpost != NULL )
+        outptr = *szpost + (byte08_t*)memcpy( outptr, szpost + 1, *szpost );
 
     // set the zero
-      *output++ = '\0';
+      *outptr++ = '\0';
 
     // set capitalization scheme
-      SetCapScheme( outorg, GetMinScheme( pspMinCapValue[stinfo.wdinfo & 0x3F], outorg, scheme >> 8 ) );
+      SetCapScheme( (char*)szform, GetMinScheme( pspMinCapValue[stinfo.wdinfo & 0x3F], (char*)szform, scheme >> 8 ) );
+
+    // output the string
+      if ( (cbcopy = codepages::mbcstombcs( encode, output, outend - output, codepages::codepage_1251, (const char*)szform, outptr - szform )) == (size_t)-1 )
+        return (nerror = LEMMBUFF_FAILED);  else  output += cbcopy;
 
     // correct buffer length
-      cchout -= (output - outorg);
-        ++rcount;
+      ++rcount;
     }
     return 0;
   }

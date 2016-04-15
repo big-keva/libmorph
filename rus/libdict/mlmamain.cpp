@@ -1,12 +1,21 @@
+# include "../include/mlma1049.h"
 # include <namespace.h>
 # include "mlmadefs.h"
 # include "lemmatiz.h"
 # include "wildscan.h"
 # include "scandict.h"
 # include "capsheme.h"
-# include "../include/mlma1049.h"
 # include <string.h>
 # include <libcodes/codes.h>
+
+#if defined(_MSC_VER) 
+#   if !defined( strncasecmp )
+#     define strncasecmp memicmp
+#   endif  // strncasecmp
+#   if !defined( strcasecmp )
+#     define strcasecmp  strcmpi
+#   endif  // strcasecmp
+# endif
 
 # if !defined( _WIN32_WCE )
   # define  CATCH_ALL         try {
@@ -52,11 +61,15 @@ namespace LIBMORPH_NAMESPACE
         return 0;
       }
   };
+
   //
   // the new api - IMlma interface class
   //
   struct  CMlmaMb: public IMlmaMb
   {
+    virtual int MLMAPROC  Attach();
+    virtual int MLMAPROC  Detach();
+
     virtual int MLMAPROC  SetLoCase( char*            pszstr, size_t    cchstr );
     virtual int MLMAPROC  SetUpCase( char*            pszstr, size_t    cchstr );
     virtual int MLMAPROC  CheckWord( const char*      pszstr, size_t    cchstr,
@@ -73,10 +86,38 @@ namespace LIBMORPH_NAMESPACE
                                      unsigned char    idform );
     virtual int MLMAPROC  CheckHelp( char*            output, size_t    cchout,
                                      const char*      pszstr, size_t    cchstr );
+
+  public:     // construction
+    CMlmaMb( unsigned cp = codepages::codepage_1251 ): codepage( cp ), refcount( 0 )
+      {
+      }
+
+  protected:  // codepage
+    unsigned  codepage;
+    long      refcount;
+
+  };
+
+  struct  CMlmaCp: public CMlmaMb
+  {
+    virtual int MLMAPROC  Attach();
+    virtual int MLMAPROC  Detach();
+
+  public:     // construction
+    CMlmaCp( unsigned cp ): CMlmaMb( cp ), refcount( 0 )
+      {
+      }
+
+  protected:  // codepage
+    long      refcount;
+
   };
 
   struct  CMlmaWc
   {
+    virtual int MLMAPROC  Attach();
+    virtual int MLMAPROC  Detach();
+
     virtual int MLMAPROC  SetLoCase( widechar*        pwsstr, size_t    cchstr );
     virtual int MLMAPROC  SetUpCase( widechar*        pwsstr, size_t    cchstr );
     virtual int MLMAPROC  CheckWord( const widechar*  pszstr, size_t    cchstr,
@@ -102,10 +143,20 @@ namespace LIBMORPH_NAMESPACE
 
   // CMlmaMb implementation
 
+  int   CMlmaMb::Attach()
+  {
+    return 0;
+  }
+
+  int   CMlmaMb::Detach()
+  {
+    return 0;
+  }
+
   int   CMlmaMb::SetLoCase( char* pszstr, size_t  cchstr )
   {
     CATCH_ALL
-      strtolower( codepage_1251, pszstr, cchstr, pszstr, cchstr );
+      strtolower( codepage, pszstr, cchstr, pszstr, cchstr );
       return 0;
     ON_ERRORS( -1 )
   }
@@ -113,7 +164,7 @@ namespace LIBMORPH_NAMESPACE
   int   CMlmaMb::SetUpCase( char* pszstr, size_t  cchstr )
   {
     CATCH_ALL
-      strtoupper( codepage_1251, pszstr, cchstr, pszstr, cchstr );
+      strtoupper( codepage, pszstr, cchstr, pszstr, cchstr );
       return 0;
     ON_ERRORS( -1 )
   }
@@ -122,15 +173,21 @@ namespace LIBMORPH_NAMESPACE
   {
     CATCH_ALL
       byte08_t    locase[256];
+      char        cpsstr[256];
       doCheckWord scheck( locase, dwsets );
 
     // check string length
-      if ( cchstr == (unsigned)-1 )
+      if ( cchstr == (size_t)-1 )
         cchstr = strlen( pszstr );
 
     // check for overflow
       if ( cchstr >= sizeof(locase) )
         return WORDBUFF_FAILED;
+
+    // modify the codepage
+      if ( codepage != codepage_1251 )
+        if ( (cchstr = mbcstombcs( codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
+          else  return WORDBUFF_FAILED;
 
     // get capitalization scheme
       scheck.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
@@ -147,15 +204,21 @@ namespace LIBMORPH_NAMESPACE
   {
     CATCH_ALL
       byte08_t    locase[256];
-      doLemmatize lemact( locase, dwsets );
+      char        cpsstr[256];
+      doLemmatize lemact( locase, dwsets, codepage );
 
     // check string length
-      if ( cchstr == (unsigned)-1 )
+      if ( cchstr == (size_t)-1 )
         cchstr = strlen( pszstr );
 
     // check for overflow
       if ( cchstr >= sizeof(locase) )
         return WORDBUFF_FAILED;
+
+    // modify the codepage
+      if ( codepage != codepage_1251 )
+        if ( (cchstr = mbcstombcs( codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
+          else  return WORDBUFF_FAILED;
 
     // get capitalization scheme
       lemact.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
@@ -183,10 +246,9 @@ namespace LIBMORPH_NAMESPACE
       {
         const byte08_t* dicpos = stemtree + getserial( ofsptr );
         byte08_t        szstem[0x80];
-        doBuildForm     abuild( szstem, 0 );
+        doBuildForm     abuild( szstem, 0, codepage );
 
-        abuild.output = output;
-        abuild.cchout = cchout;
+        abuild.outend = (abuild.output = output) + cchout;
         abuild.grinfo = 0;
         abuild.bflags = 0;
         abuild.idform = idform;
@@ -201,19 +263,24 @@ namespace LIBMORPH_NAMESPACE
   {
     CATCH_ALL
       byte08_t    locase[256];
-      doBuildForm abuild( locase, 0 );
+      char        cpsstr[256];
+      doBuildForm abuild( locase, 0, codepage );
 
     // check string length
-      if ( cchstr == (unsigned)-1 )
+      if ( cchstr == (size_t)-1 )
         cchstr = strlen( pszstr );
 
     // check for overflow
       if ( cchstr >= sizeof(locase) )
         return WORDBUFF_FAILED;
 
+    // modify the codepage
+      if ( codepage != codepage_1251 )
+        if ( (cchstr = mbcstombcs( codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
+          else  return WORDBUFF_FAILED;
+
       abuild.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
-      abuild.output = output;
-      abuild.cchout = cchout;
+      abuild.outend = (abuild.output = output) + cchout;
       abuild.grinfo = 0;
       abuild.bflags = 0;
       abuild.idform = idform;
@@ -226,14 +293,21 @@ namespace LIBMORPH_NAMESPACE
   {
     CATCH_ALL
       byte08_t  locase[256];
+      char      cpsstr[256];
+      int       nchars;
 
     // check string length
-      if ( cchstr == (unsigned)-1 )
+      if ( cchstr == (size_t)-1 )
         cchstr = strlen( pszstr );
 
     // check for overflow
       if ( cchstr >= sizeof(locase) )
         return WORDBUFF_FAILED;
+
+    // modify the codepage
+      if ( codepage != codepage_1251 )
+        if ( (cchstr = mbcstombcs( codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
+          else  return WORDBUFF_FAILED;
 
     // change the word to the lower case
       memcpy( locase, pszstr, cchstr );
@@ -241,11 +315,40 @@ namespace LIBMORPH_NAMESPACE
       SetLowerCase( locase );
 
     // scan the dictionary
-      return (int)WildScan( (byte08_t*)output, cchout, locase, cchstr );
+      if ( (nchars = (int)WildScan( (byte08_t*)cpsstr, cchout, locase, cchstr )) <= 0 )
+        return nchars;
+
+      return mbcstombcs( codepage, output, cchout, codepage_1251, cpsstr, nchars );
     ON_ERRORS( -1 )
   }
 
+  // CMlmaCp implementation
+
+  int   CMlmaCp::Attach()
+  {
+    return ++refcount;
+  }
+
+  int   CMlmaCp::Detach()
+  {
+    long  rcount;
+    
+    if ( (rcount = --refcount) == 0 )
+      delete this;
+    return rcount;
+  }
+
   // CMlmaWc wrapper implementation
+
+  int   CMlmaWc::Attach()
+  {
+    return 0;
+  }
+
+  int   CMlmaWc::Detach()
+  {
+    return 0;
+  }
 
   int   CMlmaWc::SetLoCase( widechar* pwsstr, size_t  cchstr )
   {
@@ -358,7 +461,7 @@ namespace LIBMORPH_NAMESPACE
     int     findex;
 
   // get string length and convert to ansi
-    if ( (ccword = widetombcs( codepage_1251, szword, sizeof(szword) - 1, pwsstr, cchstr )) == (unsigned)-1 )
+    if ( (ccword = widetombcs( codepage_1251, szword, sizeof(szword) - 1, pwsstr, cchstr )) == (size_t)-1 )
       return WORDBUFF_FAILED;
 
   // build the form
@@ -386,9 +489,8 @@ namespace LIBMORPH_NAMESPACE
     char    chhelp[98];
     size_t  ccword;
     int     ccount;
-
-  // get string length and convert to ansi
-    if ( (ccword = widetombcs( codepage_1251, szword, sizeof(szword) - 1, pwsstr, cchstr )) == (unsigned)-1 )
+// get string length and convert to ansi
+    if ( (ccword = widetombcs( codepage_1251, szword, sizeof(szword) - 1, pwsstr, cchstr )) == (size_t)-1 )
       return WORDBUFF_FAILED;
 
   // build the form
@@ -400,13 +502,67 @@ namespace LIBMORPH_NAMESPACE
     mbcstowide( codepage_1251, output, cchout, chhelp, ccount );
     return ccount;
   }
+
+  struct
+  {
+    unsigned    idcodepage;
+    const char* szcodepage;
+  } codepageList[] =
+  {
+    { codepage_1251, "Windows-1251" },
+    { codepage_1251, "Windows" },
+    { codepage_1251, "1251" },
+    { codepage_1251, "Win-1251" },
+    { codepage_1251, "Win" },
+    { codepage_1251, "Windows 1251" },
+    { codepage_1251, "Win 1251" },
+    { codepage_1251, "ansi" },
+    { codepage_koi8, "koi-8" },
+    { codepage_koi8, "koi8" },
+    { codepage_koi8, "20866" },
+    { codepage_866,  "dos" },
+    { codepage_866,  "oem" },
+    { codepage_866,  "866" },
+    { codepage_iso,  "28595" },
+    { codepage_iso,  "iso-88595" },
+    { codepage_iso,  "iso-8859-5" },
+    { codepage_mac,  "10007" },
+    { codepage_iso,  "mac" },
+    { codepage_utf8, "65001" },
+    { codepage_utf8, "utf-8" },
+    { codepage_utf8, "utf8" }
+  };
 }
+
+using namespace LIBMORPH_NAMESPACE;
 
 int   MLMAPROC        mlmaruLoadMbAPI( IMlmaMb**  ptrAPI )
 {
   if ( ptrAPI == NULL )
     return -1;
-  *ptrAPI = (IMlmaMb*)&LIBMORPH_NAMESPACE::mlmaMbInstance;
+  *ptrAPI = (IMlmaMb*)&mlmaMbInstance;
+    return 0;
+}
+
+int   MLMAPROC        mlmaruLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
+{
+  CMlmaMb*  palloc;
+  unsigned  pageid = (unsigned)-1;
+  int       nindex;
+
+  for ( nindex = 0; nindex < sizeof(codepageList) / sizeof(codepageList[0]) && pageid == (unsigned)-1; ++nindex )
+    if ( strcasecmp( codepageList[nindex].szcodepage, codepage ) == 0 )
+      pageid = codepageList[nindex].idcodepage;
+
+  if ( pageid == (unsigned)-1 || ptrAPI == NULL )
+    return EINVAL;
+
+  if ( pageid == codepage_1251 )
+    return mlmaruLoadMbAPI( ptrAPI );
+
+  if ( (palloc = new CMlmaMb( pageid )) == NULL )
+    return ENOMEM;
+  (*ptrAPI = (IMlmaMb*)palloc)->Attach();
     return 0;
 }
 
@@ -414,6 +570,6 @@ int   MLMAPROC        mlmaruLoadWcAPI( IMlmaWc**  ptrAPI )
 {
   if ( ptrAPI == NULL )
     return -1;
-  *ptrAPI = (IMlmaWc*)&LIBMORPH_NAMESPACE::mlmaWcInstance;
+  *ptrAPI = (IMlmaWc*)&mlmaWcInstance;
     return 0;
 }

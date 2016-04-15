@@ -53,14 +53,16 @@ namespace LIBMORPH_NAMESPACE
     char*           eforms;   // the buffer size
     SGramInfo*      pgrams;   // the buffer for grammar descriptions
     SGramInfo*      egrams;   // gramma descriptions length
+    unsigned        encode;   // the character encoding
 
     int             nerror;
 
   public: // the registration API
-          doLemmatize( const byte08_t* szbase, unsigned uflags ): doCheckWord( szbase, uflags ),
+          doLemmatize( const byte08_t* szbase, unsigned uflags, unsigned cp ): doCheckWord( szbase, uflags ),
                          plemma( NULL ),
                          pforms( NULL ),
                          pgrams( NULL ),
+                         encode( cp ),
                          nerror( 0x00 )
             {
             }
@@ -93,18 +95,20 @@ namespace LIBMORPH_NAMESPACE
   struct  doBuildForm: public doCheckWord
   {
     char*       output;
-    size_t      cchout;
+    char*       outend;
 
     word16_t    grinfo;
     byte08_t    bflags;
     unsigned    idform;
+    unsigned    encode;
 
     int         rcount;
     int         nerror;
 
   public: // the registration API
-    doBuildForm( const byte08_t* szbase, unsigned uflags ): doCheckWord( szbase, uflags ),
+    doBuildForm( const byte08_t* szbase, unsigned dwsets, unsigned cp ): doCheckWord( szbase, dwsets ),
                     output( NULL ),
+                    encode( cp ),
                     rcount( 0 ),
                     nerror( 0 )
       {

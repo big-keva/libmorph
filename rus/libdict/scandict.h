@@ -223,7 +223,7 @@ namespace LIBMORPH_NAMESPACE
           int             nforms;
           int             nerror;
 
-        // check lower && upper characters
+        // check postfix
           if ( (oclass & 0x8000) != 0 )
           {
             const byte08_t* flestr;
