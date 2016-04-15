@@ -204,6 +204,7 @@
     virtual int MLMAPROC  method
 
 #   define  MLMA_THIS
+#   define  MLMA_VOID
 #   define  MLMA_PURE = 0
 
 #   define  MLMA_END  }
@@ -225,6 +226,7 @@
     int (MLMAPROC *method)
 
 #   define  MLMA_THIS   void*,
+#   define  MLMA_VOID   void*
 #   define  MLMA_PURE
 
 #   define  MLMA_END  }
@@ -235,6 +237,9 @@
 # define  mlma_interface_defined
 
   MLMA_INTERFACE( IMlmaMb )
+    MLMA_METHOD( Attach )( MLMA_VOID ) MLMA_PURE;
+    MLMA_METHOD( Detach )( MLMA_VOID ) MLMA_PURE;
+
     MLMA_METHOD( SetLoCase )( MLMA_THIS
                               char*           pszstr, size_t  cchstr )  MLMA_PURE;
     MLMA_METHOD( SetUpCase )( MLMA_THIS
@@ -261,6 +266,9 @@
   MLMA_END;
 
   MLMA_INTERFACE( IMlmaWc )
+    MLMA_METHOD( Attach )( MLMA_VOID ) MLMA_PURE;
+    MLMA_METHOD( Detach )( MLMA_VOID ) MLMA_PURE;
+
     MLMA_METHOD( SetLoCase )( MLMA_THIS
                               widechar*       pszstr, size_t  cchstr )  MLMA_PURE;
     MLMA_METHOD( SetUpCase )( MLMA_THIS
@@ -324,6 +332,7 @@ extern "C" {
 # endif
 
   int   MLMAPROC        mlmaruLoadMbAPI( IMlmaMb** );
+  int   MLMAPROC        mlmaruLoadCpAPI( IMlmaMb**, const char* codepage );
   int   MLMAPROC        mlmaruLoadWcAPI( IMlmaWc** );
 
 # if defined( __cplusplus )
