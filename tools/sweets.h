@@ -52,6 +52,18 @@ namespace libmorph
     return nerror;
   }
 
+  inline  int   LoadSource( array<char, char>&  output, const char* szfile )
+  {
+    libmorph::file  lpfile;
+    long            cbfile;
+
+    if ( (lpfile = fopen( szfile, "rb" )) != NULL ) fseek( lpfile, 0, SEEK_END );
+      else  return ENOENT;
+    if ( output.SetLen( cbfile = ftell( lpfile ) ) == 0 ) fseek( lpfile, 0, SEEK_SET );
+      else  return ENOMEM;
+    return fread( (char*)output, 1, cbfile, lpfile ) == cbfile ? 0 : EACCES;
+  }
+
 }  // end libmorph namespace
 
 # endif // __sweets_h__

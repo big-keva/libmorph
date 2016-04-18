@@ -34,7 +34,9 @@ public:     // construction
            ~wordtree();
 
 public:     // expand
-  element*  InsertStr( const char*, unsigned );
+        element*  GetObject();
+  const element*  GetObject() const;
+        element*  InsertStr( const char*, unsigned );
 
 public:     // serialization
   unsigned  GetBufLen();
@@ -44,6 +46,8 @@ public:     // serialization
 public:     // enum
   template <class A>
   unsigned  Enumerate( A action, unsigned offset = 0 );
+  template <class A>
+  int       EnumItems( A& action, unsigned char* k, unsigned l );
 
 };
 
@@ -60,6 +64,18 @@ wordtree<element, counter>::~wordtree()
 {
   if ( pstems != NULL )
     delete pstems;
+}
+
+template <class element, class counter>
+element*  wordtree<element, counter>::GetObject()
+{
+  return pstems;
+}
+
+template <class element, class counter>
+const element*  wordtree<element, counter>::GetObject() const
+{
+  return pstems;
 }
 
 template <class element, class counter>
@@ -122,7 +138,6 @@ inline  O*        wordtree<element, counter>::Serialize( O* o ) const
 
   return o;
 }
-
 template <class element, class counter> template <class A>
 unsigned  wordtree<element, counter>::Enumerate( A action, unsigned offset )
 {
@@ -136,6 +151,22 @@ unsigned  wordtree<element, counter>::Enumerate( A action, unsigned offset )
     offset = pstems->Enumerate( action, offset );
 
   return offset;
+}
+
+template <class element, class counter> template <class A>
+int       wordtree<element, counter>::EnumItems( A& action, unsigned char* k, unsigned l )
+{
+  wordtree* p;
+  int       n;
+
+  for ( p = begin(); p < end(); ++p )
+  {
+    k[l] = p->chnode;
+    if ( (n = p->EnumItems( action, k, l + 1 )) != 0 )
+      return n;
+  }
+
+  return pstems != NULL ? action( *pstems, k, l ) : 0;
 }
 
 # endif  // __plaintree_h__

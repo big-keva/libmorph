@@ -2,7 +2,10 @@
 # define __buildmorph_h__
 # include "plaintree.h"
 # include "conffile.h"
+# include "dumppage.h"
 # include "sweets.h"
+# include <libcodes/codes.h>
+# include <algorithm>
 
 template <class theclass>
 class classset
@@ -150,9 +153,10 @@ protected:
   resolver&           clparser;
   libmorph::file      unknowns;
   libmorph::conf      settings;
+  unsigned            sourceCP;
 
 public:     // construction
-            buildmorph( resolver& r ): clparser( r )
+            buildmorph( resolver& r, unsigned codepage ): clparser( r ), sourceCP( codepage )
               {
               }
 
@@ -284,7 +288,7 @@ int   buildmorph<theclass, steminfo, resolver>::DictReader( FILE* lpfile )
     int           nindex;
 
   // change codepage
-    mbcstombcs( codepage_1251, szline, sizeof(szline), codepage_866, szline );
+    codepages::mbcstombcs( codepages::codepage_1251, szline, sizeof(szline), sourceCP, szline );
 
   // string prepare block
     for ( strtop = szline; *strtop != '\0' && (unsigned char)*strtop <= 0x20; ++strtop )  (void)NULL;
