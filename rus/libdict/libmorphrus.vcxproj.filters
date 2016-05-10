@@ -7,21 +7,12 @@
     <Filter Include="src">
       <UniqueIdentifier>{3f58b635-689f-44ef-a7f7-6148678dd73a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="xmorph">
+      <UniqueIdentifier>{ded7a34b-ff30-4c33-bca5-4e0453139a37}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="capsheme.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="flexmake.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="lemmatiz.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="mlmamain.cpp">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="wildscan.cpp">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\dictree\classmap.cpp">
@@ -42,31 +33,49 @@
     <ClCompile Include="..\dictree\stemtree.cpp">
       <Filter>dic</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\xmorph\capsheme.cpp">
+      <Filter>xmorph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xmorph\wildscan.cpp">
+      <Filter>xmorph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\xmorph\lemmatiz.cpp">
+      <Filter>xmorph</Filter>
+    </ClCompile>
+    <ClCompile Include="chartype.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="capsheme.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="flexmake.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="grammap.h">
-      <Filter>src</Filter>
-    </ClInclude>
-    <ClInclude Include="lemmatiz.h">
-      <Filter>src</Filter>
-    </ClInclude>
     <ClInclude Include="mlmadefs.h">
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="namespace.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="scandict.h">
-      <Filter>src</Filter>
+    <ClInclude Include="..\..\xmorph\capsheme.h">
+      <Filter>xmorph</Filter>
     </ClInclude>
-    <ClInclude Include="wildscan.h">
-      <Filter>src</Filter>
+    <ClInclude Include="..\..\xmorph\grammap.h">
+      <Filter>xmorph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xmorph\scandict.h">
+      <Filter>xmorph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xmorph\gramlist.h">
+      <Filter>xmorph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xmorph\scanlist.h">
+      <Filter>xmorph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xmorph\wildscan.h">
+      <Filter>xmorph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xmorph\flexmake.h">
+      <Filter>xmorph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\xmorph\lemmatiz.h">
+      <Filter>xmorph</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,18 +1,39 @@
+/******************************************************************************
+
+    libmorphrus - dictiorary-based morphological analyser for Russian.
+    Copyright (C) 1994-2016 Andrew Kovalenko aka Keva
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+    Contacts:
+      email: keva@meta.ua, keva@rambler.ru
+      Skype: big_keva
+      Phone: +7(495)648-4058, +7(926)513-2991
+
+******************************************************************************/
 # if !defined( _mlmadefs_h_ )
 # define _mlmadefs_h_
 
 // Определить кроссплатформенные типы данных
 # include "../include/mlma1049.h"
+# include <xmorph/typedefs.h>
 
 # if defined( LIBMORPH_NAMESPACE )
 namespace LIBMORPH_NAMESPACE
 {
 # endif   // LIBMORPH_NAMESPACE
-
-  // Define common types used in the analyser
-  typedef unsigned char   byte08_t;
-  typedef unsigned short  word16_t;
-  typedef lexeme_t        word32_t;
 
   # if defined( _MSC_VER )
   #   if !defined( INTEL_SYSTEM ) && defined( _M_IX86 )
@@ -48,25 +69,6 @@ namespace LIBMORPH_NAMESPACE
 
   # endif // macros definitions
 
-  inline  word32_t  GetLexeme( const void* buffer, unsigned ncbyte )
-  {
-    const byte08_t* lpdata = (const byte08_t*)buffer;
-    word32_t        nlexid = 0;
-    unsigned        nshift;
-
-    for ( nshift = 0; nshift < ncbyte; nshift++ )
-      nlexid |= (unsigned)(*lpdata++) << (nshift * 8);
-    return nlexid;
-  }
-
-  // Описание одного отождествления на таблицах окончаний
-  typedef struct tagFlexInfo
-  {
-    word16_t gInfo;
-    byte08_t other;
-  } SFlexInfo;
-
-  # define tfCompressed  0x80              // Признак закомпрессованности таблицы окончаний
   # define ffNNext       0x80              /* Nesessary-next flex-item level         */
   # define ffONext       0x40              /* Optional-next flex-item level          */
 
@@ -83,6 +85,8 @@ namespace LIBMORPH_NAMESPACE
   extern unsigned char  classmap[];
   extern unsigned char  stemtree[];
   extern unsigned char  lidstree[];
+
+  extern  unsigned      pspMinCapValue[];
 
   inline  word32_t  getserial( const byte08_t*& p )
   {
@@ -175,22 +179,6 @@ namespace LIBMORPH_NAMESPACE
       ((GramInfo == gfCompared) ? 3 :       \
        ((GramInfo == ((1 << 9) | gfShortOne)) ? 2 : 1))
 
-  inline int  GetMixPower( word16_t stemInfo,
-                           word16_t gramInfo,
-                           byte08_t aniflags )
-  {
-    int   idtype = mixTypes[stemInfo & 0x3F];
-
-    return ( idtype == 1 ? GetVerbMixPower( stemInfo, gramInfo ) :
-           ( idtype == 2 ? MascNotAnimMixPower( gramInfo ) :
-           ( idtype == 3 ? MascAnimateMixPower( gramInfo ) :
-           ( idtype == 4 ? MascMixedMixPower( gramInfo, aniflags ) :
-           ( idtype == 5 ? FemnNotAnimMixPower( gramInfo ) :
-           ( idtype == 6 ? FemnAnimateMixPower( gramInfo ) :
-           ( idtype == 7 ? FemnMixedMixPower( gramInfo, aniflags ) :
-           ( idtype == 8 ? GetAdjectivMixPower( gramInfo ) : 1 ) ) ) ) ) ) ) );
-  }
-
   // stem access class
 
   struct  steminfo
@@ -200,12 +188,44 @@ namespace LIBMORPH_NAMESPACE
     word16_t        mtoffs;
 
   public:     // init
+    steminfo( const byte08_t* pclass = NULL )
+      {
+        if ( pclass != NULL )
+          Load( pclass );
+      }
     steminfo& Load( const byte08_t* pclass )
       {
         wdinfo = getword16( pclass );
         tfoffs = (wdinfo & wfFlexes) != 0 || (wdinfo & 0x3f) == 51 ? getword16( pclass ) : 0;
         mtoffs = (wdinfo & wfMixTab) != 0 ? getword16( pclass ) : 0;
         return *this;
+      }
+    const unsigned  MinCapScheme() const
+      {
+        return pspMinCapValue[wdinfo & 0x3f];
+      }
+    const byte08_t* GetFlexTable() const
+      {
+        return tfoffs != 0 && (wdinfo & 0x3f) != 51 ? (tfoffs << 0x0004) + flexTree : NULL;
+      }
+    const byte08_t* GetSwapTable() const
+      {
+        return mtoffs != 0 ? mtoffs + mxTables : NULL;
+      }
+    const int       GetSwapLevel( word16_t grinfo, byte08_t bflags ) const
+      {
+        switch ( mixTypes[wdinfo & 0x3F] )
+        {
+          case 1:   return GetVerbMixPower( wdinfo, grinfo );
+          case 2:   return MascNotAnimMixPower( grinfo );
+          case 3:   return MascAnimateMixPower( grinfo );
+          case 4:   return MascMixedMixPower( grinfo, bflags );
+          case 5:   return FemnNotAnimMixPower( grinfo );
+          case 6:   return FemnAnimateMixPower( grinfo );
+          case 7:   return FemnMixedMixPower( grinfo, bflags );
+          case 8:   return GetAdjectivMixPower( grinfo );
+          default:  return 1;
+        }
       }
   };
 
@@ -224,7 +244,40 @@ namespace LIBMORPH_NAMESPACE
       || ( wbInfo == 34 ) || ( wbInfo == 36 ) || ( wbInfo == 42 );
   }
 
-  # define MAX_WORD_FORMS  32
+  inline  bool  IsParticiple( word16_t grInfo )
+  {
+    return (grInfo & gfVerbForm) == vfVerbActive || (grInfo & gfVerbForm) == vfVerbPassiv;
+  }
+
+  //=====================================================================
+  // Meth: GetNormalInfo
+  // Функция строит грамматическую информацию о нормальной форме слова,
+  // используя тип этого слова, грамматическую информацию об отождествлении
+  // и настройки поиска и нормализации.
+  // Нормальной формой считается:
+  // Для существительных - именительный падеж единственного числа;
+  // Для прилагательных - именительный падеж мужского рода;
+  // Для глаголов - инфинитив (или причастная форма - по настройкам).
+  //=====================================================================
+  inline word16_t GetNormalInfo( word16_t wbInfo,
+                                 word16_t grInfo,
+                                 unsigned nFlags )
+  {
+    word16_t  nfInfo = 0;
+
+    if ( IsVerb( wbInfo ) )
+    {
+      nfInfo = vtInfinitiv;
+      if ( ( nFlags & nfAdjVerbs ) && IsParticiple( grInfo ) )
+        nfInfo = (word16_t)((grInfo & (gfVerbTime|gfVerbForm)) | (1 << 9));
+    }
+      else
+    if ( IsAdjective( wbInfo ) )
+      nfInfo = 1 << 9;
+    if ( wbInfo & wfMultiple )
+      nfInfo |= gfMultiple;
+    return nfInfo;
+  }
 
 # if defined( LIBMORPH_NAMESPACE )
 } // end namespace

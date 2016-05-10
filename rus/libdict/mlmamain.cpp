@@ -1,12 +1,38 @@
+/******************************************************************************
+
+    libmorphrus - dictiorary-based morphological analyser for Russian.
+    Copyright (C) 1994-2016 Andrew Kovalenko aka Keva
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+    Contacts:
+      email: keva@meta.ua, keva@rambler.ru
+      Skype: big_keva
+      Phone: +7(495)648-4058, +7(926)513-2991
+
+******************************************************************************/
 # include "../include/mlma1049.h"
 # include <namespace.h>
 # include "mlmadefs.h"
-# include "lemmatiz.h"
-# include "wildscan.h"
-# include "scandict.h"
-# include "capsheme.h"
-# include <string.h>
+# include <xmorph/scandict.h>
+# include <xmorph/capsheme.h>
+# include <xmorph/scanlist.h>
+# include <xmorph/wildscan.h>
+# include <xmorph/lemmatiz.h>
 # include <libcodes/codes.h>
+# include <string.h>
 
 #if defined(_MSC_VER) 
 #   if !defined( strncasecmp )
@@ -29,37 +55,8 @@ namespace LIBMORPH_NAMESPACE
 {
   struct getDictPos
   {
-    const byte08_t* operator () ( const byte08_t* thedic, const byte08_t*, size_t cchstr ) const
-      {
-        return cchstr == 0 ? thedic : NULL;
-      }
-  };
-
-  class doEnumList
-  {
-    TEnumWords  lpfunc;
-    void*       vparam;
-
-  public:     // construction
-    doEnumList( TEnumWords f, void* v ): lpfunc( f ), vparam( v )
-      {
-      }
-    int operator () ( const byte08_t* thedic )
-      {
-        unsigned  ucount = getserial( thedic );
-
-        while ( ucount-- > 0 )
-        {
-/*
-          steminfo  stinfo( thedic );
-          lexeme_t  nlexid = getserial( thedic );
-
-          if ( !lpfunc( nlexid, vparam ) )
-            return -1;
-*/
-        }
-        return 0;
-      }
+    const byte08_t*  operator () ( const byte08_t* thedic, const byte08_t*, size_t cchstr ) const
+      {  return cchstr == 0 ? thedic : NULL;  }
   };
 
   //
@@ -80,21 +77,21 @@ namespace LIBMORPH_NAMESPACE
                                      SGramInfo*       pgrams, size_t    ngrams,
                                      unsigned         dwsets );
     virtual int MLMAPROC  BuildForm( char*            output, size_t    cchout,
-                                     unsigned         nlexid, byte08_t  idform );
+                                     lexeme_t         nlexid, formid_t  idform );
     virtual int MLMAPROC  FindForms( char*            output, size_t    cchout,
                                      const char*      pszstr, size_t    cchstr,
-                                     unsigned char    idform );
+                                     formid_t         idform );
     virtual int MLMAPROC  CheckHelp( char*            output, size_t    cchout,
                                      const char*      pszstr, size_t    cchstr );
+    virtual int MLMAPROC  GetWdInfo( unsigned char*   pwindo, lexeme_t  nlexid );
 
   public:     // construction
-    CMlmaMb( unsigned cp = codepages::codepage_1251 ): codepage( cp ), refcount( 0 )
+    CMlmaMb( unsigned cp = codepages::codepage_1251 ): codepage( cp )
       {
       }
 
   protected:  // codepage
     unsigned  codepage;
-    long      refcount;
 
   };
 
@@ -128,12 +125,13 @@ namespace LIBMORPH_NAMESPACE
                                      SGramInfo*       pgrams, size_t    ngrams,
                                      unsigned         dwsets );
     virtual int MLMAPROC  BuildForm( widechar*        output, size_t    cchout,
-                                     unsigned         nlexid, byte08_t  idform );
+                                     lexeme_t         nlexid, byte08_t  idform );
     virtual int MLMAPROC  FindForms( widechar*        output, size_t    cchout,
                                      const widechar*  pwsstr, size_t    cchstr,
                                      unsigned char    idform );
     virtual int MLMAPROC  CheckHelp( widechar*        output, size_t    cchout,
                                      const widechar*  pwsstr, size_t    cchstr );
+    virtual int MLMAPROC  GetWdInfo( unsigned char*   pwindo, lexeme_t  nlexid );
   };
 
   CMlmaMb mlmaMbInstance;
@@ -193,7 +191,7 @@ namespace LIBMORPH_NAMESPACE
       scheck.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
 
       // fill scheck structure
-      return ScanDict<byte08_t, int>( listLookup<doCheckWord>( scheck ), stemtree, locase, cchstr );
+      return LinearScanDict<byte08_t, int>( listLookup<doCheckWord, steminfo>( scheck ), stemtree, locase, cchstr );
     ON_ERRORS( -1 )
   }
 
@@ -229,7 +227,7 @@ namespace LIBMORPH_NAMESPACE
       lemact.egrams = (lemact.pgrams = pgrams) + ngrams;
 
     // call dictionary scanner
-      return ScanDict<byte08_t, int>( listLookup<doLemmatize>( lemact ), stemtree, locase, cchstr ) < 0 ?
+      return LinearScanDict<byte08_t, int>( listLookup<doLemmatize, steminfo>( lemact ), stemtree, locase, cchstr ) < 0 ?
         lemact.nerror : (int)(lemact.plemma - output);
     ON_ERRORS( -1 )
   }
@@ -242,7 +240,7 @@ namespace LIBMORPH_NAMESPACE
 
     // Оригинальная форма слова не задана, следует применять модификацию алгоритма, "прыгающую"
     // по словарю идентификаторов лексем сразу в нужную точку на странице.
-      if ( (ofsptr = ScanDict<word16_t, const byte08_t*>( getDictPos(), lidstree, lidkey, lexkeylen( lidkey, nlexid ) )) != NULL )
+      if ( (ofsptr = LinearScanDict<word16_t, const byte08_t*>( getDictPos(), lidstree, lidkey, lexkeylen( lidkey, nlexid ) )) != NULL )
       {
         const byte08_t* dicpos = stemtree + getserial( ofsptr );
         byte08_t        szstem[0x80];
@@ -253,7 +251,8 @@ namespace LIBMORPH_NAMESPACE
         abuild.bflags = 0;
         abuild.idform = idform;
 
-        return FindStem( abuild, stemtree, szstem, dicpos ) >= 0 ? abuild.rcount : abuild.nerror;
+        return RecursGetTrack<byte08_t, int>( listTracer<doBuildForm, steminfo>( abuild, szstem, dicpos ),
+          stemtree, szstem, 0, dicpos ) >= 0 ? abuild.rcount : abuild.nerror;
       }
       return 0;
     ON_ERRORS( -1 )
@@ -285,7 +284,8 @@ namespace LIBMORPH_NAMESPACE
       abuild.bflags = 0;
       abuild.idform = idform;
 
-      return ScanDict<byte08_t, int>( listLookup<doBuildForm>( abuild ), stemtree, locase, cchstr ) < 0 ? abuild.nerror : abuild.rcount;
+      return LinearScanDict<byte08_t, int>( listLookup<doBuildForm, steminfo>( abuild ), stemtree, locase, cchstr ) < 0 ?
+        abuild.nerror : abuild.rcount;
     ON_ERRORS( -1 )
   }
 
@@ -318,7 +318,34 @@ namespace LIBMORPH_NAMESPACE
       if ( (nchars = (int)WildScan( (byte08_t*)cpsstr, cchout, locase, cchstr )) <= 0 )
         return nchars;
 
-      return mbcstombcs( codepage, output, cchout, codepage_1251, cpsstr, nchars );
+      return (int)mbcstombcs( codepage, output, cchout, codepage_1251, cpsstr, nchars );
+    ON_ERRORS( -1 )
+  }
+
+  int   CMlmaMb::GetWdInfo( unsigned char* pwinfo, lexeme_t lexkey )
+  {
+    CATCH_ALL
+      byte08_t        lidkey[0x10];
+      const byte08_t* ofsptr;
+
+    // Оригинальная форма слова не задана, следует применять модификацию алгоритма, "прыгающую"
+    // по словарю идентификаторов лексем сразу в нужную точку на странице.
+      if ( (ofsptr = LinearScanDict<word16_t, const byte08_t*>( getDictPos(), lidstree, lidkey, lexkeylen( lidkey, lexkey ) )) != NULL )
+      {
+        const byte08_t* dicpos = stemtree + getserial( ofsptr );
+        byte08_t        clower = *dicpos++;
+        byte08_t        cupper = *dicpos++;
+        lexeme_t        nlexid = getserial( dicpos );
+        word16_t        oclass = getword16( dicpos );
+        steminfo        stinfo;
+
+        if ( nlexid != lexkey )
+          return -2;
+
+        *pwinfo = stinfo.Load( classmap + (oclass & 0x7fff) ).wdinfo & 0x3f;
+          return 1;
+      }
+      return 0;
     ON_ERRORS( -1 )
   }
 
@@ -501,6 +528,11 @@ namespace LIBMORPH_NAMESPACE
   // convert
     mbcstowide( codepage_1251, output, cchout, chhelp, ccount );
     return ccount;
+  }
+
+  int   CMlmaWc::GetWdInfo( unsigned char* pwinfo, lexeme_t nlexid )
+  {
+    return mlmaMbInstance.GetWdInfo( pwinfo, nlexid );
   }
 
   struct
