@@ -60,11 +60,11 @@ namespace LIBMORPH_NAMESPACE
   # else
 
   #   if !defined( GetWord16 )
-  #     define GetWord16( pv )  (word16_t)( ((byte08_t*)(pv))[0] | (((byte08_t*)(pv))[1] << 8) )
+  #     define GetWord16( pv )  (word16_t)( ((byte_t*)(pv))[0] | (((byte_t*)(pv))[1] << 8) )
   #   endif  // GetWord16
   #   if !defined( GetWord32 )
-  #     define GetWord32( pv )  (word32_t)( ((byte08_t*)(pv))[0] | (((byte08_t*)(pv))[1] << 8)  \
-                                         | (((byte08_t*)(pv))[2] << 16) | (((byte08_t*)(pv))[3] << 24))
+  #     define GetWord32( pv )  (word32_t)( ((byte_t*)(pv))[0] | (((byte_t*)(pv))[1] << 8)  \
+                                         | (((byte_t*)(pv))[2] << 16) | (((byte_t*)(pv))[3] << 24))
   #   endif  // GetWord32
 
   # endif // macros definitions
@@ -88,35 +88,35 @@ namespace LIBMORPH_NAMESPACE
 
   extern  unsigned      pspMinCapValue[];
 
-  inline  word32_t  getserial( const byte08_t*& p )
+  inline  unsigned  getserial( const byte_t*& p )
   {
-    byte08_t  bfetch = *p++;
-    word32_t  serial = bfetch & ~0x80;
+    byte_t  bfetch = *p++;
+    unsigned  serial = bfetch & ~0x80;
     int       nshift = 1;
 
     while ( (bfetch & 0x80) != 0 )
-      serial |= (((word32_t)(bfetch = *p++) & ~0x80) << (nshift++ * 7));
+      serial |= (((unsigned)(bfetch = *p++) & ~0x80) << (nshift++ * 7));
     return serial;
   }
 
-  inline  word16_t  getword16( const byte08_t*& p )
+  inline  word16_t  getword16( const byte_t*& p )
   {
     word16_t  v = *(word16_t*)p;
       p = sizeof(word16_t) + p;
     return v;
   }
 
-  inline  size_t    lexkeylen( byte08_t* p, unsigned nlexid )
+  inline  size_t    lexkeylen( byte_t* p, unsigned nlexid )
   {
-    byte08_t* o = p;
+    byte_t* o = p;
 
-    if ( (nlexid & ~0x000000ff) == 0 )  { *p++ = (byte08_t)nlexid;  }
+    if ( (nlexid & ~0x000000ff) == 0 )  { *p++ = (byte_t)nlexid;  }
       else
-    if ( (nlexid & ~0x0000ffff) == 0 )  { *p++ = (byte08_t)(nlexid >> 8); *p++ = (byte08_t)nlexid;  }
+    if ( (nlexid & ~0x0000ffff) == 0 )  { *p++ = (byte_t)(nlexid >> 8); *p++ = (byte_t)nlexid;  }
       else
-    if ( (nlexid & ~0x00ffffff) == 0 )  { *p++ = (byte08_t)(nlexid >> 16);  *p++ = (byte08_t)(nlexid >> 8); *p++ = (byte08_t)nlexid;  }
+    if ( (nlexid & ~0x00ffffff) == 0 )  { *p++ = (byte_t)(nlexid >> 16);  *p++ = (byte_t)(nlexid >> 8); *p++ = (byte_t)nlexid;  }
       else
-    {  *p++ = (byte08_t)(nlexid >> 24);  *p++ = (byte08_t)(nlexid >> 16);  *p++ = (byte08_t)(nlexid >> 8); *p++ = (byte08_t)nlexid;  }
+    {  *p++ = (byte_t)(nlexid >> 24);  *p++ = (byte_t)(nlexid >> 16);  *p++ = (byte_t)(nlexid >> 8); *p++ = (byte_t)nlexid;  }
 
     return p - o;
   }
@@ -188,12 +188,12 @@ namespace LIBMORPH_NAMESPACE
     word16_t        mtoffs;
 
   public:     // init
-    steminfo( const byte08_t* pclass = NULL )
+    steminfo( const byte_t* pclass = NULL )
       {
         if ( pclass != NULL )
           Load( pclass );
       }
-    steminfo& Load( const byte08_t* pclass )
+    steminfo& Load( const byte_t* pclass )
       {
         wdinfo = getword16( pclass );
         tfoffs = (wdinfo & wfFlexes) != 0 || (wdinfo & 0x3f) == 51 ? getword16( pclass ) : 0;
@@ -204,15 +204,15 @@ namespace LIBMORPH_NAMESPACE
       {
         return pspMinCapValue[wdinfo & 0x3f];
       }
-    const byte08_t* GetFlexTable() const
+    const byte_t* GetFlexTable() const
       {
         return tfoffs != 0 && (wdinfo & 0x3f) != 51 ? (tfoffs << 0x0004) + flexTree : NULL;
       }
-    const byte08_t* GetSwapTable() const
+    const byte_t* GetSwapTable() const
       {
         return mtoffs != 0 ? mtoffs + mxTables : NULL;
       }
-    const int       GetSwapLevel( word16_t grinfo, byte08_t bflags ) const
+    const int       GetSwapLevel( word16_t grinfo, byte_t bflags ) const
       {
         switch ( mixTypes[wdinfo & 0x3F] )
         {
