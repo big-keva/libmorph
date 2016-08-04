@@ -195,46 +195,59 @@
 /* compilers.                                                                 */
 /*============================================================================*/
 
-# if defined( __cplusplus )
+# if !defined( MLMA_INTERFACE )
 
-#   define  MLMA_INTERFACE( iface ) \
-    struct  iface {
+#   if defined( __cplusplus )
 
-#   define  MLMA_METHOD( method )   \
-    virtual int MLMAPROC  method
+#     define  MLMA_INTERFACE( iface ) \
+      struct  iface {
 
-#   define  MLMA_THIS
-#   define  MLMA_VOID
-#   define  MLMA_PURE = 0
+#     define  MLMA_METHOD( method )   \
+      virtual int MLMAPROC  method
 
-#   define  MLMA_END  }
+#     define  MLMA_THIS
+#     define  MLMA_VOID
+#     define  MLMA_PURE = 0
 
-# else
+#     define  MLMA_END  }
 
-#   define  MLMA_INTERFACE( iface )     \
-    struct  iface##_vtbl;               \
-                                        \
-    typedef struct iface                \
-    {                                   \
-      const struct iface##_vtbl* vtbl;  \
-    } iface;                            \
-                                        \
-    struct  iface##_vtbl                \
-    {
+#   else
 
-#   define  MLMA_METHOD( method )   \
-    int (MLMAPROC *method)
+#     define  MLMA_INTERFACE( iface )     \
+      struct  iface##_vtbl;               \
+                                          \
+      typedef struct iface                \
+      {                                   \
+        const struct iface##_vtbl* vtbl;  \
+      } iface;                            \
+                                          \
+      struct  iface##_vtbl                \
+      {
 
-#   define  MLMA_THIS   void*,
-#   define  MLMA_VOID   void*
-#   define  MLMA_PURE
+#     define  MLMA_METHOD( method )   \
+      int (MLMAPROC *method)
 
-#   define  MLMA_END  }
+#     define  MLMA_THIS   void*,
+#     define  MLMA_VOID   void*
+#     define  MLMA_PURE
 
-# endif  // __cplusplus
+#     define  MLMA_END  }
+
+#   endif  // __cplusplus
+
+# endif  // MLMA_INTERFACE
 
 # if !defined( mlma_interface_defined )
 # define  mlma_interface_defined
+
+  MLMA_INTERFACE( IMlmaEnum )
+    MLMA_METHOD( Attach )( MLMA_VOID ) MLMA_PURE;
+    MLMA_METHOD( Detach )( MLMA_VOID ) MLMA_PURE;
+
+    MLMA_METHOD( RegisterLexeme )( MLMA_THIS
+                                   lexeme_t     nlexid,
+                                   int          nforms, const formid_t* pforms ) MLMA_PURE;
+  MLMA_END;
 
   MLMA_INTERFACE( IMlmaMb )
     MLMA_METHOD( Attach )( MLMA_VOID ) MLMA_PURE;
@@ -261,8 +274,13 @@
                               const char*     pszstr, size_t    cchstr,
                                                       formid_t  idform ) MLMA_PURE;
     MLMA_METHOD( CheckHelp )( MLMA_THIS
-                              char*           output, size_t  cchout,
-                              const char*     pszstr, size_t  cchstr ) MLMA_PURE;
+                              char*           output, size_t    cchout,
+                              const char*     pszstr, size_t    cchstr ) MLMA_PURE;
+    MLMA_METHOD( GetWdInfo )( MLMA_THIS
+                              unsigned char*  pwinfo, lexeme_t  nlexid ) MLMA_PURE;
+    MLMA_METHOD( EnumWords )( MLMA_THIS
+                              IMlmaEnum*      pienum,
+                              const char*     pszstr, size_t    cchstr ) MLMA_PURE;
   MLMA_END;
 
   MLMA_INTERFACE( IMlmaWc )
@@ -270,17 +288,17 @@
     MLMA_METHOD( Detach )( MLMA_VOID ) MLMA_PURE;
 
     MLMA_METHOD( SetLoCase )( MLMA_THIS
-                              widechar*       pszstr, size_t  cchstr )  MLMA_PURE;
+                              widechar*       pszstr, size_t    cchstr )  MLMA_PURE;
     MLMA_METHOD( SetUpCase )( MLMA_THIS
-                              widechar*       pwsstr, size_t  cchstr )  MLMA_PURE;
+                              widechar*       pwsstr, size_t    cchstr )  MLMA_PURE;
     MLMA_METHOD( CheckWord )( MLMA_THIS
-                              const widechar* pszstr, size_t  cchstr,
+                              const widechar* pszstr, size_t    cchstr,
                               unsigned        dwsets ) MLMA_PURE;
     MLMA_METHOD( Lemmatize )( MLMA_THIS
-                              const widechar* pszstr, size_t  cchstr,
-                              SLemmInfoW*     plexid, size_t  clexid,
-                              widechar*       plemma, size_t  clemma,
-                              SGramInfo*      pgrams, size_t  ngrams,
+                              const widechar* pszstr, size_t    cchstr,
+                              SLemmInfoW*     plexid, size_t    clexid,
+                              widechar*       plemma, size_t    clemma,
+                              SGramInfo*      pgrams, size_t    ngrams,
                               unsigned        dwsets ) MLMA_PURE;
     MLMA_METHOD( BuildForm )( MLMA_THIS
                               widechar*       output, size_t    cchout,
@@ -290,8 +308,13 @@
                               const widechar* pszstr, size_t    cchstr,
                                                       formid_t  idform ) MLMA_PURE;
     MLMA_METHOD( CheckHelp )( MLMA_THIS
-                              widechar*       output, size_t  cchout,
-                              const widechar* pwsstr, size_t  cchstr ) MLMA_PURE;
+                              widechar*       output, size_t    cchout,
+                              const widechar* pwsstr, size_t    cchstr ) MLMA_PURE;
+    MLMA_METHOD( GetWdInfo )( MLMA_THIS
+                              unsigned char*  pwinfo, lexeme_t  nlexid ) MLMA_PURE;
+    MLMA_METHOD( EnumWords )( MLMA_THIS
+                              IMlmaEnum*      pienum,
+                              const widechar* pszstr, size_t    cchstr ) MLMA_PURE;
   MLMA_END;
 
 # if !defined( __cplusplus )
