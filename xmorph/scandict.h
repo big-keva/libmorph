@@ -169,23 +169,6 @@ namespace LIBMORPH_NAMESPACE {
     return hasupper( uflags ) ? doitem( thedic, ptrack, ltrack ) : (result)0;
   }
 
-  template <class flagtype, class result, class action>
-  result  ForEachElement( const action& output, const unsigned char* thedic )
-  {
-    flagtype  bflags;
-    result    retval;
-    int       acount;
-
-    for ( acount = getlower( bflags = *(flagtype*)thedic ), thedic += sizeof(flagtype); acount-- > 0 ; )
-    {
-      unsigned        sublen = __xmorph__getserial__( ++thedic );
-
-      if ( (retval = EnumDict<flagtype, result>( output, thedic )) != 0 ) return retval;
-        else  thedic += sublen;
-    }
-    return hasupper( bflags ) ? output( thedic ) : (result)0;
-  }
-
 # if defined( LIBMORPH_NAMESPACE )
 }  // LIBMORPH_NAMESPACE
 # endif  // LIBMORPH_NAMESPACE
