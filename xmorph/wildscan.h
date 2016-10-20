@@ -26,6 +26,20 @@ namespace LIBMORPH_NAMESPACE
     }
 
   /*
+    templates pre-declaration
+  */
+  struct  matchArg;
+
+  template <class action>
+  int   GetDictMatch( const byte_t*, size_t, const byte_t*, const action& );
+  template <class action>
+  int   GetListMatch( const byte_t*, size_t, const byte_t*, const action& );
+  template <class action>
+  bool  GetIntrMatch( const byte_t*, size_t, const byte_t*, size_t, const matchArg&, unsigned, action& );
+  template <class action>
+  bool  GetFlexMatch( const byte_t*, size_t, const byte_t*,         const matchArg&, unsigned, action& );
+
+  /*
     GetWordMatch( template, action )
 
     сканер словаря, вызывает action для каждой найденной лексемы
