@@ -116,7 +116,7 @@ namespace LIBMORPH_NAMESPACE {
   }
 
   template <class aflags, class result, class action>
-  result  RecursScanDict( const action&         action, const unsigned char*  thedic,
+  result  RecursScanDict( const action&         doitem, const unsigned char*  thedic,
                           const unsigned char*  thestr, size_t                cchstr )
   {
     aflags        uflags = *(aflags*)thedic;  thedic += sizeof(aflags);
@@ -133,10 +133,10 @@ namespace LIBMORPH_NAMESPACE {
       const unsigned char*  subdic = thedic;  thedic += sublen;
 
       if ( chnext == chfind && cchstr > 0 )
-        if ( (retval = RecursScanDict<aflags, result, action>( action, subdic, thestr + 1, cchstr - 1 )) != (result)0 )
+        if ( (retval = RecursScanDict<aflags, result, action>( doitem, subdic, thestr + 1, cchstr - 1 )) != (result)0 )
           return retval;
     }
-    return hasupper( uflags ) ? action( thedic, thestr, cchstr ) : (result)0;
+    return hasupper( uflags ) ? doitem( thedic, thestr, cchstr ) : (result)0;
   }
 
   template <class aflags, class result, class action>
