@@ -2,6 +2,7 @@
 # define _wildscan_h_
 # include <namespace.h>
 # include "mlmadefs.h"
+# include "scandict.h"
 # include <xmorph/grammap.h>
 # include <cassert>
 
