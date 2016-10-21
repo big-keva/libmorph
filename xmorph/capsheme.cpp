@@ -55,9 +55,9 @@ namespace LIBMORPH_NAMESPACE
       if ( CharType( *output = *srctop ) == CT_DLMCHAR && *output != '\0' )
       {
         ++output;
-        ++srctop;
         ++cdefis;
       }
+      ++srctop;
     }
 
     if ( output < outend ) *output = '\0';
