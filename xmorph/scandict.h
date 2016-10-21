@@ -8,30 +8,6 @@
 namespace LIBMORPH_NAMESPACE {
 # endif  // LIBMORPH_NAMESPACE
 
-  template <class O>
-  class  const_action
-  {
-    O&  o;
-
-  public:     // construction
-    const_action( O& r ): o( r )
-      {}
-
-  public:     // actor templates
-    template <class A>
-    int     operator () ( A a ) const
-      {  return o( a );  } 
-    template <class A, class B>
-    int     operator () ( A a, B b ) const
-      {  return o( a, b );  } 
-    template <class A, class B, class C>
-    int     operator () ( A a, B b, C c ) const
-      {  return o( a, b, c );  } 
-    template <class A, class B, class C, class D>
-    int     operator () ( A a, B b, C c, D d ) const
-      {  return o( a, b, c, d );  } 
-  };
-
   inline  unsigned  __xmorph__getserial__( const unsigned char*& p )
   {
     unsigned char bfetch = *p++;
