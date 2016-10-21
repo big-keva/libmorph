@@ -128,10 +128,10 @@ namespace LIBMORPH_NAMESPACE
           if ( stinfo.GetSwapTable() == NULL )
           {
             gramBuffer  grlist( stinfo, (unsigned)-1, fxlist );
+            auto        grscan = [&grlist]( const byte_t* d, const byte_t* s, size_t l ){  return grlist( d, s, l );  };
 
-            if ( (nforms = LinearScanDict<byte_t, int>( [&grlist]( auto d, auto s, auto l ){  return grlist( d, s, l );  },
-              stinfo.GetFlexTable(), thestr, ccflex )) == 0 )
-                continue;
+            if ( (nforms = LinearScanDict<byte_t, int>( grscan, stinfo.GetFlexTable(), thestr, ccflex )) == 0 )
+              continue;
 
             if ( (nerror = output.InsertStem( nlexid, stinfo, szpost, thestr, fxlist, nforms )) != 0 )
               return nerror;
@@ -153,6 +153,7 @@ namespace LIBMORPH_NAMESPACE
               const byte_t* flextr = thestr;
               size_t        flexcc = cchstr;
               gramBuffer    grlist( stinfo, powers, fxlist );
+              auto          grscan = [&grlist]( const byte_t* d, const byte_t* s, size_t l ){  return grlist( d, s, l );  };
               size_t        cmplen;
               int           rescmp;
 
@@ -170,9 +171,8 @@ namespace LIBMORPH_NAMESPACE
               if ( rescmp < 0 ) continue;
 
             // ѕостроить массив грамматических отождествлений в предположении, что используетс€ правильна€ ступень чередовани€ основы
-              if ( (nforms = LinearScanDict<byte_t, int>( [&grlist]( auto d, auto s, auto l ){  return grlist( d, s, l );  },
-                stinfo.GetFlexTable(), flextr, flexcc )) == 0 )
-                  continue;
+              if ( (nforms = LinearScanDict<byte_t, int>( grscan, stinfo.GetFlexTable(), flextr, flexcc )) == 0 )
+                continue;
 
               if ( (nerror = output.InsertStem( nlexid, stinfo, szpost, thestr, fxlist, nforms )) != 0 )
                 return nerror;
