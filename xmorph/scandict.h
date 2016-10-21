@@ -64,7 +64,7 @@ namespace LIBMORPH_NAMESPACE {
   };
 
   template <class aflags, class result, class action>
-  result  LinearScanDict( action&               doitem, const unsigned char*  thedic,
+  result  LinearScanDict( const action&         doitem, const unsigned char*  thedic,
                           const unsigned char*  thestr, size_t                cchstr )
   {
     scan_stack<aflags>  astack[0x40];     // never longer words
