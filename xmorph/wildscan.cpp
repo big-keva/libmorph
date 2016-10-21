@@ -43,15 +43,15 @@ namespace LIBMORPH_NAMESPACE
       byte_t        chnext = *thedic++;
       unsigned      sublen = getserial( thedic );
       const byte_t* subdic = thedic;
-                      thedic = subdic + sublen;
+                    thedic = subdic + sublen;
 
     // check character find type: wildcard, pattern or regular
       switch ( chfind )
       {
         case '*': InsertChar( output, chnext );
                   continue;
-        case '?': if ( LinearScanDict<byte_t, int>( const_action<gramBuffer>( grlist ), subdic, thestr + 1, cchstr - 1 ) )
-                    InsertChar( output, chnext );
+        case '?': if ( LinearScanDict<byte_t, int>( [&grlist]( auto d, auto s, auto l ){  return grlist( d, s, l );  },
+                    subdic, thestr + 1, cchstr - 1 ) ) InsertChar( output, chnext );
                   continue;
         default:  if ( chnext == chfind )
                     WildScanFlex( output, subdic, thestr + 1, cchstr - 1, stinfo, mpower, szpost );
@@ -143,7 +143,7 @@ namespace LIBMORPH_NAMESPACE
             else
           if ( *flextr == '?' )
           {
-            gramBuffer  grbuff( stinfo, powers, fxlist );
+            gramBuffer  grlist( stinfo, powers, fxlist );
             byte_t      chsave;
 
             if ( szpost != NULL )
@@ -153,8 +153,8 @@ namespace LIBMORPH_NAMESPACE
             for ( chsave = *curmix++, ++flextr, --flexcc, --mixlen; flexcc > 0 && mixlen > 0 && *flextr == *curmix;
               --flexcc, --mixlen, ++flextr, ++curmix ) (void)NULL;
 
-            if ( mixlen == 0 && LinearScanDict<byte_t, int>( const_action<gramBuffer>( grbuff ), flexTree + (stinfo.tfoffs << 4), flextr, flexcc ) > 0 )
-              InsertChar( output, chsave );
+            if ( mixlen == 0 && LinearScanDict<byte_t, int>( [&grlist]( auto d, auto s, auto l ){  return grlist( d, s, l );  },
+              flexTree + (stinfo.tfoffs << 4), flextr, flexcc ) > 0 ) InsertChar( output, chsave );
           }
             else
           if ( rescmp < 0 )
