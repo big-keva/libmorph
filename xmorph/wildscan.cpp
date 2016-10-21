@@ -40,6 +40,7 @@ namespace LIBMORPH_NAMESPACE
     while ( ncount-- > 0 )
     {
       gramBuffer    grlist( stinfo, mpower, grbuff );
+      auto          grscan = [&grlist]( const byte_t* d, const byte_t* s, size_t l ){  return grlist( d, s, l );  };
       byte_t        chnext = *thedic++;
       unsigned      sublen = getserial( thedic );
       const byte_t* subdic = thedic;
@@ -50,8 +51,8 @@ namespace LIBMORPH_NAMESPACE
       {
         case '*': InsertChar( output, chnext );
                   continue;
-        case '?': if ( LinearScanDict<byte_t, int>( [&grlist]( auto d, auto s, auto l ){  return grlist( d, s, l );  },
-                    subdic, thestr + 1, cchstr - 1 ) ) InsertChar( output, chnext );
+        case '?': if ( LinearScanDict<byte_t, int>( grscan, subdic, thestr + 1, cchstr - 1 ) )
+                    InsertChar( output, chnext );
                   continue;
         default:  if ( chnext == chfind )
                     WildScanFlex( output, subdic, thestr + 1, cchstr - 1, stinfo, mpower, szpost );
@@ -144,6 +145,7 @@ namespace LIBMORPH_NAMESPACE
           if ( *flextr == '?' )
           {
             gramBuffer  grlist( stinfo, powers, fxlist );
+            auto        grscan = [&grlist]( const byte_t* d, const byte_t* s, size_t l ){  return grlist( d, s, l );  };
             byte_t      chsave;
 
             if ( szpost != NULL )
@@ -153,8 +155,8 @@ namespace LIBMORPH_NAMESPACE
             for ( chsave = *curmix++, ++flextr, --flexcc, --mixlen; flexcc > 0 && mixlen > 0 && *flextr == *curmix;
               --flexcc, --mixlen, ++flextr, ++curmix ) (void)NULL;
 
-            if ( mixlen == 0 && LinearScanDict<byte_t, int>( [&grlist]( auto d, auto s, auto l ){  return grlist( d, s, l );  },
-              flexTree + (stinfo.tfoffs << 4), flextr, flexcc ) > 0 ) InsertChar( output, chsave );
+            if ( mixlen == 0 && LinearScanDict<byte_t, int>( grscan, flexTree + (stinfo.tfoffs << 4), flextr, flexcc ) > 0 )
+              InsertChar( output, chsave );
           }
             else
           if ( rescmp < 0 )
