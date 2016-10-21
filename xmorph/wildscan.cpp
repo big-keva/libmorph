@@ -186,10 +186,11 @@ namespace LIBMORPH_NAMESPACE
       case '?':
         while ( ncount-- > 0 )
         {
-          byte_t    chnext = *thedic++;
-          unsigned  sublen = getserial( thedic );
+          byte_t      chnext = *thedic++;
+          unsigned    sublen = getserial( thedic );
+          doFastCheck fcheck;
 
-          if ( LinearScanDict<byte_t, int>( listLookup<doFastCheck, steminfo>( doFastCheck() ), thedic, thestr + 1, cchstr - 1 ) > 0 )
+          if ( LinearScanDict<byte_t, int>( listLookup<doFastCheck, steminfo>( fcheck ), thedic, thestr + 1, cchstr - 1 ) > 0 )
             InsertChar( output, chnext );
           thedic += sublen;
         }
