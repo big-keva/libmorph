@@ -134,8 +134,8 @@ namespace LIBMORPH_NAMESPACE {
   {
     unsigned  dwinfo = (((unsigned)flags) << 16) | gInfo;
 
-    return ( IsVerb( wInfo ) ? MapVerbInfo( dwinfo ) :
-      ( IsAdjective( wInfo ) ? MapDefsInfo( dwinfo ) : MapNounInfo( dwinfo ) ) );
+    return  IsVerb( wInfo )      ? MapVerbInfo( dwinfo ) :
+            IsAdjective( wInfo ) ? MapDefsInfo( dwinfo ) : MapNounInfo( dwinfo );
   }
 
   inline void     getCaseInfo( byte_t     form,
