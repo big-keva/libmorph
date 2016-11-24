@@ -168,9 +168,10 @@ namespace LIBMORPH_NAMESPACE
   int   CMlmaMb::CheckWord( const char* pszstr, size_t  cchstr, unsigned  dwsets )
   {
     CATCH_ALL
-      byte_t      locase[256];
-      char        cpsstr[256];
-      doCheckWord scheck( locase, dwsets );
+      byte_t                            locase[256];
+      char                              cpsstr[256];
+      doCheckWord                       scheck( locase, dwsets );
+      listLookup<doCheckWord, steminfo> lookup( scheck );
 
     // check string length
       if ( cchstr == (size_t)-1 )
@@ -189,7 +190,7 @@ namespace LIBMORPH_NAMESPACE
       scheck.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
 
       // fill scheck structure
-      return LinearScanDict<byte_t, int>( listLookup<doCheckWord, steminfo>( scheck ), stemtree, locase, cchstr );
+      return LinearScanDict<byte_t, int>( lookup, stemtree, locase, cchstr );
     ON_ERRORS( -1 )
   }
 
@@ -199,9 +200,10 @@ namespace LIBMORPH_NAMESPACE
                             SGramInfo*  pgrams, size_t  ngrams, unsigned  dwsets )
   {
     CATCH_ALL
-      byte_t      locase[256];
-      char        cpsstr[256];
-      doLemmatize lemact( locase, dwsets, codepage );
+      byte_t                            locase[256];
+      char                              cpsstr[256];
+      doLemmatize                       lemact( locase, dwsets, codepage );
+      listLookup<doLemmatize, steminfo> lookup( lemact );
 
     // check string length
       if ( cchstr == (size_t)-1 )
@@ -225,7 +227,7 @@ namespace LIBMORPH_NAMESPACE
       lemact.egrams = (lemact.pgrams = pgrams) + ngrams;
 
     // call dictionary scanner
-      return LinearScanDict<byte_t, int>( listLookup<doLemmatize, steminfo>( lemact ), stemtree, locase, cchstr ) < 0 ?
+      return LinearScanDict<byte_t, int>( lookup, stemtree, locase, cchstr ) < 0 ?
         lemact.nerror : (int)(lemact.plemma - output);
     ON_ERRORS( -1 )
   }
@@ -235,11 +237,11 @@ namespace LIBMORPH_NAMESPACE
     CATCH_ALL
       byte_t        lidkey[0x10];
       const byte_t* ofsptr;
+      auto          getofs = []( const byte_t* thedic, const byte_t*, size_t cchstr ) {  return cchstr == 0 ? thedic : nullptr;  };
 
     // Оригинальная форма слова не задана, следует применять модификацию алгоритма, "прыгающую"
     // по словарю идентификаторов лексем сразу в нужную точку на странице.
-      if ( (ofsptr = LinearScanDict<word16_t, const byte_t*>( []( const byte_t* thedic, const byte_t*, size_t cchstr )
-        {  return cchstr == 0 ? thedic : NULL;  }, lidstree, lidkey, lexkeylen( lidkey, nlexid ) )) != NULL )
+      if ( (ofsptr = LinearScanDict<word16_t, const byte_t*>( getofs, lidstree, lidkey, lexkeylen( lidkey, nlexid ) )) != nullptr )
       {
         const byte_t* dicpos = stemtree + getserial( ofsptr );
         byte_t        szstem[0x80];
@@ -260,9 +262,10 @@ namespace LIBMORPH_NAMESPACE
   int   CMlmaMb::FindForms( char* output, size_t  cchout, const char* pszstr, size_t  cchstr, formid_t idform )
   {
     CATCH_ALL
-      byte_t      locase[256];
-      char        cpsstr[256];
-      doBuildForm abuild( locase, 0, codepage );
+      byte_t                            locase[256];
+      char                              cpsstr[256];
+      doBuildForm                       abuild( locase, 0, codepage );
+      listLookup<doBuildForm, steminfo> lookup( abuild );
 
     // check string length
       if ( cchstr == (size_t)-1 )
@@ -283,8 +286,7 @@ namespace LIBMORPH_NAMESPACE
       abuild.bflags = 0;
       abuild.idform = idform;
 
-      return LinearScanDict<byte_t, int>( listLookup<doBuildForm, steminfo>( abuild ), stemtree, locase, cchstr ) < 0 ?
-        abuild.nerror : abuild.rcount;
+      return LinearScanDict<byte_t, int>( lookup, stemtree, locase, cchstr ) < 0 ? abuild.nerror : abuild.rcount;
     ON_ERRORS( -1 )
   }
 
@@ -326,11 +328,11 @@ namespace LIBMORPH_NAMESPACE
     CATCH_ALL
       byte_t        lidkey[0x10];
       const byte_t* ofsptr;
+      auto          getofs = []( const byte_t* thedic, const byte_t*, size_t cchstr ){  return cchstr == 0 ? thedic : nullptr;  };
 
     // Оригинальная форма слова не задана, следует применять модификацию алгоритма, "прыгающую"
     // по словарю идентификаторов лексем сразу в нужную точку на странице.
-      if ( (ofsptr = LinearScanDict<word16_t, const byte_t*>( []( const byte_t* thedic, const byte_t*, size_t cchstr )
-        {  return cchstr == 0 ? thedic : NULL;  }, lidstree, lidkey, lexkeylen( lidkey, lexkey ) )) != NULL )
+      if ( (ofsptr = LinearScanDict<word16_t, const byte_t*>( getofs, lidstree, lidkey, lexkeylen( lidkey, lexkey ) )) != nullptr )
       {
         const byte_t* dicpos = stemtree + getserial( ofsptr );
         byte_t        clower = *dicpos++;
