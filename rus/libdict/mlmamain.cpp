@@ -33,6 +33,7 @@
 # include <xmorph/lemmatiz.h>
 # include <libcodes/codes.h>
 # include <string.h>
+# include <errno.h>
 
 #if defined(_MSC_VER) 
 #   if !defined( strncasecmp )
