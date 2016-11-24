@@ -25,6 +25,18 @@ namespace LIBMORPH_NAMESPACE
                               word16_t        grInfo,
                               byte_t          bflags );
 
+  inline  static  void  set_flexinfo( SGramInfo& o, const steminfo& s, const SGramInfo& g )
+  {
+    o.iForm = (byte_t)MapWordInfo( o.wInfo = (byte_t)s.wdinfo,
+                                    o.gInfo =         g.gInfo,
+                                    o.other =         g.other );
+  }
+
+  inline  static  void  set_0xffinfo( SGramInfo& o, const steminfo& s, const SGramInfo& g )
+  {
+    o = { (byte_t)s.wdinfo, 0xff, g.gInfo, g.other };
+  }
+
 //=========================================================================================
 // doLemmatize::InsertStem
 // the real safe lemmatization output creation method implemented as a class member
@@ -37,6 +49,8 @@ namespace LIBMORPH_NAMESPACE
                                  const SGramInfo* flexes,
                                  unsigned         fcount )
   {
+    auto  set_graminfo = stinfo.tfoffs != 0 ? set_flexinfo : set_0xffinfo;
+
     assert( nerror == 0 );
     assert( plemma != 0 );
 
@@ -46,7 +60,7 @@ namespace LIBMORPH_NAMESPACE
 
   // check if there is a buffer for normal forms; create normal forms
   // and store single form to the buffer selected for forms
-    if ( (plemma->plemma = pforms) != NULL )
+    if ( (plemma->plemma = pforms) != nullptr )
     {
       byte_t  fmbuff[256];
       size_t  ccstem;
@@ -69,7 +83,7 @@ namespace LIBMORPH_NAMESPACE
       fmbuff[ccstem] = 0;
 
     // Слово может иметь текст в постпозиции
-      if ( szpost != NULL )
+      if ( szpost != nullptr )
       {
         memcpy( fmbuff + ccstem, szpost + 1, *szpost );
           fmbuff[ccstem = ccstem + *szpost] = '\0';
@@ -102,13 +116,11 @@ namespace LIBMORPH_NAMESPACE
   // Проверить, надо ли восстанавливать грамматические описания
     if ( (plemma->pgrams = pgrams) != NULL )
     {
-      for ( ; fcount > 0; ++pgrams, ++flexes, --fcount, ++plemma->ngrams )
-      {
-        pgrams->iForm = (byte_t)MapWordInfo( pgrams->wInfo = (byte_t)stinfo.wdinfo,
-          pgrams->gInfo = flexes->gInfo, pgrams->other = flexes->other );
-      }
-      if ( fcount > 0 )
-        return (nerror = GRAMBUFF_FAILED);
+      for ( ; fcount > 0 && pgrams < egrams; --fcount )
+        set_graminfo( *pgrams++, stinfo, *flexes++ );
+
+      if ( fcount == 0 )  plemma->ngrams = pgrams - plemma->pgrams;
+        else return (nerror = GRAMBUFF_FAILED);
     }
     ++plemma;
     return 0;
