@@ -59,9 +59,9 @@ namespace LIBMORPH_NAMESPACE
 
   public: // the registration API
           doLemmatize( const byte_t* szbase, unsigned uflags, unsigned cp ): doCheckWord( szbase, uflags ),
-                         plemma( NULL ),
-                         pforms( NULL ),
-                         pgrams( NULL ),
+                         plemma( nullptr ),
+                         pforms( nullptr ),
+                         pgrams( nullptr ),
                          encode( cp ),
                          nerror( 0x00 )
             {
