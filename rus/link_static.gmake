@@ -1,0 +1,11 @@
+ifndef __morphrus_link__
+
+__morphrus_link__ = 1
+
+MORPHRUS_LIB = $(MKHOME)/libmorph/lib/libmorphrus$(_LIB)
+MORPHRUS_DIR = $(MKHOME)/libmorph/rus/libdict
+LIBSET += $(MORPHRUS_LIB)
+DIRSET += MORPHRUS
+
+endif
+
