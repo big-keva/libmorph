@@ -34,7 +34,10 @@ namespace LIBMORPH_NAMESPACE
 
   inline  static  void  set_0xffinfo( SGramInfo& o, const steminfo& s, const SGramInfo& g )
   {
-    o = { (byte_t)s.wdinfo, 0xff, g.gInfo, g.other };
+    o.wInfo = (byte_t)s.wdinfo;
+    o.iForm = 0xff;
+    o.gInfo = g.gInfo;
+    o.other = g.other;
   }
 
 //=========================================================================================
