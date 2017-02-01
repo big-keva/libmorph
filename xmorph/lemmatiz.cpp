@@ -27,17 +27,14 @@ namespace LIBMORPH_NAMESPACE
 
   inline  static  void  set_flexinfo( SGramInfo& o, const steminfo& s, const SGramInfo& g )
   {
-    o.iForm = (byte_t)MapWordInfo( o.wInfo = (byte_t)s.wdinfo,
-                                    o.gInfo =         g.gInfo,
-                                    o.other =         g.other );
+    o.idForm = MapWordInfo( o.wdInfo = s.wdinfo & ~0xe000,
+                            o.grInfo = g.grInfo,
+                            o.bFlags = g.bFlags );
   }
 
   inline  static  void  set_0xffinfo( SGramInfo& o, const steminfo& s, const SGramInfo& g )
   {
-    o.wInfo = (byte_t)s.wdinfo;
-    o.iForm = 0xff;
-    o.gInfo = g.gInfo;
-    o.other = g.other;
+    o = { (word16_t)(s.wdinfo & ~0xe000), 0xff, g.grInfo, g.bFlags };
   }
 
 //=========================================================================================
@@ -75,7 +72,7 @@ namespace LIBMORPH_NAMESPACE
     // Если слово не флективно, то окончание будет нулевым
       if ( stinfo.tfoffs != 0 )
       {
-        unsigned  nfInfo = GetNormalInfo( stinfo.wdinfo, flexes->gInfo, dwsets );
+        unsigned  nfInfo = GetNormalInfo( stinfo.wdinfo, flexes->grInfo, dwsets );
 
       // Построить нормальную форму слова. Если она не строится, проверить, почему.
         if ( !CreateDictForm( fmbuff + ccstem, stinfo, nfInfo, afAnimated|afNotAlive ) )
