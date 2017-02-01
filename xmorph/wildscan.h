@@ -169,7 +169,7 @@ namespace LIBMORPH_NAMESPACE
   public:     // operators
     void  operator () ( word16_t grinfo, byte_t bflags )
       {
-        assert( pforms - aforms < sizeof(aforms) );
+        assert( pforms - aforms <= sizeof(aforms) );
 
         *pforms++ = MapWordInfo( (byte_t)stinfo.wdinfo, grinfo, bflags );
       }
