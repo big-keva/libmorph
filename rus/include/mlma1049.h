@@ -29,6 +29,11 @@
 #   endif
 # endif
 
+# if !defined( __formid_t_defined__ )
+#   define  __formid_t_defined__
+    typedef unsigned char   formid_t;
+# endif // __formid_t_defined__
+
 # if !defined( lemmatize_errors_defined )
 #   define lemmatize_errors_defined
 #   define LEMMBUFF_FAILED -1
@@ -36,13 +41,6 @@
 #   define GRAMBUFF_FAILED -3
 #   define WORDBUFF_FAILED -4
 # endif
-
-# if !defined( PAGELOAD_FAILED )
-#   define PAGELOAD_FAILED -5
-# endif  // PAGELOAD_FAILED
-# if !defined( PAGELOCK_FAILED )
-#   define PAGELOCK_FAILED -6
-# endif  // PAGELOCK_FAILED
 
 # if !defined( mlma_search_flags_defined )
 #   define mlma_search_flags_defined
@@ -62,18 +60,13 @@
 
   typedef struct
   {
-    unsigned char   wInfo;
-    unsigned char   iForm;
-    unsigned short  gInfo;
-    unsigned char   other;
+    uint16_t  wdInfo;
+    formid_t  idForm;
+    uint16_t  grInfo;
+    uint8_t   bFlags;
   } SGramInfo;
 
 # endif  /* mlma_grammarecord_defined */
-
-# if !defined( formid_defined )
-# define  formid_defined
-  typedef unsigned char formid_t;
-# endif // formid_t defined
 
 # if !defined( mlma_lexemerecord_defined )
 # define  mlma_lexemerecord_defined
