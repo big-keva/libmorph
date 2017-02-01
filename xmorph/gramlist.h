@@ -15,19 +15,11 @@ namespace LIBMORPH_NAMESPACE
     SGramInfo*      outptr;
 
   public:     // construction
-    gramBuffer( const steminfo& s, unsigned m, SGramInfo* p ): stinfo( s ), powset( m ), outorg( p ), outptr( p )
-      {
-      }
-    size_t  size() const
-      {
-        return outptr - outorg;
-      }
-    void  append( word16_t grinfo, byte_t bflags )
-      {
-        outptr->gInfo = grinfo;
-        outptr->other = bflags;
-        ++outptr;
-      }
+    gramBuffer( const steminfo& s, unsigned m, SGramInfo* p ): stinfo( s ), powset( m ), outorg( p ), outptr( p ) {}
+
+  public:     // API
+    size_t  getlen() const  {  return outptr - outorg;  }
+    void    append( word16_t grinfo, byte_t bflags )  {  *outptr++ = { 0, 0, grinfo, bflags };  }
 
   private:      // check classes
     struct anyvalue
@@ -74,7 +66,7 @@ namespace LIBMORPH_NAMESPACE
             append( grInfo, bflags );
         }
 
-        return size();
+        return getlen();
       }
 
   public:     // gramLoader functor
