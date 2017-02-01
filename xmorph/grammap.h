@@ -128,14 +128,14 @@ namespace LIBMORPH_NAMESPACE {
     }
   }
 
-  inline byte_t MapWordInfo( byte_t   wInfo,
-                             word16_t gInfo,
-                             byte_t   flags )
+  inline byte_t MapWordInfo( word16_t wdInfo,
+                             word16_t grInfo,
+                             byte_t   bflags )
   {
-    unsigned  dwinfo = (((unsigned)flags) << 16) | gInfo;
+    word32_t  dwinfo = (((unsigned)bflags) << 16) | grInfo;
 
-    return  IsVerb( wInfo )      ? MapVerbInfo( dwinfo ) :
-            IsAdjective( wInfo ) ? MapDefsInfo( dwinfo ) : MapNounInfo( dwinfo );
+    return  IsVerb     ( wdInfo ) ? MapVerbInfo( dwinfo ) :
+            IsAdjective( wdInfo ) ? MapDefsInfo( dwinfo ) : MapNounInfo( dwinfo );
   }
 
   inline void     getCaseInfo( byte_t     form,
