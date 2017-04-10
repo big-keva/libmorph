@@ -13,22 +13,19 @@ namespace libmorph
     int         nchars;
 
   public:     // construction
-        dumpsource( FILE* p, int maxchars = 12 ): lpfile( p ), stored( 0 ), nchars( maxchars )
-          {
-          }
-       ~dumpsource()
-          {
-          }
+    dumpsource( FILE* p, int maxchars = 12 ): lpfile( p ), stored( 0 ), nchars( maxchars )
+      {
+      }
     operator FILE*()
-          {
-            return lpfile;
-          }
+      {
+        return lpfile;
+      }
     int putchar( char c )
-          {
-            fprintf( lpfile, "%s0x%02x", stored == 0 ? "" : (stored % nchars) == 0 ? ",\n    " : ",", (unsigned char)c );
-              ++stored;
-            return 0;
-          }
+      {
+        fprintf( lpfile, "%s0x%02x", stored == 0 ? "" : (stored % nchars) == 0 ? ",\n    " : ",", (unsigned char)c );
+          ++stored;
+        return 0;
+      }
   };
 
   class BinaryDumper
@@ -49,16 +46,13 @@ namespace libmorph
         if ( (FILE*)lpfile != NULL && nspace != NULL && *nspace != '\0' )
           fprintf( lpfile, "\n"  "}  // end namespace\n\n" );
       }
-    BinaryDumper& OutDir( const char* d )
-      {  pszdir = d;  return *this;  }
-    BinaryDumper& Header( const char* h )
-      {  header = h;  return *this;  }
-    BinaryDumper& Namespace( const char* n )
-      {  nspace = n;  return *this;  }
-    BinaryDumper& Output( const char* f )
-      {  szname = f;  return *this;  }
-    operator int()
-      {  return nerror;  }
+
+    BinaryDumper& OutDir( const char* d )     {  pszdir = d;  return *this;  }
+    BinaryDumper& Header( const char* h )     {  header = h;  return *this;  }
+    BinaryDumper& Namespace( const char* n )  {  nspace = n;  return *this;  }
+    BinaryDumper& Output( const char* f )     {  szname = f;  return *this;  }
+
+    operator int()  {  return nerror;  }
 
   public:
     BinaryDumper& Type( const char* format, ... )
