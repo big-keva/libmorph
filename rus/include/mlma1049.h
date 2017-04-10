@@ -120,6 +120,8 @@
 
 #   define afAnimated     0x01          /*                       */
 #   define afNotAlive     0x02          /*                       */
+#   define afLifeless     0x02          /* синоним               */
+
 #   define afHardForm     0x04          /* Затрудненная форма    */
 #   define afJoiningC     0x08          /* Соед. гласная         */
 
@@ -150,6 +152,26 @@
 #   define vfVerbDoing    0x0060        /* Деепричастие          */
 
 # endif  /* russian_gram_info_defined */
+
+# if !defined( wfUnionS )
+#   define wfUnionS     0x0040
+# endif
+
+# if !defined( wfExcellent )
+#   define wfExcellent  0x0100
+# endif
+
+# if !defined( wfCountable )
+#   define wfCountable  0x0200
+# endif
+
+# if !defined( wfInformal )
+#   define wfInformal   0x0400
+# endif
+
+# if !defined( wfObscene )
+#   define wfObscene    0x0800
+# endif
 
 # if !defined( EXPORT )
 #   if defined( WIN16 )
