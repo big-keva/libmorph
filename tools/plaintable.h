@@ -1,7 +1,7 @@
 # if !defined( __plaintable_h__ )
 #	define	__plaintable_h__
 # include "plaintree.h"
-# include "serialize.h"
+# include <mtc/serialize.h>
 # include <errno.h>
 
 namespace libmorph
@@ -16,18 +16,18 @@ namespace libmorph
       {  return grinfo == r.grinfo && bflags == r.bflags;  }
   };
 
-  struct gramlist: public array<graminfo, graminfo&>
+  struct gramlist: public array<graminfo>
   {
     int Insert( unsigned short g, unsigned char b )
       {
         graminfo  grinfo = { g, b };
 
-        return Lookup( grinfo ) >= 0 ? 0 : Append( grinfo );
+        return Lookup( grinfo ) == end() ? Append( grinfo ) : 0;
       }
-    unsigned  GetBufLen() const
+    size_t  GetBufLen() const
       {  return 1 + GetLen() * 3;  }
     template <class O>
-    O*  Serialize( O* o )
+    O*      Serialize( O* o )
       {
         graminfo* p;
 
@@ -35,7 +35,7 @@ namespace libmorph
           o = ::Serialize( ::Serialize( o, &p->grinfo, sizeof(p->grinfo) ),
                                            &p->bflags, sizeof(p->bflags) );
 
-          return o;
+        return o;
       }
   };
 
