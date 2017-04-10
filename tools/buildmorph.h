@@ -1,10 +1,10 @@
 # if !defined( __buildmorph_h__)
 # define __buildmorph_h__
 # include "plaintree.h"
-# include "conffile.h"
 # include "dumppage.h"
 # include "sweets.h"
 # include <libcodes/codes.h>
+# include <mtc/jsconfig.h>
 # include <algorithm>
 
 template <class theclass>
@@ -14,18 +14,19 @@ class classset
   {
     unsigned  offset;
 
-    classofs( const theclass& r, unsigned o ): theclass( r ), offset( o )
-      {                                         }
-    bool  operator == ( const theclass& r ) const
-      {   return theclass::operator == ( r );   }
+    classofs( const theclass& r, unsigned o ): theclass( r ), offset( o ) {}
+    classofs( const classofs& c ): theclass( c ), offset( c.offset ) {}
+    bool  operator == ( const theclass& r ) const {  return theclass::operator == ( r );  }
   };
-  array<classofs, classofs&>  clsset;
-  unsigned                    length;
+
+  array<classofs>   clsset;
+  unsigned          length;
 
 public:     // construction
-  classset(): length( 0 )
-    {
-    }
+  classset(): length( 0 ) {}
+  classset( const classset& ) = delete;
+
+public:     // API
   unsigned  AddClass( const theclass& rclass )
     {
       classofs* p;
@@ -33,18 +34,20 @@ public:     // construction
       for ( p = clsset.begin(); p < clsset.end(); ++p )
         if ( *p == rclass ) return p->offset;
 
-      if ( clsset.Append( (classofs&)classofs( rclass, length ) ) != 0 )
+      if ( clsset.Append( classofs( rclass, length ) ) != 0 )
         return (unsigned)-1;
 
       length += rclass.GetBufLen();
         return clsset[clsset.GetLen() - 1].offset;
     }
-  unsigned  GetBufLen() const
+
+public:     // serialization
+  size_t  GetBufLen() const
     {
       return length;
     }
   template <class O>
-  O*  Serialize( O* o )
+  O*      Serialize( O* o )
     {
       classofs* p;
 
@@ -54,7 +57,7 @@ public:     // construction
     }
 };
 
-inline  int   lexkeybuf( char* lexbuf, unsigned nlexid )
+inline  size_t  lexkeybuf( char* lexbuf, unsigned nlexid )
 {
   char*   lexorg = lexbuf;
 
@@ -72,25 +75,28 @@ inline  int   lexkeybuf( char* lexbuf, unsigned nlexid )
 template <class theclass, class steminfo, class resolver>
 class buildmorph
 {
-  struct  stemlist: public array<steminfo, steminfo&>
+  struct  stemlist: public array<steminfo>
   {
-    stemlist( int ndelta = 0x4 ): array<steminfo, steminfo&>( ndelta )
-      {
-      }
-    unsigned  GetBufLen()
+    stemlist( int ndelta = 0x4 ): array<steminfo>( ndelta ) {}
+    stemlist( const stemlist& ) = delete;
+    stemlist& operator = ( const stemlist& ) = delete;
+
+  public:     // serialization
+    size_t  GetBufLen()
       {
         const steminfo* p;
-        unsigned        l;
+        size_t          l;
 
         std::sort( begin(), end(),
           []( const steminfo& r1, const steminfo& r2 ) { return r1 < r2; } );
 
         for ( l = ::GetBufLen( this->GetLen() ), p = begin(); p < end(); ++p )
           l += p->GetBufLen();
+
         return l;
       }
     template <class O>
-    O*        Serialize( O* o ) const
+    O*      Serialize( O* o ) const
       {
         const steminfo* p;
 
@@ -99,13 +105,13 @@ class buildmorph
         return o;
       }
     template <class A>
-    unsigned  Enumerate( A a, unsigned o ) const
+    size_t  Enumerate( A a, size_t o ) const
       {
         const steminfo* p;
 
         for ( o += ::GetBufLen( size() ), p = begin(); p < end(); ++p )
           if ( a( *p, o ) ) o += p->GetBufLen();
-            else return (unsigned)-1;
+            else return (size_t)-1;
         return o;
       }
   };
@@ -115,35 +121,12 @@ class buildmorph
     unsigned  offset;
 
   public:     // serialization
-    unsigned  GetBufLen() const
-      {  return ::GetBufLen( offset );  }
-    template <class O>
-    O*        Serialize( O* o ) const
-      {  return ::Serialize( o, offset );  }
+                        size_t  GetBufLen() const         {  return ::GetBufLen( offset );  }
+    template <class O>  O*      Serialize( O* o ) const   {  return ::Serialize( o, offset );  }
   };
 
   typedef wordtree<stemlist, unsigned char>  StemTree;   // the actual tree
   typedef wordtree<dictoffs, unsigned short> LidsTree;
-
-  struct  enumdict
-  {
-    LidsTree&  reflid;
-
-  public:     // construction
-    enumdict( LidsTree& refdic ): reflid( refdic )
-      {
-      }
-    bool  operator () ( const steminfo& s, unsigned o )
-      {
-        char      lidstr[0x20];
-        dictoffs* ptrpos;
-
-        if ( (ptrpos = reflid.InsertStr( lidstr, lexkeybuf( lidstr, s.nlexid ) )) == NULL )
-          return false;
-        ptrpos->offset = o;
-          return true;
-      }
-  };
 
 protected:
   StemTree            stemtree;   // the actual tree
@@ -151,12 +134,15 @@ protected:
   classset<theclass>  classset;
 
   resolver&           clparser;
-  libmorph::file      unknowns;
-  libmorph::conf      settings;
+  file                unknowns;
+  configuration       settings;
   unsigned            sourceCP;
+  const char*         sLicense;
 
 public:     // construction
-            buildmorph( resolver& r, unsigned codepage ): clparser( r ), sourceCP( codepage )
+            buildmorph( resolver& r, const char* l, unsigned c ): clparser( r ),
+                                                                  sLicense( l ),
+                                                                  sourceCP( c )
               {
               }
 
@@ -170,101 +156,73 @@ protected:  // helpers
 
 };
 
-class serialbuff
-{
-  const void* buffer;
-  unsigned    length;
-
-public:
-  serialbuff( const void* p, unsigned l ): buffer( p ), length( l )
-    {}
-  template <class O> O*  Serialize( O* o ) const
-    {  return ::Serialize( o, buffer, length );  }
-};
-
-template <class serializable>
-int       DumpBinary( const char* pszdir, const char*   nspace,
-                      const char* vaname, serializable& serial )
-{
-  char            szname[0x400];
-  const char*     sslash = "";
-  libmorph::file  lpfile;
-
-  if ( pszdir == NULL )
-    pszdir = "";
-  if ( pszdir != "" && strchr( "/\\", pszdir[strlen( pszdir ) - 1] ) == NULL )
-    sslash = "/";
-  sprintf( szname, "%s%s%s.cpp", pszdir, sslash, vaname );
-
-  if ( (lpfile = fopen( szname, "wt" )) != NULL )
-  {
-    libmorph::dumpsource  dumpsc( lpfile, nspace, vaname );
-      serial.Serialize( &dumpsc );
-    return 0;
-  }
-  return libmorph::LogMessage( ENOENT, "Could not create file \'%s\'!\n", szname );
-}
-
 // buildmorph implementation
 
 template <class theclass, class steminfo, class resolver>
 int   buildmorph<theclass, steminfo, resolver>::Initialize( const char* pszcfg )
 {
-  libmorph::file  lpfile;
-
-  if ( (lpfile = fopen( pszcfg, "rt" )) == NULL )
-    return libmorph::LogMessage( ENOENT, "Could not open file \'%s\'!\n", pszcfg );
-
-  return settings.Initialize( (FILE*)lpfile );
+  return (settings = OpenConfig( pszcfg )).haskeys() ? 0 : EINVAL;
 }
 
 template <class theclass, class steminfo, class resolver>
 int   buildmorph<theclass, steminfo, resolver>::CreateDict()
 {
-  enumdict                        dienum( lidstree );
-  libmorph::file                  lpfile;
-  const char*                     dicset;
-  int                             nerror;
-  unsigned                        length;
+  file                  lpfile;
+  array<_auto_<char>>*  dicset;
+  int                   nerror;
+  size_t                length;
+  auto                  maplid = [&]( const steminfo& s, size_t o )
+    {
+      char      lidstr[0x20];
+      dictoffs* ptrpos;
+
+      if ( (ptrpos = lidstree.InsertStr( lidstr, lexkeybuf( lidstr, s.nlexid ) )) == nullptr )
+        return false;
+      ptrpos->offset = (unsigned)o;
+        return true;
+    };
 
 // load all the dictionaries
-  if ( (dicset = settings.FindString( "dictionary" )) == NULL )
-    return libmorph::LogMessage( EINVAL, "No \'dictionary' variable found in the configuration!\n" );
+  if ( (dicset = settings.get_array_charstr( "dictionaries" )) == nullptr )
+    return libmorph::LogMessage( EINVAL, "No \'dictionaries' variable found in the configuration!\n" );
 
-  for ( ; *dicset != '\0'; dicset += strlen( dicset ) + 1 )
+  for ( auto p = dicset->begin(); p < dicset->end(); ++p )
   {
-    if ( (lpfile = fopen( dicset, "rt" )) == NULL )
-      return libmorph::LogMessage( ENOENT, "Could not open file \'%s\'!\n", dicset );
+    if ( (lpfile = fopen( *p, "rt" )) == NULL )
+      return libmorph::LogMessage( ENOENT, "Could not open file \'%s\'!\n", (const char*)*p );
 
-    libmorph::LogMessage( 0, "Loading %s...", dicset );
+    libmorph::LogMessage( 0, "Loading %s...", (const char*)*p );
       if ( (nerror = DictReader( lpfile )) != 0 )
         return libmorph::LogMessage( nerror, " fault :(\n" );
     libmorph::LogMessage( 0, " OK\n" );
   }
 
 // dump word tree
-  if ( (length = stemtree.GetBufLen()) != (unsigned)-1 ) libmorph::LogMessage( 0, "info: main dictionary size is %d bytes.\n", length );
+  if ( (length = stemtree.GetBufLen()) != (size_t)-1 ) libmorph::LogMessage( 0, "info: main dictionary size is %d bytes.\n", length );
     else return libmorph::LogMessage( ENOMEM, "fault to calculate the main dictionary size!\n" );
 
   // create stem mapping
-    if ( stemtree.Enumerate( dienum ) == (unsigned)-1 )
-      return ENOMEM;
+  if ( stemtree.Enumerate( maplid ) == (size_t)-1 )
+    return ENOMEM;
 
-  if ( (length = lidstree.GetBufLen()) != (unsigned)-1 ) libmorph::LogMessage( 0, "info: lids dictionary size is %d bytes.\n", length );
+  if ( (length = lidstree.GetBufLen()) != (size_t)-1 ) libmorph::LogMessage( 0, "info: lids dictionary size is %d bytes.\n", length );
     else return libmorph::LogMessage( ENOMEM, "fault to calculate the main dictionary size!\n" );
 
-  if ( (length = classset.GetBufLen()) != (unsigned)-1 ) libmorph::LogMessage( 0, "info: type dictionary size is %d bytes.\n", length );
+  if ( (length = classset.GetBufLen()) != (size_t)-1 ) libmorph::LogMessage( 0, "info: type dictionary size is %d bytes.\n", length );
     else return libmorph::LogMessage( ENOMEM, "fault to calculate the type dictionary size!\n" );
 
 // dump word tree
-  if ( (nerror = DumpBinary( settings.FindString( "TargetDir" ), settings.FindString( "namespace" ), "stemtree", stemtree )) != 0 )
-    return nerror;
+  BinaryDumper().Namespace( settings.get_charstr( "namespace", "__libmorphrus__" ) ).
+                    OutDir( settings.get_charstr( "TargetDir", "./" ) ).
+                    Header( sLicense ).Dump( "stemtree", stemtree );
 
-  if ( (nerror = DumpBinary( settings.FindString( "TargetDir" ), settings.FindString( "namespace" ), "lidstree", lidstree )) != 0 )
-    return nerror;
+  BinaryDumper().Namespace( settings.get_charstr( "namespace", "__libmorphrus__" ) ).
+                    OutDir( settings.get_charstr( "TargetDir", "./" ) ).
+                    Header( sLicense ).Dump( "lidstree", lidstree );
 
-  if ( (nerror = DumpBinary( settings.FindString( "TargetDir" ), settings.FindString( "namespace" ), "classmap", classset )) != 0 )
-    return nerror;
+  BinaryDumper().Namespace( settings.get_charstr( "namespace", "__libmorphrus__" ) ).
+                    OutDir( settings.get_charstr( "TargetDir", "./" ) ).
+                    Header( sLicense ).Dump( "classmap", classset );
 
   return 0;
 }
@@ -272,9 +230,9 @@ int   buildmorph<theclass, steminfo, resolver>::CreateDict()
 template <class theclass, class steminfo, class resolver>
 int   buildmorph<theclass, steminfo, resolver>::DictReader( FILE* lpfile )
 {
-  char  szline[0x400];
-  int   nwords;
-  int   nerror;
+  char    szline[0x400];
+  int     nwords;
+  int     nerror;
 
   for ( nwords = 0; fgets( szline, sizeof(szline) - 1, lpfile ) != NULL; ++nwords )
   {
@@ -339,11 +297,9 @@ int   buildmorph<theclass, steminfo, resolver>::PutUnknown( const char* pszstr )
 {
   if ( unknowns == NULL )
   {
-    const char* szname;
-
-    if ( (szname = settings.FindString( "faultList" )) != NULL )
-      if ( (unknowns = fopen( szname, "wt" )) == NULL )
-        return libmorph::LogMessage( ENOENT, "Could not create the unknown words file \'%s\'!\n", szname );
+    if ( (unknowns = fopen( settings.get_charstr( "faultList", "unknown.txt" ), "wt" )) == nullptr )
+      return libmorph::LogMessage( ENOENT, "Could not create the unknown words file \'%s\'!\n",
+        settings.get_charstr( "faultList", "unknown.txt" ) );
   }
   if ( unknowns != NULL )
     fprintf( unknowns, "%s\n", pszstr );
