@@ -184,8 +184,10 @@ namespace LIBMORPH_NAMESPACE
 
     // modify the codepage
       if ( codepage != codepage_1251 )
+      {
         if ( (cchstr = mbcstombcs( codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
           else  return WORDBUFF_FAILED;
+      }
 
     // get capitalization scheme
       scheck.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
@@ -216,8 +218,10 @@ namespace LIBMORPH_NAMESPACE
 
     // modify the codepage
       if ( codepage != codepage_1251 )
+      {
         if ( (cchstr = mbcstombcs( codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
           else  return WORDBUFF_FAILED;
+      }
 
     // get capitalization scheme
       lemact.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
@@ -278,8 +282,10 @@ namespace LIBMORPH_NAMESPACE
 
     // modify the codepage
       if ( codepage != codepage_1251 )
+      {
         if ( (cchstr = mbcstombcs( codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
           else  return WORDBUFF_FAILED;
+      }
 
       abuild.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
       abuild.outend = (abuild.output = output) + cchout;
@@ -308,8 +314,10 @@ namespace LIBMORPH_NAMESPACE
 
     // modify the codepage
       if ( codepage != codepage_1251 )
+      {
         if ( (cchstr = mbcstombcs( codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
           else  return WORDBUFF_FAILED;
+      }
 
     // change the word to the lower case
       memcpy( locase, pszstr, cchstr );
@@ -335,9 +343,7 @@ namespace LIBMORPH_NAMESPACE
     // по словарю идентификаторов лексем сразу в нужную точку на странице.
       if ( (ofsptr = LinearScanDict<word16_t, const byte_t*>( getofs, lidstree, lidkey, lexkeylen( lidkey, lexkey ) )) != nullptr )
       {
-        const byte_t* dicpos = stemtree + getserial( ofsptr );
-        byte_t        clower = *dicpos++;
-        byte_t        cupper = *dicpos++;
+        const byte_t* dicpos = stemtree + getserial( ofsptr ) + 2; /* 2 => clower && cupper */
         lexeme_t      nlexid = getserial( dicpos );
         word16_t      oclass = getword16( dicpos );
         steminfo      stinfo;
@@ -366,8 +372,10 @@ namespace LIBMORPH_NAMESPACE
 
     // modify the codepage
       if ( codepage != codepage_1251 )
+      {
         if ( (cchstr = mbcstombcs( codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
           else  return WORDBUFF_FAILED;
+      }
 
     // change the word to the lower case
       SetLowerCase( (byte_t*)strncpy( (char*)locase, pszstr, cchstr ), cchstr )[cchstr] = 0;
@@ -453,22 +461,22 @@ namespace LIBMORPH_NAMESPACE
 
   // call default lemmatizer
     if ( (lcount = mlmaMbInstance.Lemmatize( szword, ccword,
-      output != NULL ? lmbuff : NULL, cchout <= 32 ? cchout : 32,
-      plemma != NULL ? szlemm : NULL, clemma <= sizeof(szlemm) ? clemma : sizeof(szlemm),
+      output != nullptr ? lmbuff : nullptr, cchout <= 32 ? cchout : 32,
+      plemma != nullptr ? szlemm : nullptr, clemma <= sizeof(szlemm) ? clemma : sizeof(szlemm),
       pgrams, ngrams, dwsets )) <= 0 )
         return lcount;
 
   // fill output data
-    if ( output != NULL )
+    if ( output != nullptr )
       for ( lindex = 0; lindex < lcount; lindex++, output++ )
       {
         output->nlexid = lmbuff[lindex].nlexid;
         output->pgrams = lmbuff[lindex].pgrams;
         output->ngrams = lmbuff[lindex].ngrams;
-        output->plemma = lmbuff[lindex].plemma == NULL ? NULL :
+        output->plemma = lmbuff[lindex].plemma == nullptr ? nullptr :
             plemma + (lmbuff[lindex].plemma - szlemm);
       }
-    if ( plemma != NULL )
+    if ( plemma != nullptr )
       for ( lindex = 0, lplemm = szlemm; lindex < lcount; ++lindex )
       {
         size_t    nccstr = mbcstowide( codepage_1251, (widechar*)plemma, clemma, lplemm ) + 1;
@@ -611,13 +619,15 @@ namespace LIBMORPH_NAMESPACE
     { codepage_utf8, "utf-8" },
     { codepage_utf8, "utf8" }
   };
+
+  const int codepageSize = (int)(sizeof(codepageList) / sizeof(codepageList[0]));
 }
 
 using namespace LIBMORPH_NAMESPACE;
 
 int   MLMAPROC        mlmaruLoadMbAPI( IMlmaMb**  ptrAPI )
 {
-  if ( ptrAPI == NULL )
+  if ( ptrAPI == nullptr )
     return -1;
   *ptrAPI = (IMlmaMb*)&mlmaMbInstance;
     return 0;
@@ -627,19 +637,18 @@ int   MLMAPROC        mlmaruLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
 {
   CMlmaMb*  palloc;
   unsigned  pageid = (unsigned)-1;
-  int       nindex;
 
-  for ( nindex = 0; nindex < sizeof(codepageList) / sizeof(codepageList[0]) && pageid == (unsigned)-1; ++nindex )
-    if ( strcasecmp( codepageList[nindex].szcodepage, codepage ) == 0 )
-      pageid = codepageList[nindex].idcodepage;
+  for ( auto pcpage = codepageList; pcpage < codepageList + codepageSize && pageid == (unsigned)-1; ++pcpage )
+    if ( strcasecmp( pcpage->szcodepage, codepage ) == 0 )
+      pageid = pcpage->idcodepage;
 
-  if ( pageid == (unsigned)-1 || ptrAPI == NULL )
+  if ( pageid == (unsigned)-1 || ptrAPI == nullptr )
     return EINVAL;
 
   if ( pageid == codepage_1251 )
     return mlmaruLoadMbAPI( ptrAPI );
 
-  if ( (palloc = new CMlmaMb( pageid )) == NULL )
+  if ( (palloc = new CMlmaMb( pageid )) == nullptr )
     return ENOMEM;
   (*ptrAPI = (IMlmaMb*)palloc)->Attach();
     return 0;
@@ -647,8 +656,9 @@ int   MLMAPROC        mlmaruLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
 
 int   MLMAPROC        mlmaruLoadWcAPI( IMlmaWc**  ptrAPI )
 {
-  if ( ptrAPI == NULL )
+  if ( ptrAPI == nullptr )
     return -1;
   *ptrAPI = (IMlmaWc*)&mlmaWcInstance;
     return 0;
 }
+
