@@ -89,11 +89,8 @@ namespace LIBMORPH_NAMESPACE
 
     while ( ucount-- > 0 )
     {
-      byte_t        clower = *pstems++;
-      byte_t        cupper = *pstems++;
-      lexeme_t      nlexid = getserial( pstems );
+      lexeme_t      nlexid = getserial( pstems += 2 );
       word16_t      oclass = getword16( pstems );
-      size_t        ccflex = cchstr;
       const byte_t* szpost;
       steminfo      stinfo;
 
@@ -104,7 +101,7 @@ namespace LIBMORPH_NAMESPACE
     // check if non-flective
       if ( (stinfo.Load( classmap + (oclass & 0x7fff) ).wdinfo & wfFlexes) == 0 || (stinfo.wdinfo & 0x3f) == 51 )
       {
-        if ( *thestr == '*' || cchstr == 1 && *thestr == '?' )
+        if ( *thestr == '*' || (cchstr == 1 && *thestr == '?') )
           InsertChar( output, '\0' );
       }
         else
@@ -149,8 +146,10 @@ namespace LIBMORPH_NAMESPACE
             byte_t      chsave;
 
             if ( szpost != NULL )
+            {
               if ( flexcc <= *szpost || memcmp( flextr + flexcc - *szpost, szpost + 1, *szpost ) != 0 ) continue;
                 else  flexcc -= *szpost;
+            }
 
             for ( chsave = *curmix++, ++flextr, --flexcc, --mixlen; flexcc > 0 && mixlen > 0 && *flextr == *curmix;
               --flexcc, --mixlen, ++flextr, ++curmix ) (void)NULL;
@@ -221,11 +220,13 @@ namespace LIBMORPH_NAMESPACE
 
     WildScanDict( (unsigned*)memset( chmask, 0, sizeof(chmask) ), stemtree, ptempl, cchstr );
 
-    for ( nindex = 0; nindex < sizeof(chmask) / sizeof(chmask[0]); ++nindex )
+    for ( nindex = 0; nindex < (int)(sizeof(chmask) / sizeof(chmask[0])); ++nindex )
       for ( cindex = 0; cindex < sizeof(unsigned) * CHAR_BIT; ++cindex )
         if ( (chmask[nindex] & (1 << cindex)) != 0 )
+        {
           if ( output < outend ) *output++ = (byte_t)(nindex * sizeof(unsigned) * CHAR_BIT + cindex);
             else  return WORDBUFF_FAILED;
+        }
 
     return output - outorg;
   }
