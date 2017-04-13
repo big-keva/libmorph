@@ -240,10 +240,7 @@ namespace LIBMORPH_NAMESPACE
   {
     wbInfo &= 0x3F;
 
-    return wbInfo >= 25 && wbInfo <= 28
-        || wbInfo == 34
-        || wbInfo == 36 
-        || wbInfo == 42;
+    return (wbInfo >= 25 && wbInfo <= 28) || wbInfo == 34 || wbInfo == 36 || wbInfo == 42;
   }
 
   inline  bool  IsParticiple( word16_t grInfo )
