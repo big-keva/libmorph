@@ -119,7 +119,7 @@ namespace LIBMORPH_NAMESPACE
       for ( ; fcount > 0 && pgrams < egrams; --fcount )
         set_graminfo( *pgrams++, stinfo, *flexes++ );
 
-      if ( fcount == 0 )  plemma->ngrams = pgrams - plemma->pgrams;
+      if ( fcount == 0 )  plemma->ngrams = (unsigned)(pgrams - plemma->pgrams);
         else return (nerror = GRAMBUFF_FAILED);
     }
     ++plemma;

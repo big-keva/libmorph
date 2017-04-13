@@ -175,7 +175,7 @@ namespace LIBMORPH_NAMESPACE
       }
     int   size() const
       {
-        return pforms - aforms;
+        return (int)(pforms - aforms);
       }
     const byte_t* begin() const
       {

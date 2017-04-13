@@ -18,7 +18,7 @@ namespace LIBMORPH_NAMESPACE
     gramBuffer( const steminfo& s, unsigned m, SGramInfo* p ): stinfo( s ), powset( m ), outorg( p ), outptr( p ) {}
 
   public:     // API
-    size_t  getlen() const  {  return outptr - outorg;  }
+    int     getlen() const  {  return (int)(outptr - outorg);  }
     void    append( word16_t grinfo, byte_t bflags )  {  *outptr++ = { 0, 0, grinfo, bflags };  }
 
   private:      // check classes
@@ -53,9 +53,9 @@ namespace LIBMORPH_NAMESPACE
 
   protected:  // filler
     template <class isplural, class mixlevel>
-    size_t  FilterGram( const byte_t* thedic,
-                        isplural        plural,     // plural filter, defined if wfMultiple
-                        mixlevel        isswap )    // mixpower filter
+    int   FilterGram( const byte_t* thedic,
+                        isplural      plural,     // plural filter, defined if wfMultiple
+                        mixlevel      isswap )    // mixpower filter
       {
         for ( auto nforms = *thedic++; nforms-- > 0; )
         {
