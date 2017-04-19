@@ -108,7 +108,10 @@ namespace LIBMORPH_NAMESPACE
     }
       else
     while ( ncount-- > 0 )
-      thedic += getserial( ++thedic );
+    {
+      auto  sublen = getserial( ++thedic );
+      thedic += sublen;
+    }
 
   /*
     если есть список лексем, провести там отождествление
@@ -383,7 +386,10 @@ namespace LIBMORPH_NAMESPACE
     }
       else
     while ( ncount-- > 0 )
-      fttree += getserial( ++fttree );
+    {
+      auto  sublen = getserial( ++fttree );
+      fttree += sublen;
+    }
 
     if ( (bflags & 0x80) != 0 && GetPostMatch( thestr, cchstr, maargs.szpost, maargs.ccpost ) )
     {
