@@ -89,7 +89,7 @@ namespace LIBMORPH_NAMESPACE
 
     while ( ucount-- > 0 )
     {
-      lexeme_t      nlexid = getserial( pstems += 2 );
+      lexeme_t      nlexid = getserial( pstems += 2 );  (void)nlexid;
       word16_t      oclass = getword16( pstems );
       const byte_t* szpost;
       steminfo      stinfo;
