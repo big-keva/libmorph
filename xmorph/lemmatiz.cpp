@@ -246,12 +246,15 @@ namespace LIBMORPH_NAMESPACE
       const byte_t* mixtab = stinfo.GetSwapTable();
       int           mpmask = 0x08 << stinfo.GetSwapLevel( grInfo, bflags );
       int           mcount = *mixtab++;
-      const byte_t* thestr;
+      const byte_t* thestr = nullptr;
 
-      for ( thestr = NULL; thestr == NULL && mcount-- > 0; mixtab += (*mixtab++ & 0x0f) )
+      while ( thestr == nullptr && mcount-- > 0 )
+      {
         if ( (*mixtab & mpmask) != 0 )  thestr = mixtab;
+          else {  auto mixlen = *mixtab++ & 0x0f;  mixtab += mixlen;  }
+      }
 
-      if ( thestr != NULL )
+      if ( thestr != nullptr )
         memcpy( szfrag, thestr + 1, ccfrag = 0x0f & *thestr );
     }
 
