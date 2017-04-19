@@ -32,17 +32,9 @@
 # include <xmorph/wildscan.h>
 # include <xmorph/lemmatiz.h>
 # include <libcodes/codes.h>
+# include <stdlib.h>
 # include <string.h>
 # include <errno.h>
-
-#if defined(_MSC_VER) 
-#   if !defined( strncasecmp )
-#     define strncasecmp memicmp
-#   endif  // strncasecmp
-#   if !defined( strcasecmp )
-#     define strcasecmp  strcmpi
-#   endif  // strcasecmp
-# endif
 
 # if !defined( _WIN32_WCE )
   # define  CATCH_ALL         try {
@@ -54,6 +46,18 @@
 
 namespace LIBMORPH_NAMESPACE
 {
+
+  // strcasecmp for any platform
+  inline  int   strcasecmp( const char* s1, const char* s2 )
+  {
+    const auto  lc = []( char ch ){  return codepages::chartolower( codepages::codepage_1251, ch );  };
+    int         rc;
+
+    while ( (rc = lc( *s1 ) - lc( *s2++ )) == 0 && *s1++ != '\0' )
+      (void)NULL;
+    return rc;
+  }
+
   //
   // the new api - IMlma interface class
   //
@@ -398,7 +402,10 @@ namespace LIBMORPH_NAMESPACE
     long  rcount;
     
     if ( (rcount = --refcount) == 0 )
-      delete this;
+    {
+      this->~CMlmaCp();
+      free( this );
+    }
     return rcount;
   }
 
