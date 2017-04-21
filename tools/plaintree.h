@@ -138,7 +138,7 @@ size_t  wordtree<element, counter>::GetBufLen()
     buflen += ::GetBufLen( sublen = ptrtop->GetBufLen() ) + sublen + 1;
 
   if ( pstems != NULL )
-    buflen += pstems->GetBufLen();
+    buflen += ::GetBufLen( *pstems );
 
   return (size_t)(length = (unsigned)buflen);
 }
@@ -155,7 +155,7 @@ inline  O*  wordtree<element, counter>::Serialize( O* o ) const
     o = p->Serialize( ::Serialize( ::Serialize( o, p->chnode ), p->length ) );
 
   if ( pstems != NULL )
-    o = pstems->Serialize( o );
+    o = ::Serialize( o, *pstems );
 
   return o;
 }
