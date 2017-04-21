@@ -47,8 +47,7 @@
 namespace LIBMORPH_NAMESPACE
 {
 
-  // strcasecmp for any platform
-  inline  int   strcasecmp( const char* s1, const char* s2 )
+  inline  int   compare_codepage( const char* s1, const char* s2 )
   {
     const auto  lc = []( char ch ){  return codepages::chartolower( codepages::codepage_1251, ch );  };
     int         rc;
@@ -646,7 +645,7 @@ int   MLMAPROC        mlmaruLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
   unsigned  pageid = (unsigned)-1;
 
   for ( auto pcpage = codepageList; pcpage < codepageList + codepageSize && pageid == (unsigned)-1; ++pcpage )
-    if ( strcasecmp( pcpage->szcodepage, codepage ) == 0 )
+    if ( compare_codepage( pcpage->szcodepage, codepage ) == 0 )
       pageid = pcpage->idcodepage;
 
   if ( pageid == (unsigned)-1 || ptrAPI == nullptr )
