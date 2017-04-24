@@ -35,40 +35,6 @@ namespace LIBMORPH_NAMESPACE
 {
 # endif   // LIBMORPH_NAMESPACE
 
-  # if defined( _MSC_VER )
-  #   if !defined( INTEL_SYSTEM ) && defined( _M_IX86 )
-  #     define  INTEL_SYSTEM
-  #   endif  // _M_IX86
-  #endif  // _MSC_VER
-
-  # if defined( INTEL_SYSTEM )
-  #   if !defined( LIBMORPH_ANYALIGN )
-  #     define  LIBMORPH_ANYALIGN
-  #   endif  // !LIBMORPH_ANYALIGN
-  # endif  // LIBMORPH_ANYALIGN
-
-  // Define data access macros
-  # if defined( LIBMORPH_ANYALIGN )
-
-  #   if !defined( GetWord16 )
-  #     define GetWord16( pv )     *(word16_t*)(pv)
-  #   endif  // GetWord16
-  #   if !defined( GetWord32 )
-  #     define GetWord32( pv )     *(word32_t*)(pv)
-  #   endif  // GetWord32
-
-  # else
-
-  #   if !defined( GetWord16 )
-  #     define GetWord16( pv )  (word16_t)( ((byte_t*)(pv))[0] | (((byte_t*)(pv))[1] << 8) )
-  #   endif  // GetWord16
-  #   if !defined( GetWord32 )
-  #     define GetWord32( pv )  (word32_t)( ((byte_t*)(pv))[0] | (((byte_t*)(pv))[1] << 8)  \
-                                         | (((byte_t*)(pv))[2] << 16) | (((byte_t*)(pv))[3] << 24))
-  #   endif  // GetWord32
-
-  # endif // macros definitions
-
   # define ffNNext       0x80              /* Nesessary-next flex-item level         */
   # define ffONext       0x40              /* Optional-next flex-item level          */
 
@@ -87,39 +53,6 @@ namespace LIBMORPH_NAMESPACE
   extern unsigned char  lidstree[];
 
   extern  unsigned      pspMinCapValue[];
-
-  inline  unsigned  getserial( const byte_t*& p )
-  {
-    byte_t  bfetch = *p++;
-    unsigned  serial = bfetch & ~0x80;
-    int       nshift = 1;
-
-    while ( (bfetch & 0x80) != 0 )
-      serial |= (((unsigned)(bfetch = *p++) & ~0x80) << (nshift++ * 7));
-    return serial;
-  }
-
-  inline  word16_t  getword16( const byte_t*& p )
-  {
-    word16_t  v = *(word16_t*)p;
-      p = sizeof(word16_t) + p;
-    return v;
-  }
-
-  inline  size_t    lexkeylen( byte_t* p, unsigned nlexid )
-  {
-    byte_t* o = p;
-
-    if ( (nlexid & ~0x000000ff) == 0 )  { *p++ = (byte_t)nlexid;  }
-      else
-    if ( (nlexid & ~0x0000ffff) == 0 )  { *p++ = (byte_t)(nlexid >> 8); *p++ = (byte_t)nlexid;  }
-      else
-    if ( (nlexid & ~0x00ffffff) == 0 )  { *p++ = (byte_t)(nlexid >> 16);  *p++ = (byte_t)(nlexid >> 8); *p++ = (byte_t)nlexid;  }
-      else
-    {  *p++ = (byte_t)(nlexid >> 24);  *p++ = (byte_t)(nlexid >> 16);  *p++ = (byte_t)(nlexid >> 8); *p++ = (byte_t)nlexid;  }
-
-    return p - o;
-  }
 
   // Макроопределения для вычмсления легальной ступени чередования
 
