@@ -181,29 +181,15 @@
 #   endif /* WIN16 */
 # endif /* EXPORT */
 
-# if !defined( MLMA_API )
-#   if defined( WIN16 )
-#     define MLMA_API __far __pascal
-#   elif defined( _WIN32 )
-#     define MLMA_API __stdcall
-#   else
-#     define MLMA_API
-#   endif
-# endif /* MLMA_API definition */
-
 # if !defined( MLMAPROC )
 #   if defined( WIN16 )
 #     define MLMAPROC __far __pascal __export
 #   elif defined( _WIN32 )
 #     define MLMAPROC __stdcall
 #   else
-#     if defined( __GNUC__ ) && !defined( __LP64__ )
-#       define MLMAPROC __attribute__((stdcall))
-#     else
-#       define MLMAPROC
-#     endif
+#     define MLMAPROC
 #   endif
-# endif /* MLMA_API definition */
+# endif
 
 /*================ The new API for the morphological analyser ================*/
 /* uses common a-la-COM API which would look in the same way on both C && C++ */
@@ -363,11 +349,6 @@
 # if defined( __cplusplus )
 extern "C" {
 # endif /* __cplusplus */
-
-# if !defined( __TEnumWords_prototype_defined__ )
-#   define  __TEnumWords_prototype_defined__
-      typedef short (MLMA_API* TEnumWords)( lexeme_t lid, void* lpv );
-# endif
 
   int   MLMAPROC        mlmaruLoadMbAPI( IMlmaMb** );
   int   MLMAPROC        mlmaruLoadCpAPI( IMlmaMb**, const char* codepage );
