@@ -19,7 +19,7 @@ namespace LIBMORPH_NAMESPACE
 
   public:     // API
     int     getlen() const  {  return (int)(outptr - outorg);  }
-    void    append( word16_t grinfo, byte_t bflags )  {  *outptr++ = { 0, 0, grinfo, bflags };  }
+    void    append( word16_t grinfo, byte_t bflags )  {  *outptr++ = setgrinfo( 0, 0, grinfo, bflags );  }
 
   private:      // check classes
     struct anyvalue

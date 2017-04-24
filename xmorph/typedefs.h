@@ -21,6 +21,45 @@ namespace LIBMORPH_NAMESPACE {
     typedef unsigned int    word32_t;
 # endif  // !__word32_t_defined__
 
+  inline  SGramInfo setgrinfo( uint16_t wdInfo, formid_t idForm, uint16_t grInfo, uint8_t bFlags )
+  {
+    SGramInfo gi = { wdInfo, idForm, grInfo, bFlags };
+    return gi;
+  }
+
+  inline  unsigned  getserial( const byte_t*& p )
+  {
+    byte_t  bfetch = *p++;
+    unsigned  serial = bfetch & ~0x80;
+    int       nshift = 1;
+
+    while ( (bfetch & 0x80) != 0 )
+      serial |= (((unsigned)(bfetch = *p++) & ~0x80) << (nshift++ * 7));
+    return serial;
+  }
+
+  inline  word16_t  getword16( const byte_t*& p )
+  {
+    word16_t  v = *(word16_t*)p;
+      p = sizeof(word16_t) + p;
+    return v;
+  }
+
+  inline  size_t    lexkeylen( byte_t* p, unsigned nlexid )
+  {
+    byte_t* o = p;
+
+    if ( (nlexid & ~0x000000ff) == 0 )  { *p++ = (byte_t)nlexid;  }
+      else
+    if ( (nlexid & ~0x0000ffff) == 0 )  { *p++ = (byte_t)(nlexid >> 8); *p++ = (byte_t)nlexid;  }
+      else
+    if ( (nlexid & ~0x00ffffff) == 0 )  { *p++ = (byte_t)(nlexid >> 16);  *p++ = (byte_t)(nlexid >> 8); *p++ = (byte_t)nlexid;  }
+      else
+    {  *p++ = (byte_t)(nlexid >> 24);  *p++ = (byte_t)(nlexid >> 16);  *p++ = (byte_t)(nlexid >> 8); *p++ = (byte_t)nlexid;  }
+
+    return p - o;
+  }
+
 # if defined( LIBMORPH_NAMESPACE )
 }
 # endif  // LIBMORPH_NAMESPACE
