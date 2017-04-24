@@ -40,9 +40,10 @@ namespace LIBMORPH_NAMESPACE {
 
   inline  word16_t  getword16( const byte_t*& p )
   {
-    word16_t  v = *(word16_t*)p;
-      p = sizeof(word16_t) + p;
-    return v;
+    byte_t    blower = *p++;
+    word16_t  bupper = *p++;
+
+    return blower | (bupper << 8);
   }
 
   inline  size_t    lexkeylen( byte_t* p, unsigned nlexid )
