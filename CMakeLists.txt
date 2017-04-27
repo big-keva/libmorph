@@ -3,7 +3,11 @@ project(morphrus)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 14)
-add_compile_options(-W -Wall -Wextra)
+if(MSVC)
+  add_compile_options(-MP)
+else()
+  add_compile_options(-W -Wall -Wextra)
+endif()
 
 include_directories(
   .
