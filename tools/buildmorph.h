@@ -5,7 +5,7 @@
 # include "sweets.h"
 # include <libcodes/codes.h>
 # include <mtc/jsconfig.h>
-# include <algorithm>
+# include <mtc/sort.h>
 
 template <class theclass>
 class classset
@@ -72,61 +72,44 @@ inline  size_t  lexkeybuf( char* lexbuf, unsigned nlexid )
   return lexbuf - lexorg;
 }
 
+template <class steminfo>
+size_t  GetBufLen( const array<steminfo>& sl )
+{
+  const steminfo* p;
+  size_t          l;
+
+  for ( l = ::GetBufLen( sl.size() ), p = sl.begin(); p < sl.end(); ++p )
+    l += p->GetBufLen();
+
+  return l;
+}
+
+template <class O, class steminfo>
+O*      Serialize( O* o, const array<steminfo>& sl )
+{
+  const steminfo* p;
+
+  for ( o = ::Serialize( o, sl.size() ), p = sl.begin(); o != nullptr && p < sl.end(); ++p )
+    o = p->Serialize( o );
+  return o;
+}
+
+template <class steminfo, class action>
+size_t  Enumerate( array<steminfo>& l, action a, size_t o )
+{
+  const steminfo* p;
+
+  for ( o += ::GetBufLen( l.size() ), p = l.begin(); p < l.end(); ++p )
+    if ( a( *p, o ) ) o += p->GetBufLen();
+      else return (size_t)-1;
+  return o;
+}
+
 template <class theclass, class steminfo, class resolver>
 class buildmorph
 {
-  struct  stemlist: public array<steminfo>
-  {
-    stemlist( int ndelta = 0x4 ): array<steminfo>( ndelta ) {}
-    stemlist( const stemlist& ) = delete;
-    stemlist& operator = ( const stemlist& ) = delete;
-
-  public:     // serialization
-    size_t  GetBufLen()
-      {
-        const steminfo* p;
-        size_t          l;
-
-        std::sort( begin(), end(),
-          []( const steminfo& r1, const steminfo& r2 ) { return r1 < r2; } );
-
-        for ( l = ::GetBufLen( this->GetLen() ), p = begin(); p < end(); ++p )
-          l += p->GetBufLen();
-
-        return l;
-      }
-    template <class O>
-    O*      Serialize( O* o ) const
-      {
-        const steminfo* p;
-
-        for ( o = ::Serialize( o, size() ), p = begin(); o != NULL && p < end(); ++p )
-          o = p->Serialize( o );
-        return o;
-      }
-    template <class A>
-    size_t  Enumerate( A a, size_t o ) const
-      {
-        const steminfo* p;
-
-        for ( o += ::GetBufLen( size() ), p = begin(); p < end(); ++p )
-          if ( a( *p, o ) ) o += p->GetBufLen();
-            else return (size_t)-1;
-        return o;
-      }
-  };
-
-  struct  dictoffs
-  {
-    unsigned  offset;
-
-  public:     // serialization
-                        size_t  GetBufLen() const         {  return ::GetBufLen( offset );  }
-    template <class O>  O*      Serialize( O* o ) const   {  return ::Serialize( o, offset );  }
-  };
-
-  typedef wordtree<stemlist, unsigned char>  StemTree;   // the actual tree
-  typedef wordtree<dictoffs, unsigned short> LidsTree;
+  typedef wordtree<array<steminfo>, unsigned char>  StemTree;   // the actual tree
+  typedef wordtree<unsigned, unsigned short>        LidsTree;
 
 protected:
   StemTree            stemtree;   // the actual tree
@@ -174,11 +157,11 @@ int   buildmorph<theclass, steminfo, resolver>::CreateDict()
   auto                  maplid = [&]( const steminfo& s, size_t o )
     {
       char      lidstr[0x20];
-      dictoffs* ptrpos;
+      unsigned* ptrpos;
 
       if ( (ptrpos = lidstree.InsertStr( lidstr, lexkeybuf( lidstr, s.nlexid ) )) == nullptr )
         return false;
-      ptrpos->offset = (unsigned)o;
+      *ptrpos = (unsigned)o;
         return true;
     };
 
@@ -275,7 +258,8 @@ int   buildmorph<theclass, steminfo, resolver>::DictReader( FILE* lpfile )
 
     for ( nindex = 0, strtop = astems; nindex < nstems; ++nindex, strtop += strlen( strtop ) + 1 )
     {
-      stemlist* pstems;
+      array<steminfo>*  pstems;
+      int               search;
 
       strcpy( lexeme.szpost, aclass[nindex].szpost );
         lexeme.chrmin = aclass[nindex].chrmin;
@@ -285,7 +269,8 @@ int   buildmorph<theclass, steminfo, resolver>::DictReader( FILE* lpfile )
         return ENOMEM;
       if ( (pstems = stemtree.InsertStr( strtop, strlen( strtop ) )) == NULL )
         return ENOMEM;
-      if ( pstems->Append( lexeme ) != 0 )
+      if ( (pstems->Search( lexeme, search ),
+            pstems->Insert( search, lexeme )) != 0 )
         return ENOMEM;
     }
   }
