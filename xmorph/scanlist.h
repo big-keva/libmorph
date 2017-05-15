@@ -14,8 +14,7 @@ namespace LIBMORPH_NAMESPACE
 
   public:     // initialization
     listTracer( collector& a, const byte_t* p, const byte_t* d ): output( a ), dicpos( d )
-      {
-      }
+      {  (void)p;  }
 
   public:     // scaner
     int   operator () ( const byte_t* pstems, const byte_t* ptrace, unsigned ltrace ) const

@@ -133,7 +133,7 @@ namespace LIBMORPH_NAMESPACE
         mtoffs = (wdinfo & wfMixTab) != 0 ? getword16( pclass ) : 0;
         return *this;
       }
-    const unsigned  MinCapScheme() const
+    unsigned      MinCapScheme() const
       {
         return pspMinCapValue[wdinfo & 0x3f];
       }
@@ -145,7 +145,7 @@ namespace LIBMORPH_NAMESPACE
       {
         return mtoffs != 0 ? mtoffs + mxTables : NULL;
       }
-    const int       GetSwapLevel( word16_t grinfo, byte_t bflags ) const
+    int           GetSwapLevel( word16_t grinfo, byte_t bflags ) const
       {
         switch ( mixTypes[wdinfo & 0x3F] )
         {

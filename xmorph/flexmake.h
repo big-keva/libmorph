@@ -41,8 +41,7 @@ namespace LIBMORPH_NAMESPACE
   {
     doCollectFlex( stringCollect& o, const byte_t* t, word16_t g, byte_t f ):
         output( o ), grinfo( g ), bflags( f )
-      {
-      }
+      {  (void)t;  }
 
   public:     // functor
     int   operator () ( const byte_t* pflist, const byte_t* ptrace, unsigned ltrace ) const
