@@ -14,7 +14,7 @@ include_directories(
   rus/libdict
 )
 
-add_library(big_keva_morphrus STATIC
+add_library(morphrus STATIC
   rus/dictree/classmap.cpp
   rus/dictree/flexTree.cpp
   rus/dictree/lidstree.cpp
@@ -28,4 +28,4 @@ add_library(big_keva_morphrus STATIC
   xmorph/wildscan.cpp
 )
 
-install(TARGETS big_keva_morphrus DESTINATION lib)
+install(TARGETS morphrus DESTINATION lib)
