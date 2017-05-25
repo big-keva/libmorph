@@ -144,6 +144,10 @@ namespace LIBMORPH_NAMESPACE
     word16_t  grInfo;
     byte_t    bFlags;
 
+    (void)nlexid;
+    (void)flexes;
+    (void)fcount;
+
   // check the arguments
     assert( output != NULL );
     assert( nerror == 0 );

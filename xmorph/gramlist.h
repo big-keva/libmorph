@@ -25,12 +25,12 @@ namespace LIBMORPH_NAMESPACE
     struct anyvalue
     {
       bool  operator () ( word16_t grinfo, byte_t bflags ) const
-        {  return true;  }
+        {  (void)grinfo;  (void)bflags;  return true;  }
     };
     struct multiple
     {
       bool  operator () ( word16_t grinfo, byte_t bflags ) const
-        {  return (grinfo & gfMultiple) != 0;  }
+        {  (void)bflags;  return (grinfo & gfMultiple) != 0;  }
     };
     class  mixlevel
     {
@@ -72,6 +72,8 @@ namespace LIBMORPH_NAMESPACE
   public:     // gramLoader functor
     int   operator () ( const byte_t* thedic, const byte_t* thestr, size_t cchstr )
       {
+        (void)thestr;
+
         if ( cchstr == 0 )
         {
           if ( (stinfo.wdinfo & wfMultiple) != 0 )
