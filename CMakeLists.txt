@@ -27,3 +27,5 @@ add_library(morphrus STATIC
   xmorph/lemmatiz.cpp
   xmorph/wildscan.cpp
 )
+
+install(TARGETS morphrus DESTINATION lib)
