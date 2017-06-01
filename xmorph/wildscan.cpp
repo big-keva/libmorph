@@ -5,6 +5,15 @@
 
 #include <type_traits>
 
+namespace
+{
+  template<class T, size_t N>
+  constexpr size_t ArraySize(T (&)[N])
+  {
+    return N;
+  }
+}
+
 namespace LIBMORPH_NAMESPACE
 {
 
@@ -84,7 +93,7 @@ namespace LIBMORPH_NAMESPACE
 
   static  void  WildScanList( unsigned* output, const byte_t* pstems, const byte_t* thestr, size_t  cchstr )
   {
-    SGramInfo fxlist[0x40];     // Массив отождествлений на окончаниях
+    SGramInfo fxlist[0x40];     // РњР°СЃСЃРёРІ РѕС‚РѕР¶РґРµСЃС‚РІР»РµРЅРёР№ РЅР° РѕРєРѕРЅС‡Р°РЅРёСЏС…
     unsigned  ucount = getserial( pstems );
 
     assert( cchstr > 0 && IsWildMask( thestr, cchstr ) );
@@ -114,8 +123,8 @@ namespace LIBMORPH_NAMESPACE
       }
         else
       {
-        const byte_t* mixtab = stinfo.mtoffs + mxTables;  // Собственно таблица
-        int           mixcnt = *mixtab++;                 // Количество чередований
+        const byte_t* mixtab = stinfo.mtoffs + mxTables;  // РЎРѕР±СЃС‚РІРµРЅРЅРѕ С‚Р°Р±Р»РёС†Р°
+        int           mixcnt = *mixtab++;                 // РљРѕР»РёС‡РµСЃС‚РІРѕ С‡РµСЂРµРґРѕРІР°РЅРёР№
         int           mindex;
         int           nforms;
 
@@ -220,7 +229,7 @@ namespace LIBMORPH_NAMESPACE
 
     WildScanDict( (unsigned*)memset( chmask, 0, sizeof(chmask) ), stemtree, ptempl, cchstr );
 
-    for ( std::size_t nindex = 0; nindex < std::extent<decltype(chmask)>::value; ++nindex )
+    for ( std::size_t nindex = 0; nindex < ArraySize(chmask); ++nindex )
       for ( std::size_t cindex = 0; cindex < sizeof(unsigned) * CHAR_BIT; ++cindex )
         if ( (chmask[nindex] & (1 << cindex)) != 0 )
         {
