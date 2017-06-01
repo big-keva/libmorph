@@ -71,7 +71,7 @@ namespace libmorph
         return *this;
       }
     template <class serializable>
-    BinaryDumper& Dump( const char* vaname, serializable& serial )
+    BinaryDumper& Dump( const char* vaname, const serializable& serial )
       {
         FILE* pf;
 
