@@ -24,20 +24,28 @@ namespace libmorph
 
         return Lookup( grinfo ) == end() ? Append( grinfo ) : 0;
       }
-    size_t  GetBufLen() const
-      {  return 1 + GetLen() * 3;  }
-    template <class O>
-    O*      Serialize( O* o )
-      {
-        graminfo* p;
-
-        for ( o = ::Serialize( o, &ncount, 1 ), p = begin(); o != NULL && p < end(); ++p )
-          o = ::Serialize( ::Serialize( o, &p->grinfo, sizeof(p->grinfo) ),
-                                           &p->bflags, sizeof(p->bflags) );
-
-        return o;
-      }
   };
+}
+
+inline  size_t  GetBufLen( const libmorph::gramlist& gl )
+{
+  return 1 + gl.size() * 3;
+}
+
+template <class O>
+inline  O*      Serialize( O* o, const libmorph::gramlist& gl )
+{
+  const libmorph::graminfo* p;
+  byte_t                    n = (byte_t)gl.size();
+
+  for ( o = ::Serialize( o, (char)n ), p = gl.begin(); o != nullptr && p < gl.end(); ++p )
+    o = ::Serialize( ::Serialize( o, &p->grinfo, sizeof(p->grinfo) ), &p->bflags, sizeof(p->bflags) );
+
+  return o;
+}
+
+namespace libmorph
+{
 
   inline  int FillFlexTree( wordtree<gramlist>& rplain,
                             const void*         tables, unsigned      tfoffs,
