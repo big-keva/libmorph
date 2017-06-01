@@ -47,11 +47,9 @@ public:     // serialization
       return length;
     }
   template <class O>
-  O*      Serialize( O* o )
+  O*      Serialize( O* o ) const
     {
-      classofs* p;
-
-      for ( p = clsset.begin(); o != NULL && p < clsset.end(); ++p )
+      for ( auto p = clsset.begin(); o != nullptr && p < clsset.end(); ++p )
         o = p->Serialize( o );
       return o;
     }
@@ -124,8 +122,8 @@ protected:
 
 public:     // construction
             buildmorph( resolver& r, const char* l, unsigned c ): clparser( r ),
-                                                                  sLicense( l ),
-                                                                  sourceCP( c )
+                                                                  sourceCP( c ),
+                                                                  sLicense( l )
               {
               }
 
