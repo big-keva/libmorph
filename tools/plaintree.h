@@ -96,14 +96,14 @@ element*  wordtree<element, counter>::InsertStr( const char* pszstr, size_t cchs
       wordtree  insert( (unsigned char)*pszstr );
       int       inspos;
 
-      if ( Insert( inspos = (int)(ptrtop - *this), insert ) == 0 )  ptrtop = *this + inspos;
+      if ( this->Insert( inspos = (int)(ptrtop - *this), insert ) == 0 )  ptrtop = *this + inspos;
         else return NULL;
     }
     return ptrtop->InsertStr( pszstr + 1, cchstr - 1 );
   }
 
   if ( pstems == nullptr )
-    pstems = allocate_with<element>( GetAllocator() );
+    pstems = allocate_with<element>( this->GetAllocator() );
 
   return pstems;
 }
@@ -130,14 +130,15 @@ template <class element, class counter>
 size_t  wordtree<element, counter>::GetBufLen()
 {
   size_t    buflen = storecounter<counter>::GetBufLen();
-  wordtree* ptrtop;
-  wordtree* ptrend;
-  size_t    sublen;
 
-  for ( ptrend = (ptrtop = *this) + this->GetLen(); ptrtop < ptrend; ++ptrtop )
-    buflen += ::GetBufLen( sublen = ptrtop->GetBufLen() ) + sublen + 1;
+  for ( auto p = this->begin(); p < this->end(); ++p )
+  {
+    size_t  sublen = p->GetBufLen();
 
-  if ( pstems != NULL )
+    buflen += ::GetBufLen( sublen ) + sublen + 1;
+  }
+
+  if ( pstems != nullptr )
     buflen += ::GetBufLen( *pstems );
 
   return (size_t)(length = (unsigned)buflen);
@@ -146,15 +147,13 @@ size_t  wordtree<element, counter>::GetBufLen()
 template <class element, class counter> template <class O>
 inline  O*  wordtree<element, counter>::Serialize( O* o ) const
 {
-  const wordtree* p;
+  if ( (o = storecounter<counter>::Serialize( o, (int)this->size(), pstems != nullptr )) == nullptr )
+    return nullptr;
 
-  if ( (o = storecounter<counter>::Serialize( o, (int)size(), pstems != NULL )) == NULL )
-    return NULL;
-
-  for ( p = begin(); p < end(); ++p )
+  for ( auto p = this->begin(); p < this->end(); ++p )
     o = p->Serialize( ::Serialize( ::Serialize( o, p->chnode ), p->length ) );
 
-  if ( pstems != NULL )
+  if ( pstems != nullptr )
     o = ::Serialize( o, *pstems );
 
   return o;
@@ -163,14 +162,14 @@ inline  O*  wordtree<element, counter>::Serialize( O* o ) const
 template <class element, class counter> template <class A>
 size_t  wordtree<element, counter>::Enumerate( const A& action, size_t offset )
 {
-  wordtree* p;
+  offset += storecounter<counter>::GetBufLen();
 
-  for ( offset += storecounter<counter>::GetBufLen(), p = begin(); p < end(); ++p )
+  for ( auto p = this->begin(); p < this->end(); ++p )
     if ( (offset = p->Enumerate( action, offset + ::GetBufLen( p->chnode ) + ::GetBufLen( p->length ) )) == (size_t)-1 )
       return offset;
 
-  if ( pstems != NULL )
-    offset = pstems->Enumerate( action, offset );
+  if ( pstems != nullptr )
+    offset = ::Enumerate( *pstems, action, offset );
 
   return offset;
 }
