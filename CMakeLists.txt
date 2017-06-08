@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.2)
 project(morphrus)
 
 set(CMAKE_C_STANDARD 11)
@@ -9,7 +9,15 @@ else()
   add_compile_options(-W -Wall -Wextra)
 endif()
 
+include(ExternalProject)
+set(LIBCODES_INSTALL_LOCATION ${CMAKE_CURRENT_BINARY_DIR}/tiny_codepages)
+ExternalProject_Add(tiny_codepages
+  GIT_REPOSITORY https://github.com/big-keva/libcodes
+  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${LIBCODES_INSTALL_LOCATION}
+)
+
 include_directories(
+  ${LIBCODES_INSTALL_LOCATION}/include
   .
   rus/libdict
 )
@@ -28,4 +36,7 @@ add_library(morphrus STATIC
   xmorph/wildscan.cpp
 )
 
+add_dependencies(morphrus tiny_codepages)
 install(TARGETS morphrus DESTINATION lib)
+
+add_subdirectory(rus/libdict/test)
