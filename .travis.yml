@@ -1,0 +1,36 @@
+dist: trusty
+language: cpp
+
+os:
+  - linux
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+      - llvm-toolchain-trusty
+    packages:
+      - cmake
+
+env:
+#  - PACKAGES="gcc-4.4 g++-4.4" && MATRIX_COMPILER="CC=gcc-4.4 && CXX=g++-4.4" CMAKE_BUILD_TYPE=RELEASE
+#  - PACKAGES="gcc-4.4 g++-4.4" && MATRIX_COMPILER="CC=gcc-4.4 && CXX=g++-4.4" CMAKE_BUILD_TYPE=DEBUG
+  - PACKAGES="gcc-4.8 g++-4.8" && MATRIX_COMPILER="CC=gcc-4.8 && CXX=g++-4.8" CMAKE_BUILD_TYPE=RELEASE
+  - PACKAGES="gcc-4.8 g++-4.8" && MATRIX_COMPILER="CC=gcc-4.8 && CXX=g++-4.8" CMAKE_BUILD_TYPE=DEBUG
+  - PACKAGES="gcc-7 g++-7" && MATRIX_COMPILER="CC=gcc-7 && CXX=g++-7" CMAKE_BUILD_TYPE=RELEASE
+  - PACKAGES="gcc-7 g++-7" && MATRIX_COMPILER="CC=gcc-7 && CXX=g++-7" CMAKE_BUILD_TYPE=DEBUG
+  - PACKAGES="clang-5.0" && MATRIX_COMPILER="CC=clang-5.0 && CXX=clang++-5.0" CMAKE_BUILD_TYPE=RELEASE
+  - PACKAGES="clang-5.0" && MATRIX_COMPILER="CC=clang-5.0 && CXX=clang++-5.0" CMAKE_BUILD_TYPE=DEBUG
+
+before_install:
+  - sudo apt-get install ${PACKAGES} -qq
+  - eval $MATRIX_COMPILER
+  - $CC --version
+  - $CXX --version
+  - echo $CMAKE_BUILD_TYPE
+  
+before_script:
+  - cmake -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+
+script:
+  - cmake --build . --config ${CMAKE_BUILD_TYPE}
