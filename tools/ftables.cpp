@@ -42,21 +42,20 @@ bool  StripDefault( char*           szstem,
                     int             clevel,
                     const char*     tables )
 {
-  char* pTable = (char*)tables + (tfoffs << 1); // Таблица окончаний
-  int   nItems = *pTable++ & 0x7F;              // Количество элементов
+  char* pTable = (char*)tables + (tfoffs << 1); // inflexion table
+  int   nItems = *pTable++ & 0x7F;              // elements count
 
-// Перебрать все элементы таблицы
+// loop all the table elements
   while ( nItems > 0 )
   {
     unsigned char*  flex = (unsigned char*)pTable;
-    unsigned char*  pstr = flex_text( flex );  // Текст фрагмента
+    unsigned char*  pstr = flex_text( flex );
 
   // skip to next
     pTable = (char*)(pstr + *pstr + 1 + ((flex_flag( flex ) & 0xC0) != 0 ? sizeof(unsigned short) : 0));
     nItems--; 
 
-  // Пропустить окончания с заведомо не соответствующей грамматической
-  // информацией о фрагменте
+  // skip flexes with irrelevant grammar
     if ( (grinfo & levels[clevel]) != (flex_info( flex ) & levels[clevel]) )
       continue;
 
@@ -87,15 +86,14 @@ bool  StripDefault( char*           szstem,
 
 unsigned char GetMinLetter( const char* tables, unsigned tfoffs )
 {
-  const unsigned char*  ptable = (const unsigned char*)tables + (tfoffs << 1);  // Таблица окончаний
-  int                   nitems = *ptable++ & 0x7F;        // Количество элементов
+  const unsigned char*  ptable = (const unsigned char*)tables + (tfoffs << 1);
+  int                   nitems = *ptable++ & 0x7F;
   int                   clower;
 
-// Перебрать все элементы таблицы
   for ( clower = 0x100; nitems-- > 0; )
   {
     const unsigned char*  flex = ptable;
-    const unsigned char*  pstr = flex_text( flex );  // Текст фрагмента
+    const unsigned char*  pstr = flex_text( flex );
     int                   strl = *pstr++;
     int                   subc;
 
@@ -113,15 +111,14 @@ unsigned char GetMinLetter( const char* tables, unsigned tfoffs )
 
 unsigned char GetMaxLetter( const char* tables, unsigned tfoffs )
 {
-  const unsigned char*  ptable = (const unsigned char*)tables + (tfoffs << 1);  // Таблица окончаний
-  int                   nitems = *ptable++ & 0x7F;        // Количество элементов
+  const unsigned char*  ptable = (const unsigned char*)tables + (tfoffs << 1);
+  int                   nitems = *ptable++ & 0x7F;
   int                   cupper;
 
-// Перебрать все элементы таблицы
   for ( cupper = -1; nitems-- > 0; )
   {
     const unsigned char*  flex = ptable;
-    const unsigned char*  pstr = flex_text( flex );  // Текст фрагмента
+    const unsigned char*  pstr = flex_text( flex );
     int                   strl = *pstr++;
     int                   subc;
 
