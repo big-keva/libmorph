@@ -47,7 +47,13 @@
 namespace LIBMORPH_NAMESPACE
 {
 
-  inline  int   compare_codepage( const char* s1, const char* s2 )
+  template <class T, size_t N>
+  constexpr size_t  array_size( T (&p)[N] )
+  {
+    return (size_t)N;
+  }
+
+  inline  int     igncasecmp( const char* s1, const char* s2 )
   {
     const auto  lc = []( char ch ){  return codepages::chartolower( codepages::codepage_1251, ch );  };
     int         rc;
@@ -626,7 +632,6 @@ namespace LIBMORPH_NAMESPACE
     { codepage_utf8, "utf8" }
   };
 
-  const int codepageSize = (int)(sizeof(codepageList) / sizeof(codepageList[0]));
 }
 
 using namespace LIBMORPH_NAMESPACE;
@@ -643,11 +648,10 @@ int   MLMAPROC        mlmaukLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
 {
   CMlmaMb*  palloc;
   unsigned  pageid = (unsigned)-1;
-  int       nindex;
 
-  for ( auto pcpage = codepageList; pcpage < codepageList + codepageSize && pageid == (unsigned)-1; ++pcpage )
-    if ( compare_codepage( pcpage->szcodepage, codepage ) == 0 )
-      pageid = pcpage->idcodepage;
+  for ( auto page = codepageList; page < codepageList + array_size(codepageList) && pageid == (unsigned)-1; ++page )
+    if ( igncasecmp( page->szcodepage, codepage ) == 0 )
+      pageid = page->idcodepage;
 
   if ( pageid == (unsigned)-1 || ptrAPI == nullptr )
     return EINVAL;
