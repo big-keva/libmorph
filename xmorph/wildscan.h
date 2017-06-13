@@ -69,8 +69,8 @@ namespace LIBMORPH_NAMESPACE
                       const byte_t* thedic, const action& _do_it )
   {
     const byte_t* dicorg = thedic;
-    byte_t        bflags = *thedic++;
-    int           ncount = getlower( bflags );
+    byte_t        bflags = counter<unsigned char>::getvalue( thedic );
+    int           ncount = counter<unsigned char>::getlower( bflags );
     byte_t        chfind;
     int           nerror;
 
@@ -116,7 +116,7 @@ namespace LIBMORPH_NAMESPACE
   /*
     если есть список лексем, провести там отождествление
   */
-    return hasupper( bflags ) ? GetListMatch( thestr, cchstr, thedic, _do_it ) : 0;
+    return counter<unsigned char>::hasupper( bflags ) ? GetListMatch( thestr, cchstr, thedic, _do_it ) : 0;
   }
 
   struct  matchArg

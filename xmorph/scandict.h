@@ -19,29 +19,46 @@ namespace LIBMORPH_NAMESPACE {
     return serial;
   }
 
-  template <class flattype>
-  inline  bool  hasupper( flattype a )
-    {  return (a & (1 << (sizeof(a) * CHAR_BIT - 1))) != 0;  }
+  template <class countype>
+  struct counter
+  {
+    static  bool      hasupper( countype a )
+      {  return (a & (1 << (sizeof(countype) * CHAR_BIT - 1))) != 0;  }
+    static  int       getlower( countype a )
+      {  return a & ~(1 << (sizeof(countype) * CHAR_BIT - 1));  }
+    static  countype  getvalue( const unsigned char*& s )
+      {  return loader<0>::get( s );  }
 
-  template <class flagtype>
-  inline  int   getlower( flagtype a )
-    {  return a & ~(1 << (sizeof(a) * CHAR_BIT - 1));  }
+  protected:
+    template <size_t O>
+    struct  loader
+    {
+      static  countype  get( const unsigned char*& s )
+        {  return static_cast<countype>( (*s++ << O) | loader<O+1>::get( s ) );  }
+    };
+    template <>
+    struct  loader<sizeof(countype)>
+    {
+      static  countype  get( const unsigned char*& s )
+        {  return 0;  }
+    };
+  };
 
-  template <class flagtype>
+  template <class sizetype>
   struct  scan_stack
   {
     const unsigned char*  thestr;
     size_t                cchstr;
     unsigned char         chfind;
     const unsigned char*  thedic;
-    flagtype              aflags;
+    sizetype              aflags;
     int                   ccount;
 
   public:     // init
     scan_stack*     setlevel( const unsigned char* p, const unsigned char* s, size_t l )
       {
-        ccount = getlower( aflags = *(flagtype*)(thedic = p) );
-          thedic += sizeof(flagtype);
+        ccount = counter<sizetype>::getlower(
+        aflags = counter<sizetype>::getvalue( thedic = p ) );
         thestr = s;
           chfind = (cchstr = l) > 0 ? *thestr : 0;
         return this;
@@ -56,7 +73,7 @@ namespace LIBMORPH_NAMESPACE {
 
           if ( chfind == chnext )
             return subdic;
-          if ( chfind >  chnext && !hasupper( aflags ) )
+          if ( chfind >  chnext && !counter<sizetype>::hasupper( aflags ) )
             return 0;
         }
         return 0;
@@ -82,7 +99,7 @@ namespace LIBMORPH_NAMESPACE {
         continue;
       }
 
-      if ( hasupper( pstack->aflags ) )
+      if ( counter<aflags>::hasupper( pstack->aflags ) )
         if ( (retval = doitem( pstack->thedic, pstack->thestr, pstack->cchstr )) != (result)0 )
           return retval;
 
@@ -95,8 +112,8 @@ namespace LIBMORPH_NAMESPACE {
   result  RecursScanDict( const action&         doitem, const unsigned char*  thedic,
                           const unsigned char*  thestr, size_t                cchstr )
   {
-    aflags        uflags = *(aflags*)thedic;  thedic += sizeof(aflags);
-    int           ncount = getlower( uflags );
+    aflags        uflags = counter<aflags>::getvalue( thedic );
+    int           ncount = counter<aflags>::getlower( uflags );
     unsigned char chfind;
     result        retval;
 
@@ -112,7 +129,7 @@ namespace LIBMORPH_NAMESPACE {
         if ( (retval = RecursScanDict<aflags, result, action>( doitem, subdic, thestr + 1, cchstr - 1 )) != (result)0 )
           return retval;
     }
-    return hasupper( uflags ) ? doitem( thedic, thestr, cchstr ) : (result)0;
+    return counter<aflags>::hasupper( uflags ) ? doitem( thedic, thestr, cchstr ) : (result)0;
   }
 
   template <class aflags, class result, class action>
@@ -122,8 +139,8 @@ namespace LIBMORPH_NAMESPACE {
                           unsigned              ltrack,
                           const unsigned char*  dicpos = NULL )
   {
-    aflags    uflags = *(aflags*)thedic;  thedic += sizeof(aflags);
-    int       ncount = getlower( uflags );
+    aflags    uflags = counter<aflags>::getvalue( thedic );
+    int       ncount = counter<aflags>::getlower( uflags );
 
     while ( ncount-- > 0 )
     {
@@ -142,7 +159,7 @@ namespace LIBMORPH_NAMESPACE {
           return nerror;
       }
     }
-    return hasupper( uflags ) ? doitem( thedic, ptrack, ltrack ) : (result)0;
+    return counter<aflags>::hasupper( uflags ) ? doitem( thedic, ptrack, ltrack ) : (result)0;
   }
 
 # if defined( LIBMORPH_NAMESPACE )

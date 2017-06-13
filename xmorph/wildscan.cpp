@@ -167,8 +167,8 @@ namespace LIBMORPH_NAMESPACE
 
   static  void  WildScanDict( unsigned* output, const byte_t* thedic, const byte_t* thestr, size_t cchstr )
   {
-    byte_t  bflags = *thedic++;
-    int     ncount = getlower( bflags );
+    byte_t  bflags = counter<unsigned char>::getvalue( thedic );
+    int     ncount = counter<unsigned char>::getlower( bflags );
     byte_t  chfind;
 
     assert( IsWildMask( thestr, cchstr ) );
@@ -206,7 +206,7 @@ namespace LIBMORPH_NAMESPACE
           thedic += sublen;
         }
     }
-    if ( hasupper( bflags ) )
+    if ( counter<unsigned char>::hasupper( bflags ) )
       WildScanList( output, thedic, thestr, cchstr );
   }
 
