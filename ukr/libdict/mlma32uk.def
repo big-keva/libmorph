@@ -1,0 +1,4 @@
+EXPORTS
+  mlmaukLoadMbAPI    @100
+  mlmaukLoadWcAPI    @110
+  mlmaukLoadCpAPI    @120
