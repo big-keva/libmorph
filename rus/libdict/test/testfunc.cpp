@@ -27,7 +27,7 @@
 # include <string.h>
 # include <assert.h>
 
-# include "../../../../mtCommon/microtime.h"
+# include "../../../../mtc/hiResTimer.h"
 # include <stdio.h>
 
 extern "C"    // C API
@@ -46,6 +46,35 @@ void  CheckTemplate( const char* stempl, int nchars, const char* answer )
   assert( (nitems = pmorph->CheckHelp( szhelp, 0x100, stempl, (size_t)-1 )) == nchars );
   assert( memcmp( szhelp, answer, nchars ) == 0 );
 }
+
+# include <mtc/hiResTimer.h>
+
+class LexemesPrinter: public IMlmaEnum
+{
+  int     nwords;
+  double  tstart;
+
+public:
+  LexemesPrinter(): nwords( 0 )
+    {
+    }
+  void  Report()
+    {
+      double  tprint = mtc::GetMilliTime();
+
+      printf( "%u lexemes, %6.2f milliseconds\n", nwords, (tprint - tstart) * 1000 );
+    }
+
+  virtual int   MLMAPROC Attach()  override  {  return 1;  }
+  virtual int   MLMAPROC Detach()  override  {  return 1;  }
+  virtual int   MLMAPROC RegisterLexeme( lexeme_t nlexid, int, const formid_t* ) override
+    {
+      if ( nwords++ == 0 )
+        tstart = mtc::GetMilliTime();
+//      printf( "%u\n", nlexid );
+      return 0;
+    }
+};
 
 int   main( int argc, char* argv[] )
 {
@@ -84,6 +113,18 @@ int   main( int argc, char* argv[] )
   pmorph->Detach();
 
   mlmaruLoadMbAPI( &pmorph );
+
+    LexemesPrinter  lp;
+
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "за*к*аз", -1 );  lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "за*аз", -1 );    lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "за*каз", -1 );   lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "зак*аз", -1 );   lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "за*к*ат", -1 );  lp.Report();
+
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "п*€вл*е*", -1 );  lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "пр*", -1 );       lp.Report();
+
     pmorph->CheckWord( "к", 1, 0 );
     pmorph->CheckWord( "не", 2, 0 );
     pmorph->CheckWord( "Ќо", 2, 0 );
@@ -175,7 +216,7 @@ int   main( int argc, char* argv[] )
   if ( fread( buffer, 1, length, lpfile ) == length ) fclose( lpfile );
     else  return -3;
 
-  tstart = millitime();
+  tstart = mtc::GetMilliTime();
   cycles = nvalid = 0;
 
   for ( int i = 0; i < 2; ++i )
@@ -213,7 +254,7 @@ int   main( int argc, char* argv[] )
     ++cycles;
   }
 
-  printf( "%d WPS\n", (unsigned)(cycles / (millitime() - tstart)) );
+  printf( "%d WPS\n", (unsigned)(cycles / (mtc::GetMilliTime() - tstart)) );
 
 	return 0;
 }

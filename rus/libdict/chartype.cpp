@@ -32,7 +32,7 @@ namespace LIBMORPH_NAMESPACE
 
   # define CT_CAPITAL  0
   # define CT_REGULAR  1
-  # define CT_DLMCHAR  2         // Разделитель - дефис
+  # define CT_DLMCHAR  2         // Р Р°Р·РґРµР»РёС‚РµР»СЊ - РґРµС„РёСЃ
   # define CT_INVALID  3
 
   unsigned char charTypeMatrix[256] =
@@ -86,13 +86,13 @@ namespace LIBMORPH_NAMESPACE
   // Characters in range 0xA0 - 0xA7
     CT_INVALID, CT_INVALID, CT_INVALID, CT_INVALID,
     CT_INVALID, CT_INVALID, CT_INVALID, CT_INVALID,
-    CT_CAPITAL,             // Capital character - Ё, 0xA8
+    CT_CAPITAL,             // Capital character - РЃ, 0xA8
   // Characters in range 0xA9 - 0xB7
                 CT_INVALID, CT_INVALID, CT_INVALID,
     CT_INVALID, CT_INVALID, CT_INVALID, CT_INVALID,
     CT_INVALID, CT_INVALID, CT_INVALID, CT_INVALID,
     CT_INVALID, CT_INVALID, CT_INVALID, CT_INVALID,
-    CT_REGULAR,             // Regular character - ё, 0xB8
+    CT_REGULAR,             // Regular character - С‘, 0xB8
   // Characters in range 0xB9 - 0xBF
                 CT_INVALID, CT_INVALID, CT_INVALID,
     CT_INVALID, CT_INVALID, CT_INVALID, CT_INVALID,

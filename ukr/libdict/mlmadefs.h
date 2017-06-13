@@ -1,6 +1,6 @@
 /******************************************************************************
 
-    libmorphrus - dictiorary-based morphological analyser for Ukrainian.
+    libmorphukr - dictiorary-based morphological analyser for Ukrainian.
     Copyright (C) 1994-2016 Andrew Kovalenko aka Keva
 
     This program is free software; you can redistribute it and/or modify
@@ -26,7 +26,7 @@
 # if !defined( _mlmadefs_h_ )
 # define _mlmadefs_h_
 
-// Определить кроссплатформенные типы данных
+// РћРїСЂРµРґРµР»РёС‚СЊ РєСЂРѕСЃСЃРїР»Р°С‚С„РѕСЂРјРµРЅРЅС‹Рµ С‚РёРїС‹ РґР°РЅРЅС‹С…
 # include "../include/mlma1058.h"
 # include <xmorph/typedefs.h>
 
@@ -35,81 +35,7 @@ namespace LIBMORPH_NAMESPACE
 {
 # endif   // LIBMORPH_NAMESPACE
 
-// Define common types used in the analyser
-# if !defined( __byte_t_defined__ )
-#   define  __byte_t_defined__
-   typedef unsigned char   byte_t;
-# endif   // !__byte_t_defined__
-# if !defined( __word16_t_defined__)
-#   define __word16_t_defined__
-    typedef unsigned short  word16_t;
-# endif   // !__word16_t_defined__
-# if !defined( __word32_t_defined__)
-#   define __word32_t_defined__
-      typedef lexeme_t      word32_t;
-# endif   // !__word32_t_defined__
-
-  // Define data access macros
-  # if defined( WIN32 ) || defined( WIN16 ) || defined( INTEL_SYSTEM )
-
-  #   if !defined( GetWord16 )
-  #     define GetWord16( pv )     *(word16_t*)(pv)
-  #   endif  // GetWord16
-  #   if !defined( GetWord32 )
-  #     define GetWord32( pv )     *(word32_t*)(pv)
-  #   endif  // GetWord32
-
-  #   define Swap16( sw )
-  #   define Swap32( sw )
-
-  # elif defined( SUN )
-
-  #   if !defined( GetWord16 )
-  #     define GetWord16( pv )  ( ((byte08_t*)(pv))[0] | (((byte08_t*)(pv))[1] << 8) )
-  #   endif  // GetWord16
-  #   if !defined( GetWord32 )
-  #     define GetWord32( pv )  ( ((byte08_t*)(pv))[0] | (((byte08_t*)(pv))[1] << 8)  \
-                               | (((byte08_t*)(pv))[2] << 16) | (((byte08_t*)(pv))[3] << 24))
-  #   endif  // GetWord32
-
-  #   define Swap16( sw ) (sw) = (((sw) & 0x00FF) << 8) | ((sw) >> 8)
-  #   define Swap32( sw ) (sw) = ((sw) << 24) | (((sw) & 0x0000FF00) << 8)  \
-                              | (((sw) & 0x00FF0000) >> 8) | ((sw) >> 24)
-
-  # endif // macros definitions
-
-  // Грамматическая информация, используемая при общении с вызывающими
-  // программами
-  # if !defined( mlma_grammarecord_defined )
-    # define mlma_grammarecord_defined
-      typedef struct tagGramInfo
-      {
-        unsigned char  wInfo;
-        unsigned char  iForm;
-        unsigned short gInfo;
-        unsigned char  other;
-      } SGramInfo;
-  # endif
-
-  inline  word32_t  GetLexeme( const void* buffer, unsigned ncbyte )
-  {
-    const byte_t*   lpdata = (const byte_t*)buffer;
-    word32_t        nlexid = 0;
-    unsigned        nshift;
-
-    for ( nshift = 0; nshift < ncbyte; nshift++ )
-      nlexid |= (unsigned)(*lpdata++) << (nshift * 8);
-    return nlexid;
-  }
-
-  // Описание одного отождествления на таблицах окончаний
-  typedef struct tagFlexInfo
-  {
-    word16_t  gInfo;
-    byte_t    other;
-  } SFlexInfo;
-
-  # define tfCompressed  0x80              // Признак закомпрессованности таблицы окончаний
+  # define tfCompressed  0x80              // РџСЂРёР·РЅР°Рє Р·Р°РєРѕРјРїСЂРµСЃСЃРѕРІР°РЅРЅРѕСЃС‚Рё С‚Р°Р±Р»РёС†С‹ РѕРєРѕРЅС‡Р°РЅРёР№
   # define ffNNext       0x80              /* Nesessary-next flex-item level         */
   # define ffONext       0x40              /* Optional-next flex-item level          */
 
@@ -119,7 +45,7 @@ namespace LIBMORPH_NAMESPACE
   # define wfFlexes   0x4000       /* Stem has flex-table reference          */
   # define wfOldWord  0x0080       /* Old word, at most not used now         */
 
-  // Глобальные данные, которые никто не трогает
+  // Р“Р»РѕР±Р°Р»СЊРЅС‹Рµ РґР°РЅРЅС‹Рµ, РєРѕС‚РѕСЂС‹Рµ РЅРёРєС‚Рѕ РЅРµ С‚СЂРѕРіР°РµС‚
 
   extern unsigned char  flexTree[];
   extern unsigned char  mxTables[];
@@ -128,8 +54,8 @@ namespace LIBMORPH_NAMESPACE
   extern unsigned char  stemtree[];
   extern unsigned char  lidstree[];
 
-  // Функции min и max - свои, так как в разных компиляторах
-  // используются разные способы определения этих функций
+  // Р¤СѓРЅРєС†РёРё min Рё max - СЃРІРѕРё, С‚Р°Рє РєР°Рє РІ СЂР°Р·РЅС‹С… РєРѕРјРїРёР»СЏС‚РѕСЂР°С…
+  // РёСЃРїРѕР»СЊР·СѓСЋС‚СЃСЏ СЂР°Р·РЅС‹Рµ СЃРїРѕСЃРѕР±С‹ РѕРїСЂРµРґРµР»РµРЅРёСЏ СЌС‚РёС… С„СѓРЅРєС†РёР№
 
   template <class T>
   inline T minimal( T v1, T v2 )
@@ -139,11 +65,11 @@ namespace LIBMORPH_NAMESPACE
   inline T maximal( T v1, T v2 )
     {  return ( v1 >= v2 ? v1 : v2 );  }
 
-  // Функции доступа к таблицам окончаний
+  // Р¤СѓРЅРєС†РёРё РґРѕСЃС‚СѓРїР° Рє С‚Р°Р±Р»РёС†Р°Рј РѕРєРѕРЅС‡Р°РЅРёР№
 
-  // Макроопределения для вычмсления легальной ступени чередования
+  // РњР°РєСЂРѕРѕРїСЂРµРґРµР»РµРЅРёСЏ РґР»СЏ РІС‹С‡РёСЃР»РµРЅРёСЏ Р»РµРіР°Р»СЊРЅРѕР№ СЃС‚СѓРїРµРЅРё С‡РµСЂРµРґРѕРІР°РЅРёСЏ
 
-  // GetVerbMixPower_0 - чередование в 1 ед. наст.(буд.) и прич.страд.прош.
+  // GetVerbMixPower_0 - С‡РµСЂРµРґРѕРІР°РЅРёРµ РІ 1 РµРґ. РЅР°СЃС‚.(Р±СѓРґ.) Рё РїСЂРёС‡.СЃС‚СЂР°Рґ.РїСЂРѕС€.
 
   inline  int GetVerbMixPower_0( word16_t verbType, word16_t gramInfo )
   {
@@ -161,8 +87,8 @@ namespace LIBMORPH_NAMESPACE
       || (verbType == 27) ? 2 : 1 );
   }
 
-  // GetVerbMixPower_1 - чередование в 1 ед., 3 мн. наст.(буд.) и
-  // в глагольных формах наст. (2 прич. и дееприч.)
+  // GetVerbMixPower_1 - С‡РµСЂРµРґРѕРІР°РЅРёРµ РІ 1 РµРґ., 3 РјРЅ. РЅР°СЃС‚.(Р±СѓРґ.) Рё
+  // РІ РіР»Р°РіРѕР»СЊРЅС‹С… С„РѕСЂРјР°С… РЅР°СЃС‚. (2 РїСЂРёС‡. Рё РґРµРµРїСЂРёС‡.)
 
   inline  int GetVerbMixPower_1( word16_t verbType, word16_t gramInfo )
   {
@@ -187,7 +113,7 @@ namespace LIBMORPH_NAMESPACE
           || ( verbType == 26 ) || ( verbType == 27 ) ? 2 : 1 );
   }
 
-    // GetVerbMixPower_2 - чередование во всех формах наст.(буд.)
+    // GetVerbMixPower_2 - С‡РµСЂРµРґРѕРІР°РЅРёРµ РІРѕ РІСЃРµС… С„РѕСЂРјР°С… РЅР°СЃС‚.(Р±СѓРґ.)
 
     #define GetVerbMixPower_2( VerbType, GramInfo )                             \
       (                                                                         \
@@ -352,7 +278,7 @@ namespace LIBMORPH_NAMESPACE
       }
   };
 
-  // Некоторые полезные функции, выясняющие часть речи
+  // РќРµРєРѕС‚РѕСЂС‹Рµ РїРѕР»РµР·РЅС‹Рµ С„СѓРЅРєС†РёРё, РІС‹СЏСЃРЅСЏСЋС‰РёРµ С‡Р°СЃС‚СЊ СЂРµС‡Рё
 
   inline  bool  IsVerb( word16_t wbInfo )
   {
@@ -376,13 +302,13 @@ namespace LIBMORPH_NAMESPACE
 
   //=====================================================================
   // Meth: GetNormalInfo
-  // Функция строит грамматическую информацию о нормальной форме слова,
-  // используя тип этого слова, грамматическую информацию об отождествлении
-  // и настройки поиска и нормализации.
-  // Нормальной формой считается:
-  // Для существительных - именительный падеж единственного числа;
-  // Для прилагательных - именительный падеж мужского рода;
-  // Для глаголов - инфинитив (или причастная форма - по настройкам).
+  // Р¤СѓРЅРєС†РёСЏ СЃС‚СЂРѕРёС‚ РіСЂР°РјРјР°С‚РёС‡РµСЃРєСѓСЋ РёРЅС„РѕСЂРјР°С†РёСЋ Рѕ РЅРѕСЂРјР°Р»СЊРЅРѕР№ С„РѕСЂРјРµ СЃР»РѕРІР°,
+  // РёСЃРїРѕР»СЊР·СѓСЏ С‚РёРї СЌС‚РѕРіРѕ СЃР»РѕРІР°, РіСЂР°РјРјР°С‚РёС‡РµСЃРєСѓСЋ РёРЅС„РѕСЂРјР°С†РёСЋ РѕР± РѕС‚РѕР¶РґРµСЃС‚РІР»РµРЅРёРё
+  // Рё РЅР°СЃС‚СЂРѕР№РєРё РїРѕРёСЃРєР° Рё РЅРѕСЂРјР°Р»РёР·Р°С†РёРё.
+  // РќРѕСЂРјР°Р»СЊРЅРѕР№ С„РѕСЂРјРѕР№ СЃС‡РёС‚Р°РµС‚СЃСЏ:
+  // Р”Р»СЏ СЃСѓС‰РµСЃС‚РІРёС‚РµР»СЊРЅС‹С… - РёРјРµРЅРёС‚РµР»СЊРЅС‹Р№ РїР°РґРµР¶ РµРґРёРЅСЃС‚РІРµРЅРЅРѕРіРѕ С‡РёСЃР»Р°;
+  // Р”Р»СЏ РїСЂРёР»Р°РіР°С‚РµР»СЊРЅС‹С… - РёРјРµРЅРёС‚РµР»СЊРЅС‹Р№ РїР°РґРµР¶ РјСѓР¶СЃРєРѕРіРѕ СЂРѕРґР°;
+  // Р”Р»СЏ РіР»Р°РіРѕР»РѕРІ - РёРЅС„РёРЅРёС‚РёРІ (РёР»Рё РїСЂРёС‡Р°СЃС‚РЅР°СЏ С„РѕСЂРјР° - РїРѕ РЅР°СЃС‚СЂРѕР№РєР°Рј).
   //=====================================================================
   inline word16_t GetNormalInfo( word16_t wbInfo,
                                  word16_t grInfo,

@@ -42,7 +42,7 @@ namespace LIBMORPH_NAMESPACE
   /*
     GetWordMatch( template, action )
 
-    сканер словаря, вызывает action для каждой найденной лексемы
+    СЃРєР°РЅРµСЂ СЃР»РѕРІР°СЂСЏ, РІС‹Р·С‹РІР°РµС‚ action РґР»СЏ РєР°Р¶РґРѕР№ РЅР°Р№РґРµРЅРЅРѕР№ Р»РµРєСЃРµРјС‹
   */
   template <class action>
   int   GetWordMatch( const byte_t* thestr, size_t  cchstr, const action& _do_it )
@@ -61,8 +61,8 @@ namespace LIBMORPH_NAMESPACE
   /*
     GetDictMatch( template, dict, action )
 
-    Высокоуровневый сканер словаря, вызывает action для каждой найденной лексемы
-    со строкой трассы, ведущей к ней
+    Р’С‹СЃРѕРєРѕСѓСЂРѕРІРЅРµРІС‹Р№ СЃРєР°РЅРµСЂ СЃР»РѕРІР°СЂСЏ, РІС‹Р·С‹РІР°РµС‚ action РґР»СЏ РєР°Р¶РґРѕР№ РЅР°Р№РґРµРЅРЅРѕР№ Р»РµРєСЃРµРјС‹
+    СЃРѕ СЃС‚СЂРѕРєРѕР№ С‚СЂР°СЃСЃС‹, РІРµРґСѓС‰РµР№ Рє РЅРµР№
   */
   template <class action>
   int   GetDictMatch( const byte_t* thestr, size_t        cchstr,
@@ -78,16 +78,16 @@ namespace LIBMORPH_NAMESPACE
     {
       switch ( chfind = *thestr )
       {
-        // '?' - любой непустой символ; подставить по очереди все символы в строку на позицию шаблона
-        //       и продолжить сканирование на вложенных поддеревьях; пустая строка точно в пролёте
+        // '?' - Р»СЋР±РѕР№ РЅРµРїСѓСЃС‚РѕР№ СЃРёРјРІРѕР»; РїРѕРґСЃС‚Р°РІРёС‚СЊ РїРѕ РѕС‡РµСЂРµРґРё РІСЃРµ СЃРёРјРІРѕР»С‹ РІ СЃС‚СЂРѕРєСѓ РЅР° РїРѕР·РёС†РёСЋ С€Р°Р±Р»РѕРЅР°
+        //       Рё РїСЂРѕРґРѕР»Р¶РёС‚СЊ СЃРєР°РЅРёСЂРѕРІР°РЅРёРµ РЅР° РІР»РѕР¶РµРЅРЅС‹С… РїРѕРґРґРµСЂРµРІСЊСЏС…; РїСѓСЃС‚Р°СЏ СЃС‚СЂРѕРєР° С‚РѕС‡РЅРѕ РІ РїСЂРѕР»С‘С‚Рµ
         case '?':
           while ( ncount-- > 0 )
             if ( (nerror = GetDictMatch( thestr + 1, cchstr - 1, getsubdic( thedic ), _do_it )) != 0 )
               return nerror;
           break;
 
-      // '*' - любая последовательность символов длиной от 0 до ...; для каждого поддерева вызвать
-      //       два варианта к каждому возможному поддереву:
+      // '*' - Р»СЋР±Р°СЏ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕСЃС‚СЊ СЃРёРјРІРѕР»РѕРІ РґР»РёРЅРѕР№ РѕС‚ 0 РґРѕ ...; РґР»СЏ РєР°Р¶РґРѕРіРѕ РїРѕРґРґРµСЂРµРІР° РІС‹Р·РІР°С‚СЊ
+      //       РґРІР° РІР°СЂРёР°РЅС‚Р° Рє РєР°Р¶РґРѕРјСѓ РІРѕР·РјРѕР¶РЅРѕРјСѓ РїРѕРґРґРµСЂРµРІСѓ:
         case '*':
           if ( (nerror = GetDictMatch( thestr + 1, cchstr - 1, dicorg, _do_it )) != 0 ) // zero chars match
             return nerror;
@@ -96,7 +96,7 @@ namespace LIBMORPH_NAMESPACE
               return nerror;
           break;
 
-      // любой другой символ - должно быть точное соответствие
+      // Р»СЋР±РѕР№ РґСЂСѓРіРѕР№ СЃРёРјРІРѕР» - РґРѕР»Р¶РЅРѕ Р±С‹С‚СЊ С‚РѕС‡РЅРѕРµ СЃРѕРѕС‚РІРµС‚СЃС‚РІРёРµ
         default:
           while ( ncount-- > 0 )
             if ( *thedic != chfind )  getsubdic( thedic );
@@ -114,7 +114,7 @@ namespace LIBMORPH_NAMESPACE
     }
 
   /*
-    если есть список лексем, провести там отождествление
+    РµСЃР»Рё РµСЃС‚СЊ СЃРїРёСЃРѕРє Р»РµРєСЃРµРј, РїСЂРѕРІРµСЃС‚Рё С‚Р°Рј РѕС‚РѕР¶РґРµСЃС‚РІР»РµРЅРёРµ
   */
     return counter<unsigned char>::hasupper( bflags ) ? GetListMatch( thestr, cchstr, thedic, _do_it ) : 0;
   }
@@ -189,7 +189,7 @@ namespace LIBMORPH_NAMESPACE
   /*
     GetListMatch( template, list, action )
 
-    Проводит отождествление шаблона с массивом лексем
+    РџСЂРѕРІРѕРґРёС‚ РѕС‚РѕР¶РґРµСЃС‚РІР»РµРЅРёРµ С€Р°Р±Р»РѕРЅР° СЃ РјР°СЃСЃРёРІРѕРј Р»РµРєСЃРµРј
   */
   template <class action>
   int   GetListMatch( const byte_t* thestr, size_t        cchstr,
@@ -216,7 +216,7 @@ namespace LIBMORPH_NAMESPACE
         if ( chnext < clower )  continue;
       }
 
-    // нефлективным основам может соответствовать либо пустая строка, либо символ '*'
+    // РЅРµС„Р»РµРєС‚РёРІРЅС‹Рј РѕСЃРЅРѕРІР°Рј РјРѕР¶РµС‚ СЃРѕРѕС‚РІРµС‚СЃС‚РІРѕРІР°С‚СЊ Р»РёР±Рѕ РїСѓСЃС‚Р°СЏ СЃС‚СЂРѕРєР°, Р»РёР±Рѕ СЃРёРјРІРѕР» '*'
       if ( (maargs.stinfo.wdinfo & wfFlexes) == 0 || (maargs.stinfo.wdinfo & 0x3f) == 51 )
       {
         byte_t  formff = 0xff;
@@ -226,7 +226,7 @@ namespace LIBMORPH_NAMESPACE
             return nerror;
       }
         else
-    // при отсутствии чередований приложить к таблицам окончаний; постфикс также учитывать
+    // РїСЂРё РѕС‚СЃСѓС‚СЃС‚РІРёРё С‡РµСЂРµРґРѕРІР°РЅРёР№ РїСЂРёР»РѕР¶РёС‚СЊ Рє С‚Р°Р±Р»РёС†Р°Рј РѕРєРѕРЅС‡Р°РЅРёР№; РїРѕСЃС‚С„РёРєСЃ С‚Р°РєР¶Рµ СѓС‡РёС‚С‹РІР°С‚СЊ
       if ( (maargs.stinfo.wdinfo & wfMixTab) == 0 )
       {
         fmLister  fmlist( maargs.stinfo );
@@ -236,11 +236,11 @@ namespace LIBMORPH_NAMESPACE
             return nerror;
       }
         else
-    // приложить последовательно к возможным таблицам чередования
+    // РїСЂРёР»РѕР¶РёС‚СЊ РїРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕ Рє РІРѕР·РјРѕР¶РЅС‹Рј С‚Р°Р±Р»РёС†Р°Рј С‡РµСЂРµРґРѕРІР°РЅРёСЏ
       {
         fmLister      fmlist( maargs.stinfo );
-        const byte_t* mixtab = maargs.mtable();   // Собственно таблица
-        int           mixcnt = *mixtab++;         // Количество чередований
+        const byte_t* mixtab = maargs.mtable();   // РЎРѕР±СЃС‚РІРµРЅРЅРѕ С‚Р°Р±Р»РёС†Р°
+        int           mixcnt = *mixtab++;         // РљРѕР»РёС‡РµСЃС‚РІРѕ С‡РµСЂРµРґРѕРІР°РЅРёР№
         int           mindex;
 
         for ( mindex = 0; mindex < mixcnt; ++mindex, mixtab += 1 + (0x0f & *mixtab) )
@@ -263,7 +263,7 @@ namespace LIBMORPH_NAMESPACE
   /*
     GetIntrMatch()
 
-    сравнение строки чередования с шаблоном
+    СЃСЂР°РІРЅРµРЅРёРµ СЃС‚СЂРѕРєРё С‡РµСЂРµРґРѕРІР°РЅРёСЏ СЃ С€Р°Р±Р»РѕРЅРѕРј
   */
   template <class action>
   bool  GetIntrMatch( const byte_t*   mixstr, size_t    mixlen,
@@ -313,7 +313,7 @@ namespace LIBMORPH_NAMESPACE
   }
 
   /*
-    ListAllForms() - все формы для всех окончаний, соответствующие mpower
+    ListAllForms() - РІСЃРµ С„РѕСЂРјС‹ РґР»СЏ РІСЃРµС… РѕРєРѕРЅС‡Р°РЅРёР№, СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РёРµ mpower
   */
   template <class action>
   void  ListAllForms( const byte_t*   fttree, const steminfo& stinfo,
@@ -342,7 +342,7 @@ namespace LIBMORPH_NAMESPACE
   }
 
   /*
-    GetFlexMatch() - все формы, соответствующие переданному шаблону
+    GetFlexMatch() - РІСЃРµ С„РѕСЂРјС‹, СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РёРµ РїРµСЂРµРґР°РЅРЅРѕРјСѓ С€Р°Р±Р»РѕРЅСѓ
   */
   template <class action>
   bool  GetFlexMatch( const byte_t*   thestr, size_t          cchstr,

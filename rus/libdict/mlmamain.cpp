@@ -253,8 +253,7 @@ namespace LIBMORPH_NAMESPACE
       const byte_t* ofsptr;
       auto          getofs = []( const byte_t* thedic, const byte_t*, size_t cchstr ) {  return cchstr == 0 ? thedic : nullptr;  };
 
-    // Оригинальная форма слова не задана, следует применять модификацию алгоритма, "прыгающую"
-    // по словарю идентификаторов лексем сразу в нужную точку на странице.
+    // No original word form; algo jumps to lexeme block dictionary point by lexeme id
       if ( (ofsptr = LinearScanDict<word16_t, const byte_t*>( getofs, lidstree, lidkey, lexkeylen( lidkey, nlexid ) )) != nullptr )
       {
         const byte_t* dicpos = stemtree + getserial( ofsptr );
@@ -348,8 +347,7 @@ namespace LIBMORPH_NAMESPACE
       const byte_t* ofsptr;
       auto          getofs = []( const byte_t* thedic, const byte_t*, size_t cchstr ){  return cchstr == 0 ? thedic : nullptr;  };
 
-    // Оригинальная форма слова не задана, следует применять модификацию алгоритма, "прыгающую"
-    // по словарю идентификаторов лексем сразу в нужную точку на странице.
+    // No original word form; algo jumps to lexeme block dictionary point by lexeme id
       if ( (ofsptr = LinearScanDict<word16_t, const byte_t*>( getofs, lidstree, lidkey, lexkeylen( lidkey, lexkey ) )) != nullptr )
       {
         const byte_t* dicpos = stemtree + getserial( ofsptr ) + 2; /* 2 => clower && cupper */
