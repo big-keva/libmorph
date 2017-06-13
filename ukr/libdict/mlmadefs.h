@@ -1,8 +1,34 @@
+/******************************************************************************
+
+    libmorphrus - dictiorary-based morphological analyser for Ukrainian.
+    Copyright (C) 1994-2016 Andrew Kovalenko aka Keva
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+    Contacts:
+      email: keva@meta.ua, keva@rambler.ru
+      Skype: big_keva
+      Phone: +7(495)648-4058, +7(926)513-2991
+
+******************************************************************************/
 # if !defined( _mlmadefs_h_ )
 # define _mlmadefs_h_
 
 // Определить кроссплатформенные типы данных
 # include "../include/mlma1058.h"
+# include <xmorph/typedefs.h>
 
 # if defined( LIBMORPH_NAMESPACE )
 namespace LIBMORPH_NAMESPACE
@@ -114,39 +140,6 @@ namespace LIBMORPH_NAMESPACE
     {  return ( v1 >= v2 ? v1 : v2 );  }
 
   // Функции доступа к таблицам окончаний
-
-  inline  word32_t  getserial( const byte_t*& p )
-  {
-    byte_t    bfetch = *p++;
-    word32_t  serial = bfetch & ~0x80;
-    int       nshift = 1;
-
-    while ( (bfetch & 0x80) != 0 )
-      serial |= (((word32_t)(bfetch = *p++) & ~0x80) << (nshift++ * 7));
-    return serial;
-  }
-
-  inline  word16_t  getword16( const byte_t*& p )
-  {
-    word16_t  v = *(word16_t*)p;
-      p = sizeof(word16_t) + p;
-    return v;
-  }
-
-  inline  size_t    lexkeylen( byte_t* p, unsigned nlexid )
-  {
-    byte_t* o = p;
-
-    if ( (nlexid & ~0x000000ff) == 0 )  { *p++ = (byte_t)nlexid;  }
-      else
-    if ( (nlexid & ~0x0000ffff) == 0 )  { *p++ = (byte_t)(nlexid >> 8); *p++ = (byte_t)nlexid;  }
-      else
-    if ( (nlexid & ~0x00ffffff) == 0 )  { *p++ = (byte_t)(nlexid >> 16);  *p++ = (byte_t)(nlexid >> 8); *p++ = (byte_t)nlexid;  }
-      else
-    {  *p++ = (byte_t)(nlexid >> 24);  *p++ = (byte_t)(nlexid >> 16);  *p++ = (byte_t)(nlexid >> 8); *p++ = (byte_t)nlexid;  }
-
-    return p - o;
-  }
 
   // Макроопределения для вычмсления легальной ступени чередования
 
