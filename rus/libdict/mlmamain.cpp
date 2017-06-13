@@ -48,7 +48,7 @@ namespace LIBMORPH_NAMESPACE
 {
 
   template <class T, size_t N>
-  constexpr size_t  array_size( T (&p)[N] )
+  constexpr size_t  array_size( T (&)[N] )
   {
     return (size_t)N;
   }
