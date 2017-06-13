@@ -19,6 +19,30 @@ namespace LIBMORPH_NAMESPACE {
     return serial;
   }
 
+  template <class T>
+  struct loader
+  {
+    static T  get( const unsigned char*& )  {}
+  };
+
+  template <>
+  struct loader<unsigned char>
+  {
+    static  unsigned char get( const unsigned char*& s )
+      {  return *s++;  }
+  };
+
+  template <>
+  struct loader<unsigned short>
+  {
+    static unsigned short get( const unsigned char*& s )
+      {
+        unsigned char   blower = *s++;
+        unsigned short  bupper = *s++;
+        return blower | (bupper << 8);
+      }
+  };
+
   template <class countype>
   struct counter
   {
@@ -27,21 +51,7 @@ namespace LIBMORPH_NAMESPACE {
     static  int       getlower( countype a )
       {  return a & ~(1 << (sizeof(countype) * CHAR_BIT - 1));  }
     static  countype  getvalue( const unsigned char*& s )
-      {  return loader<0>::get( s );  }
-
-  protected:
-    template <size_t O>
-    struct  loader
-    {
-      static  countype  get( const unsigned char*& s )
-        {  return static_cast<countype>( (*s++ << O) | loader<O+1>::get( s ) );  }
-    };
-    template <>
-    struct  loader<sizeof(countype)>
-    {
-      static  countype  get( const unsigned char*& s )
-        {  return 0;  }
-    };
+      {  return loader<countype>::get( s );  }
   };
 
   template <class sizetype>
