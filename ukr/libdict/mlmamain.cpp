@@ -23,7 +23,7 @@
       Phone: +7(495)648-4058, +7(926)513-2991
 
 ******************************************************************************/
-# include "../include/mlma1049.h"
+# include "../include/mlma1058.h"
 # include <namespace.h>
 # include "mlmadefs.h"
 # include <xmorph/scandict.h>
@@ -47,13 +47,7 @@
 namespace LIBMORPH_NAMESPACE
 {
 
-  template <class T, size_t N>
-  constexpr size_t  array_size( T (&p)[N] )
-  {
-    return (size_t)N;
-  }
-
-  inline  int     igncasecmp( const char* s1, const char* s2 )
+  inline  int   compare_codepage( const char* s1, const char* s2 )
   {
     const auto  lc = []( char ch ){  return codepages::chartolower( codepages::codepage_1251, ch );  };
     int         rc;
@@ -632,11 +626,12 @@ namespace LIBMORPH_NAMESPACE
     { codepage_utf8, "utf8" }
   };
 
+  const int codepageSize = (int)(sizeof(codepageList) / sizeof(codepageList[0]));
 }
 
 using namespace LIBMORPH_NAMESPACE;
 
-int   MLMAPROC        mlmaruLoadMbAPI( IMlmaMb**  ptrAPI )
+int   MLMAPROC        mlmaukLoadMbAPI( IMlmaMb**  ptrAPI )
 {
   if ( ptrAPI == nullptr )
     return -1;
@@ -644,20 +639,21 @@ int   MLMAPROC        mlmaruLoadMbAPI( IMlmaMb**  ptrAPI )
     return 0;
 }
 
-int   MLMAPROC        mlmaruLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
+int   MLMAPROC        mlmaukLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
 {
   CMlmaMb*  palloc;
   unsigned  pageid = (unsigned)-1;
+  int       nindex;
 
-  for ( auto page = codepageList; page < codepageList + array_size(codepageList) && pageid == (unsigned)-1; ++page )
-    if ( igncasecmp( page->szcodepage, codepage ) == 0 )
-      pageid = page->idcodepage;
+  for ( auto pcpage = codepageList; pcpage < codepageList + codepageSize && pageid == (unsigned)-1; ++pcpage )
+    if ( compare_codepage( pcpage->szcodepage, codepage ) == 0 )
+      pageid = pcpage->idcodepage;
 
   if ( pageid == (unsigned)-1 || ptrAPI == nullptr )
     return EINVAL;
 
   if ( pageid == codepage_1251 )
-    return mlmaruLoadMbAPI( ptrAPI );
+    return mlmaukLoadMbAPI( ptrAPI );
 
   if ( (palloc = new CMlmaMb( pageid )) == nullptr )
     return ENOMEM;
@@ -665,11 +661,10 @@ int   MLMAPROC        mlmaruLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
     return 0;
 }
 
-int   MLMAPROC        mlmaruLoadWcAPI( IMlmaWc**  ptrAPI )
+int   MLMAPROC        mlmaukLoadWcAPI( IMlmaWc**  ptrAPI )
 {
   if ( ptrAPI == nullptr )
     return -1;
   *ptrAPI = (IMlmaWc*)&mlmaWcInstance;
     return 0;
 }
-
