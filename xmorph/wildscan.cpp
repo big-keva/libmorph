@@ -3,6 +3,17 @@
 # include <xmorph/scanlist.h>
 # include <string.h>
 
+#include <type_traits>
+
+namespace
+{
+  template<class T, size_t N>
+  constexpr size_t ArraySize(T (&)[N])
+  {
+    return N;
+  }
+}
+
 namespace LIBMORPH_NAMESPACE
 {
 
@@ -215,13 +226,11 @@ namespace LIBMORPH_NAMESPACE
     byte_t*   outorg = output;
     byte_t*   outend = output + cchout;
     unsigned  chmask[256 / (sizeof(unsigned) * CHAR_BIT)];
-    int       nindex;
-    int       cindex;
 
     WildScanDict( (unsigned*)memset( chmask, 0, sizeof(chmask) ), stemtree, ptempl, cchstr );
 
-    for ( nindex = 0; nindex < (int)(sizeof(chmask) / sizeof(chmask[0])); ++nindex )
-      for ( cindex = 0; cindex < sizeof(unsigned) * CHAR_BIT; ++cindex )
+    for ( std::size_t nindex = 0; nindex < ArraySize(chmask); ++nindex )
+      for ( std::size_t cindex = 0; cindex < sizeof(unsigned) * CHAR_BIT; ++cindex )
         if ( (chmask[nindex] & (1 << cindex)) != 0 )
         {
           if ( output < outend ) *output++ = (byte_t)(nindex * sizeof(unsigned) * CHAR_BIT + cindex);
