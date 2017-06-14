@@ -47,12 +47,6 @@
 namespace LIBMORPH_NAMESPACE
 {
 
-  template <class T, size_t N>
-  constexpr size_t  array_size( T (&)[N] )
-  {
-    return (size_t)N;
-  }
-
   inline  int     igncasecmp( const char* s1, const char* s2 )
   {
     const auto  lc = []( char ch ){  return codepages::chartolower( codepages::codepage_1251, ch );  };
@@ -647,7 +641,7 @@ int   MLMAPROC        mlmaukLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
   CMlmaMb*  palloc;
   unsigned  pageid = (unsigned)-1;
 
-  for ( auto page = codepageList; page < codepageList + array_size(codepageList) && pageid == (unsigned)-1; ++page )
+  for ( auto page = codepageList; page < codepageList + array_len(codepageList) && pageid == (unsigned)-1; ++page )
     if ( igncasecmp( page->szcodepage, codepage ) == 0 )
       pageid = page->idcodepage;
 

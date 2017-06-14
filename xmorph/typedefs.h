@@ -1,5 +1,6 @@
 # if !defined( __typedefs_h__ )
 # define __typedefs_h__
+# include <cstddef>
 
 # if defined( LIBMORPH_NAMESPACE )
 namespace LIBMORPH_NAMESPACE {
@@ -20,6 +21,12 @@ namespace LIBMORPH_NAMESPACE {
 #   define __word32_t_defined__
     typedef unsigned int    word32_t;
 # endif  // !__word32_t_defined__
+
+  template <class T, size_t N>
+  constexpr size_t  array_len( T (&)[N] )
+  {
+    return (size_t)N;
+  }
 
   inline  SGramInfo setgrinfo( uint16_t wdInfo, formid_t idForm, uint16_t grInfo, uint8_t bFlags )
   {

@@ -215,16 +215,14 @@ namespace LIBMORPH_NAMESPACE
     byte_t*   outorg = output;
     byte_t*   outend = output + cchout;
     unsigned  chmask[256 / (sizeof(unsigned) * CHAR_BIT)];
-    int       nindex;
-    int       cindex;
 
     WildScanDict( (unsigned*)memset( chmask, 0, sizeof(chmask) ), stemtree, ptempl, cchstr );
 
-    for ( nindex = 0; nindex < (int)(sizeof(chmask) / sizeof(chmask[0])); ++nindex )
-      for ( cindex = 0; cindex < sizeof(unsigned) * CHAR_BIT; ++cindex )
-        if ( (chmask[nindex] & (1 << cindex)) != 0 )
+    for ( size_t u = 0; u < array_len(chmask); ++u )
+      for ( size_t o = 0; o < sizeof(unsigned) * CHAR_BIT; ++o )
+        if ( (chmask[u] & (1 << o)) != 0 )
         {
-          if ( output < outend ) *output++ = (byte_t)(nindex * sizeof(unsigned) * CHAR_BIT + cindex);
+          if ( output < outend ) *output++ = (byte_t)(u * sizeof(unsigned) * CHAR_BIT + o);
             else  return WORDBUFF_FAILED;
         }
 
