@@ -81,6 +81,8 @@ static char GPL_header[] =
   "    with this program; if not, write to the Free Software Foundation, Inc.,\n"
   "    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.\n"
   "\n"
+  "    Ñommercial license is available upîn request."
+  "\n"
   "    Contacts:\n"
   "      email: keva@meta.ua, keva@rambler.ru\n"
   "      Skype: big_keva\n"
