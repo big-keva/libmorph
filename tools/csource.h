@@ -95,7 +95,7 @@ public:     // message dumpers
         for ( ptrend = ptrtop; *ptrend != '\0'; ptrend++ )  (void)NULL;
 
         while ( ptrend > ptrtop && _isspace_( ptrend[-1] ) )
-          *ptrend-- = '\0';
+          *--ptrend = '\0';
 
         ++lineId;
 
@@ -103,9 +103,9 @@ public:     // message dumpers
           continue;
 
         strcpy( output, ptrtop );
-          return true;
+          break;
       }
-      return false;
+      return true;
     }
   bool  PutLine( const char* sunget )
     {
