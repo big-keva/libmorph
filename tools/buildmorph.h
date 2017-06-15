@@ -249,7 +249,7 @@ int   buildmorph<theclass, steminfo, resolver>::DictReader( FILE* lpfile )
       continue;
 
   // resolve word properties
-    if ( (nstems = clparser.BuildStems( astems, aclass, strtop )) < 0 )
+    if ( (nstems = clparser.BuildStems( astems, aclass, strtop, settings )) < 0 )
       return libmorph::LogMessage( nstems, "BuildStems fault!\n" );
     if ( nstems == 0 && (nerror = PutUnknown( strtop )) != 0 )
       return nerror;
