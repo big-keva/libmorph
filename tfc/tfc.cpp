@@ -3,27 +3,21 @@
 # include "../tools/csource.h"
 # include "../tools/sweets.h"
 # include <libcodes/codes.h>
+# include <mtc/wcsstr.h>
 # include <errno.h>
 
 using namespace codepages;
 
 bool  source1251 = false;
 
-inline  const char*   trimstr( const char*  pszstr )
-{
-  while ( _isspace_( *pszstr ) )
-    ++pszstr;
-  return pszstr;
-}
-
 inline  const char*   getnext( char* lpdest, const char* string )
 {
-  for ( string = trimstr( string ); *string != '\0' && *string != ',' && !_isspace_( *string ); )
+  for ( string = ltrim( string ); *string != '\0' && *string != ',' && !isspace( *string ); )
     *lpdest++ = *string++;
-  if ( *(string = trimstr( string )) == ',' )
+  if ( *(string = ltrim( string )) == ',' )
     ++string;
   *lpdest = '\0';
-  return string;
+    return string;
 }
 
 bool  MapLine( const char*  string,
@@ -60,17 +54,18 @@ int   MakeTab( CSource& source,
 // Create header info
   if ( !source1251 )
   {
-    mbcstombcs( codepage_1251, header, sizeof(header), codepage_866,  header );
-    mbcstombcs( codepage_1251, string, sizeof(string), codepage_866,  string );
+    mbcstombcs( codepage_1251, header, sizeof(header), codepage_866, header );
+    mbcstombcs( codepage_1251, string, sizeof(string), codepage_866, string );
   }
 
-  for ( lphead = header; (unsigned char)*lphead > 0x20; lphead++ )
-    (void)NULL;
-  while ( *lphead != '\0' && (unsigned char)*lphead <= 0x20 )
-    ++lphead;
+  if ( strncmp( header, ".таблица", 8 ) == 0 )  lphead = header + 8;  else
+  if ( strncmp( header, ".тип",     4 ) == 0 )  lphead = header + 4;  else
+  if ( strncmp( header, ".table",   6 ) == 0 )  lphead = header + 6;  else
+  if ( strncmp( header, ".type",    5 ) == 0 )  lphead = header + 5;  else
+    return source.Message( EINVAL, "Table header '.table' or '.type' expected!" );
 
 // Check if the empty header
-  if ( *lphead == '\0' )
+  if ( *(lphead = libmorph::TrimString( lphead )) == '\0' )
     return source.Message( EINVAL, "Unnamed table!" );
   
 // Check table start
@@ -162,52 +157,42 @@ int   Compile( CSource& source,
       mbcstombcs( codepage_1251,  string, sizeof(string), codepage_866, string );
 
   // Check the command
-    if ( string[0] == '.' )
+    if ( string[0] != '.' )
+      return source.Message( EINVAL, "invalid source line %s!\n", string );
+
+    if ( strncmp( string + 1, "включить", 8 ) == 0 && isspace( string[9] )
+      || strncmp( string + 1, "include",  7 ) == 0 && isspace( string[8] ) )
     {
-      if ( memcmp( string + 1, "включить", 8 ) == 0 && _isspace_( string[9] )
-        || memcmp( string + 1, "include",  7 ) == 0 && _isspace_( string[8] ) )
-      {
-        CSource infile;
-        char*   ptrtop = string + 8;
-        char    szpath[256];
+      CSource infile;
+      char*   ptrtop;
+      char    szpath[256];
 
-      // Skip command string
-        while ( *ptrtop && !_isspace_( *ptrtop ) )
-          ++ptrtop;
+      for ( ptrtop = string + 8; *ptrtop != '\0' && !isspace( *ptrtop ); ++ptrtop )
+        (void)NULL;
 
-      // Skip blank space
-        while ( *ptrtop && _isspace_( *ptrtop ) )
-          ++ptrtop;
+    // Create the file name
+      source.MapName( szpath, ltrim( ptrtop ) );
 
-      // Create the file name
-        source.MapName( szpath, ptrtop );
+    // Try open the nested file
+      if ( !infile.SetFile( szpath ) )
+        return source.Message( ENOENT, "could not open file %s!\n", szpath );
+      else
+        fprintf( stderr, "\t%s\n", szpath );
 
-      // Try open the nested file
-        if ( !infile.SetFile( szpath ) )
-          return source.Message( ENOENT, "could not open file %s!\n", szpath );
-        else
-          fprintf( stderr, "\t%s\n", szpath );
-
-      // Compile the file
-        nerror = Compile( infile, rflist );
-
-        if ( nerror != 0 )
-          return nerror;
-        continue;
-      }
-
-    // Unget the line
-      if ( !source1251 )
-        mbcstombcs( codepage_866,  string, sizeof(string), codepage_1251, string );
-      source.PutLine( string );
-
-    // Compile inflexion table
-      if ( (nerror = MakeTab( source, rflist )) != 0 )
+    // Compile the file
+      if ( (nerror = Compile( infile, rflist )) != 0 )
         return nerror;
-      
       continue;
     }
-    return source.Message( EINVAL, "invalid source line %s!\n", string );
+
+  // Unget the line
+    if ( !source1251 )
+      mbcstombcs( codepage_866,  string, sizeof(string), codepage_1251, string );
+    source.PutLine( string );
+
+  // Compile inflexion table
+    if ( (nerror = MakeTab( source, rflist )) != 0 )
+      return nerror;
   }
   return 0;
 }
@@ -278,11 +263,8 @@ int   main( int argc, char* argv[] )
   }
 
 // Check if completed
-  if ( ptrsym == NULL )
-  {
-    fprintf( stderr, about );
-    return -1;
-  }
+  if ( ptrsym == nullptr )
+    return (fprintf( stderr, about ), -1);
 
   fprintf( stderr, "Compiling tables...\n""\t%s\n", inname );
 
@@ -292,27 +274,18 @@ int   main( int argc, char* argv[] )
   tables.Relocate();
 
 // create the tables
-  if ( (output = fopen( ptrbin, "wb" )) == NULL )
-  {
-    fprintf( stderr, "Could not create file \'%s\'!\n", ptrbin );
-    return -1;
-  }
+  if ( (output = fopen( ptrbin, "wb" )) == nullptr )
+    return (fprintf( stderr, "Could not create file \'%s\'!\n", ptrbin ), -1);
+
   if ( tables.StoreTab( (FILE*)output ) == NULL )
-  {
-    fprintf( stderr, "Error writing the file \'%s\'!\n", ptrbin );
-    return EACCES;
-  }
+    return (fprintf( stderr, "Error writing the file \'%s\'!\n", ptrbin ), EACCES);
 
 // Open output file
   if ( (output = fopen( ptrsym, "wb" )) == NULL )
-  {
-    fprintf( stderr, "Could not create file \'%s\'!\n", ptrbin );
-    return -1;
-  }
+    return (fprintf( stderr, "Could not create file \'%s\'!\n", ptrsym), -1);
+
   if ( tables.StoreRef( (FILE*)output ) == 0 )
-  {
-    fprintf( stderr, "Error writing the file \'%s\'!\n", ptrsym );
-    return EACCES;
-  }
+    return (fprintf( stderr, "Error writing the file \'%s\'!\n", ptrsym ), EACCES);
+
   return 0;
 }

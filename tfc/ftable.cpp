@@ -94,22 +94,19 @@ int   fxlist::Insert( ftable*     ptable,
     return nerror;
   }
 
-  while ( *pnames != '\0' )
+  while ( *(pnames = ltrim( pnames )) != '\0' )
   {
     char  szname[0x100];
     char* pszout = szname;
 
-    while ( *pnames != '\0' && (unsigned char)*pnames <= 0x20 )
-      ++pnames;
     while ( *pnames != '\0' && *pnames != ',' )
       *pszout++ = *pnames++;
-    if ( pszout > szname )
-    {
-      *pszout = '\0';
+    for ( *pszout = '\0'; pszout > szname && isspace( pszout[-1] ); )
+      *--pszout = '\0';
 
-      if ( tabmap.Insert( szname, ptable ) == nullptr )
-        return ENOMEM;
-    }
+    if ( pszout > szname && tabmap.Insert( szname, ptable ) == nullptr )
+      return ENOMEM;
+
     if ( *pnames == ',' )
       ++pnames;
   }
