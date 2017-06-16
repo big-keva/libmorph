@@ -44,6 +44,19 @@ namespace libmorph
     return fread( (char*)output, 1, cbfile, lpfile ) == cbfile ? 0 : EACCES;
   }
 
+  inline  char* TrimString( char* thestr )
+  {
+    char* endstr;
+
+    while ( *thestr != '\0' && (byte_t)*thestr <= 0x20 )
+      ++thestr;
+    for ( endstr = thestr; *endstr != '\0'; ++endstr )
+      (void)NULL;
+    while ( endstr > thestr && (byte_t)endstr[-1] <= 0x20 )
+      *--endstr = '\0';
+    return thestr;
+  }
+
 }  // end libmorph namespace
 
 # endif // __sweets_h__

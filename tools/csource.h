@@ -1,5 +1,6 @@
 # if !defined( __csource_h__ )
 # define  __csource_h__
+# include "sweets.h"
 # include <mtc/autoptr.h>
 # include <mtc/wcsstr.h>
 # include <mtc/file.h>
@@ -8,8 +9,6 @@
 # include <string.h>
 # include <stdlib.h>
 # include <stdarg.h>
-
-inline  bool  _isspace_( char ch )  {  return ch != '\0' && (unsigned char)ch <= 0x20;  }
 
 class CSource
 {
@@ -80,29 +79,21 @@ public:     // message dumpers
       for ( ; ; )
       {
         char  buffer[1024];
-        char* ptrtop = buffer;
-        char* ptrend;
+        char* getstr;
 
-        if ( !fgets( buffer, sizeof(buffer), infile ) )
-          return false;
-        while ( _isspace_( *ptrtop ) )
-          ++ptrtop;
+        if ( fgets( buffer, sizeof(buffer), infile ) != nullptr ) ++lineId;
+          else return false;
 
-        if ( mtc::w_strncmp( ptrtop, "//", 2 ) == 0 ) *(ptrend = ptrtop) = '\0';
-          else
-        if ( (ptrend = strstr( ptrtop, "//" )) != nullptr && _isspace_( ptrend[-1] ) && _isspace_( ptrend[2] ) )  *ptrend = '\0';
-          else
-        for ( ptrend = ptrtop; *ptrend != '\0'; ptrend++ )  (void)NULL;
+        if ( (getstr = strstr( buffer, "//" )) != nullptr )
+        {
+          if ( getstr == buffer || mtc::isspace( getstr[-1] ) )
+            *getstr = '\0';
+        }
 
-        while ( ptrend > ptrtop && _isspace_( ptrend[-1] ) )
-          *--ptrend = '\0';
-
-        ++lineId;
-
-        if ( *ptrtop == '\0' )
+        if ( *(getstr = libmorph::TrimString( buffer )) == '\0' )
           continue;
 
-        strcpy( output, ptrtop );
+        strcpy( output, getstr );
           break;
       }
       return true;
