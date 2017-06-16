@@ -19,7 +19,7 @@
 namespace LIBMORPH_NAMESPACE
 {
   unsigned        GetCapScheme( unsigned char*  output, size_t      outlen,
-                          const char*     srctop, size_t      srclen = (size_t)-1 );
+                                const char*     srctop, size_t      srclen = (size_t)-1 );
   unsigned        GetMinScheme( unsigned        minCap, const char* lpword = 0, unsigned nparts = 0 );
   char*           SetCapScheme( char*           pszstr, unsigned    scheme );
   unsigned char*  SetLowerCase( unsigned char*  pszstr, size_t      cchstr = (size_t)-1 );
