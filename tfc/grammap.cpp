@@ -1,9 +1,11 @@
 # include "grammap.h"
 # include <mtc/stringmap.h>
+# include <mtc/autoptr.h>
+# include <mtc/wcsstr.h>
 
 using namespace mtc;
 
-struct  graminfo
+struct  gramdata
 {
   unsigned  grmask;
   unsigned  grinfo;
@@ -11,34 +13,37 @@ struct  graminfo
   unsigned  bflags;
 };
 
-static  stringmap<graminfo> gramMapper;
+static  stringmap<gramdata> gramMapper;
 
 #define add_key( szkey, gmask, ginfo, fmask, flags )                                        \
   if ( gramMapper.Insert( szkey, { (unsigned)(gmask), (unsigned)(ginfo),                    \
                                    (unsigned)(fmask), (unsigned)(flags) } ) == nullptr )    \
     return ENOMEM;
 
-bool  MapInfo( const char*  pszkey, unsigned& grinfo, unsigned& bflags )
+graminfo  MapInfo( const char*  pszkey, graminfo cginfo )
 {
   while ( *pszkey != '\0' )
   {
     const char*     pszorg;
-    const graminfo* pginfo;
+    const gramdata* pginfo;
     
     for ( pszorg = pszkey; *pszkey != '\0' && *pszkey != '|'; ++pszkey )
       (void)NULL;
     assert( pszkey > pszorg && (*pszkey == '\0' || *pszkey == '|') );
 
-    if ( (pginfo = gramMapper.Search( pszorg, pszkey - pszorg )) == NULL )
-      return false;
+    if ( (pginfo = gramMapper.Search( pszorg, pszkey - pszorg )) == nullptr )
+    {
+      throw _auto_<char>( strduprintf( "Undefined grammar description '%s'!",
+        _auto_<char>( w_strdup( pszorg, pszkey - pszorg ) ).ptr() ) );
+    }
 
-    grinfo = (grinfo & pginfo->grmask) | pginfo->grinfo;
-    bflags = (bflags & pginfo->mflags) | pginfo->bflags;
+    cginfo.grinfo = (cginfo.grinfo & pginfo->grmask) | pginfo->grinfo;
+    cginfo.bflags = (cginfo.bflags & pginfo->mflags) | pginfo->bflags;
 
     if ( *pszkey == '|' )
       ++pszkey;
   }
-  return true;
+  return cginfo;
 }
 
 int   InitRus()
@@ -87,32 +92,32 @@ int   InitUkr()
 {
   gramMapper.DelAll();
 
-  add_key( "act",        gfVerbTime,   vfVerbActive, -1, afAnimated + afNotAlive )
-  add_key( "face 1",     gfVerbTime,   vbFirstFace, -1, afAnimated + afNotAlive )
-  add_key( "face 2",     gfVerbTime,   vbSecondFace, -1, afAnimated + afNotAlive )
-  add_key( "face 3",     gfVerbTime,   vbThirdFace, -1, afAnimated + afNotAlive )
-  add_key( "fem",        gfVerbTime|gfVerbForm, 2 << 9, -1, 0 )
-  add_key( "fut",        0,            vtFuture,     -1, afAnimated + afNotAlive )
-  add_key( "ger",        gfVerbTime,   vfVerbDoing,  -1, afAnimated + afNotAlive )
-  add_key( "imp",        0,            vtImperativ,  -1, afAnimated + afNotAlive )
-  add_key( "inf",        0,            vtInfinitiv,  0,            afAnimated + afNotAlive )
-  add_key( "msc",        gfVerbTime|gfVerbForm, 1 << 9, -1, 0 )
-  add_key( "nwt",        gfVerbTime|gfVerbForm, 3 << 9, -1, 0 )
-  add_key( "prs",        0,            vtPresent,    -1, afAnimated + afNotAlive )
-  add_key( "pst",        0,            vtPast,       -1, afAnimated + afNotAlive )
-  add_key( "psv",        gfVerbTime,   vfVerbPassiv, -1, afAnimated + afNotAlive )
-  add_key( "sing",       gfVerbTime|gfVerbForm, 0, -1, afAnimated + afNotAlive )
-  add_key( "plur",       gfVerbTime|gfVerbForm, gfMultiple, -1, afAnimated + afNotAlive )
+  add_key( "act",    gfVerbTime,   vfVerbActive, -1, afAnimated + afNotAlive )
+  add_key( "face 1", gfVerbTime,   vbFirstFace, -1, afAnimated + afNotAlive )
+  add_key( "face 2", gfVerbTime,   vbSecondFace, -1, afAnimated + afNotAlive )
+  add_key( "face 3", gfVerbTime,   vbThirdFace, -1, afAnimated + afNotAlive )
+  add_key( "fem",    gfVerbTime|gfVerbForm, 2 << 9, -1, 0 )
+  add_key( "fut",    0,            vtFuture,     -1, afAnimated + afNotAlive )
+  add_key( "ger",    gfVerbTime,   vfVerbDoing,  -1, afAnimated + afNotAlive )
+  add_key( "imp",    0,            vtImperativ,  -1, afAnimated + afNotAlive )
+  add_key( "inf",    0,            vtInfinitiv,  0,            afAnimated + afNotAlive )
+  add_key( "msc",    gfVerbTime|gfVerbForm, 1 << 9, -1, 0 )
+  add_key( "nwt",    gfVerbTime|gfVerbForm, 3 << 9, -1, 0 )
+  add_key( "prs",    0,            vtPresent,    -1, afAnimated + afNotAlive )
+  add_key( "pst",    0,            vtPast,       -1, afAnimated + afNotAlive )
+  add_key( "psv",    gfVerbTime,   vfVerbPassiv, -1, afAnimated + afNotAlive )
+  add_key( "sing",   gfVerbTime|gfVerbForm, 0, -1, afAnimated + afNotAlive )
+  add_key( "plur",   gfVerbTime|gfVerbForm, gfMultiple, -1, afAnimated + afNotAlive )
 
-  add_key( "Â",          ~gfFormMask,  3 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "Âí",         ~gfFormMask,  3 << 12,  ~(afAnimated + afNotAlive),  afNotAlive )
-  add_key( "Âî",         ~gfFormMask,  3 << 12,  ~(afAnimated + afNotAlive),  afAnimated )
-  add_key( "Ä",          ~gfFormMask,  2 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "Ç",          ~gfFormMask,  6 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "È",          ~gfFormMask,  0,        -1,  afAnimated + afNotAlive )
-  add_key( "Ï",          ~gfFormMask,  5 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "Ð",          ~gfFormMask,  1 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "Ò",          ~gfFormMask,  4 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "âô",         -1, gfRetForms,   -1, 0 )
+  add_key( "Â",      ~gfFormMask,  3 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "Âí",     ~gfFormMask,  3 << 12,  ~(afAnimated + afNotAlive),  afNotAlive )
+  add_key( "Âî",     ~gfFormMask,  3 << 12,  ~(afAnimated + afNotAlive),  afAnimated )
+  add_key( "Ä",      ~gfFormMask,  2 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "Ç",      ~gfFormMask,  6 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "È",      ~gfFormMask,  0,        -1,  afAnimated + afNotAlive )
+  add_key( "Ï",      ~gfFormMask,  5 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "Ð",      ~gfFormMask,  1 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "Ò",      ~gfFormMask,  4 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "âô",     -1, gfRetForms,   -1, 0 )
   return 0;
 }

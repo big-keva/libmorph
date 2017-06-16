@@ -3,8 +3,14 @@
 # include "../rus/include/mlma1049.h"
 # include "../ukr/include/mlma1058.h"
 
-int     InitRus();
-int     InitUkr();
-bool    MapInfo( const char*, unsigned&, unsigned& );   // throws std::exception
+struct  graminfo
+{
+  uint16_t  grinfo;
+  uint8_t   bflags;
+};
+
+int       InitRus();
+int       InitUkr();
+graminfo  MapInfo( const char*, graminfo );   // throws std::exception
 
 # endif  // __grammap_h__

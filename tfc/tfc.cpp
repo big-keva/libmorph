@@ -3,6 +3,7 @@
 # include "../tools/csource.h"
 # include "../tools/sweets.h"
 # include <libcodes/codes.h>
+# include <mtc/autoptr.h>
 # include <mtc/wcsstr.h>
 # include <errno.h>
 
@@ -10,42 +11,56 @@ using namespace codepages;
 
 bool  source1251 = false;
 
-inline  const char*   getnext( char* lpdest, const char* string )
+template <size_t N, class filter>
+const char* substr( char (&output)[N], const filter& _allow, const char* source )
 {
-  for ( string = ltrim( string ); *string != '\0' && *string != ',' && !isspace( *string ); )
-    *lpdest++ = *string++;
-  if ( *(string = ltrim( string )) == ',' )
-    ++string;
-  *lpdest = '\0';
-    return string;
+  char* outptr = output;
+  char* outend = output + N - 1;
+
+  while ( source != nullptr && output < outend && *source != '\0' && _allow( *source ) )
+    *outptr++ = *source++;
+  *outptr = '\0';
+    return source;
 }
 
-bool  MapLine( const char*  string,
-               char*        lptail,
-               char*        lpnext,
-               char*        lpopts,
-               unsigned&    grinfo,
-               unsigned&    rflags )
+fxitem  MapLine( const char*  string, graminfo cginfo )
 {
-  char  grtext[32];
+  auto    fxchar = []( char c ){  return c != ',' && !isspace( c );  };
+  auto    commas = []( const char* s ){  return *(s = ltrim( s )) == ',' ? s + 1 : s;  };
+  fxitem  inflex;
+  char    grtext[32];
+  char    sznext[sizeof(inflex.sznext)];
+  char    szopts[sizeof(inflex.sznext)];
 
-  getnext( lpopts, getnext( lpnext, getnext( grtext, getnext(
-    lptail, string ) ) ) );
-  if ( strcmp( lptail, "\'\'" ) == 0 )
-    *lptail = '\0';
-  return grtext[0] == '\0' ? true : MapInfo( grtext, grinfo, rflags );
+  substr(        szopts, fxchar, ltrim( commas(
+  substr(        sznext, fxchar, ltrim( commas(
+  substr(        grtext, fxchar, ltrim( commas(
+  substr( inflex.sztail, fxchar, ltrim( string ) ) ) ) ) ) ) ) ) ) );
+
+  if ( w_strcmp( inflex.sztail, "\'\'" ) == 0 )
+    inflex.sztail[0] = '\0';
+
+  if ( grtext[0] != '\0' )
+    cginfo = MapInfo( grtext, cginfo );
+
+  inflex.grinfo = cginfo.grinfo;
+  inflex.bflags = cginfo.bflags;
+
+  if ( sznext[0] != '\0' )  {  inflex.bflags |= 0x80;  strcpy( inflex.sznext, sznext );  }  else
+  if ( szopts[0] != '\0' )  {  inflex.bflags |= 0x40;  strcpy( inflex.sznext, szopts );  }  else
+    inflex.sznext[0] = '\0';
+
+  return inflex;
 }
 
-int   MakeTab( CSource& source,
-               fxlist&  rflist )
+int   MakeTab( CSource& source, fxlist& rflist )
 {
-  char      header[256];
-  char      string[256];
-  char*     lphead;
-  unsigned  grinfo = 0;
-  unsigned  bflags = afAnimated | afNotAlive;
-  ftable*   ptable;
-  int       nerror;
+  char            header[256];
+  char            string[256];
+  char*           lphead;
+  graminfo        cginfo = { 0, afAnimated|afNotAlive };
+  _auto_<ftable>  tablep;
+  int             nerror;
 
 // Get top line
   if ( !source.GetLine( header ) || !source.GetLine( string ) )
@@ -73,7 +88,7 @@ int   MakeTab( CSource& source,
     return source.Message( EINVAL, "\'{\' expected!" );
 
 // Create the table
-  if ( (ptable = allocate<ftable>()) == nullptr )
+  if ( (tablep = allocate<ftable>()) == nullptr )
     return source.Message( ENOMEM, "Could not allocate memory!" );
 
 // Parse the table
@@ -83,68 +98,27 @@ int   MakeTab( CSource& source,
       mbcstombcs( codepage_1251,  string, sizeof(string), codepage_866, string );
 
   // Check if the command string
-    if ( string[0] == '.' )
+    try
     {
-      if ( !MapInfo( string + 1, grinfo, bflags ) )
-      {
-        delete ptable;
-        return source.Message( EINVAL, "invalid grammatical instruction!" );
-      }
-      continue;
-    }
-      else
-    {
-      fxitem    inflex;
-      char      sznext[64];
-      char      szopts[64];
-      unsigned  flinfo = grinfo;
-      unsigned  fflags = bflags;
-
-    // Map the string to info
-      if ( !MapLine( string, inflex.sztail, sznext, szopts, flinfo, fflags ) )
-      {
-        delete ptable;
-        return source.Message( EINVAL, "Invalid flexion description!" );
-      }
-
-    // Register the flexion
-      inflex.grinfo = (unsigned short)flinfo;
-      inflex.bflags = (unsigned char)fflags;
-
-      if ( sznext[0] != 0 )
-      {
-        inflex.bflags |= 0x80;
-        strcpy( inflex.sznext, sznext );
-      }
+      if ( string[0] == '.' ) cginfo = MapInfo( string + 1, cginfo );
         else
-      if ( szopts[0] != 0 )
-      {
-        inflex.bflags |= 0x40;
-        strcpy( inflex.sznext, szopts );
-      }
-        else
-      inflex.sznext[0] = '\0';
-
-      if ( !ptable->Insert( inflex ) )
-      {
-        delete ptable;
+      if ( !tablep->Insert( MapLine( string, cginfo ) ) )
         return source.Message( ENOMEM, "Could not insert the entry to the table!" );
-      }
     }
+    catch ( const _auto_<char>& msg )
+    {  throw _auto_<char>( strduprintf( "line %d, %s", source.FetchId(), msg.ptr() ) );  }
   }
-  if ( ptable->GetLen() == 0 )
-  {
-    delete ptable;
+
+  if ( tablep->GetLen() == 0 )
     return source.Message( EINVAL, "Invalid (empty) inflexion table!" );
-  }
-  if ( (nerror = rflist.Insert( ptable, lphead )) != 0 )
+
+  if ( (nerror = rflist.Insert( tablep.ptr(), lphead )) != 0 )
     return source.Message( ENOMEM, "Could not register the table!" );
 
-  return 0;
+  return (tablep.detach(), 0);
 }
 
-int   Compile( CSource& source,
-               fxlist&  rflist )
+int   Compile( CSource& source, fxlist& rflist )
 {
   char  string[1024];
   int   nerror;
@@ -179,10 +153,14 @@ int   Compile( CSource& source,
       else
         fprintf( stderr, "\t%s\n", szpath );
 
-    // Compile the file
-      if ( (nerror = Compile( infile, rflist )) != 0 )
-        return nerror;
-      continue;
+      try
+      {
+        if ( (nerror = Compile( infile, rflist )) != 0 )
+          return nerror;
+        continue;
+      }
+      catch ( const _auto_<char>& msg )
+      {  throw _auto_<char>( strduprintf( "file: %s,""\n\t%s", szpath, msg.ptr() ) );  }
     }
 
   // Unget the line
@@ -200,14 +178,22 @@ int   Compile( CSource& source,
 int   Compile( const char*  lppath,
                fxlist&      rflist )
 {
-  CSource source;
-
-  if ( !source.SetFile( lppath ) )
+  try
   {
-    fprintf( stderr, "Error: could not open file %s!\n", lppath );
-    return 1;
+    CSource source;
+
+    if ( !source.SetFile( lppath ) )
+    {
+      fprintf( stderr, "Error: could not open file %s!\n", lppath );
+      return 1;
+    }
+    return Compile( source, rflist );
   }
-  return Compile( source, rflist );
+  catch ( const _auto_<char>& msg )
+  {
+    fprintf( stderr, "%s\n", msg.ptr() );
+    return EFAULT;
+  }
 }
 
 char  about[] = "libmorphrus inflexion tables compiler, version 1.0 (portable)\n"
