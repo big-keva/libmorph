@@ -162,27 +162,49 @@ namespace LIBMORPH_NAMESPACE
 
   class fmLister
   {
+    enum
+    {
+      word_bits = sizeof(unsigned) * CHAR_BIT,
+      array_len = 0x100 / word_bits
+    };
     const steminfo& stinfo;
-    byte_t          aforms[0x100];
-    byte_t*         pforms;
+    unsigned        uforms[array_len];
 
   public:     // construction
-    fmLister( const steminfo& st ): stinfo( st ), pforms( aforms )  {}
+    fmLister( const steminfo& st ): stinfo( st )
+      {
+        for ( auto u = uforms; u < uforms + array_len; )
+          *u++ = 0;
+      }
 
   public:     // operators
     void  operator () ( word16_t grinfo, byte_t bflags )
       {
-        assert( (size_t)(pforms - aforms) <= sizeof(aforms) );
+        byte_t  idform = MapWordInfo( (byte_t)stinfo.wdinfo, grinfo, bflags );
+        uforms[idform / word_bits] |= (1 << (idform % word_bits));
+      }
 
-        *pforms++ = MapWordInfo( (byte_t)stinfo.wdinfo, grinfo, bflags );
-      }
-    int   size() const
+  public:     // forms buffer lister
+    bool  HasForms() const
       {
-        return (int)(pforms - aforms);
+        for ( auto u = uforms; u < uforms + array_len; ++u )
+          if ( *u != 0 )  return true;
+        return false;
       }
-    const byte_t* begin() const
+    template <size_t N>
+    int   GetForms( byte_t (&output)[N] ) const
       {
-        return aforms;
+        byte_t* outptr = output;
+        byte_t* outend = output + N;
+
+        for ( auto i = 0; i < array_len && outptr < outend; ++i )
+          if ( uforms[i] != 0 )
+          {
+            for ( auto o = 0; o < word_bits; ++o )
+              if ( (uforms[i] & (1 << o)) != 0 )
+                *outptr++ = (byte_t)(i * word_bits + o);
+          }
+        return outptr - output;
       }
   };
 
@@ -230,9 +252,10 @@ namespace LIBMORPH_NAMESPACE
       if ( (maargs.stinfo.wdinfo & wfMixTab) == 0 )
       {
         fmLister  fmlist( maargs.stinfo );
+        byte_t    aforms[0x100];
 
         if ( GetFlexMatch( thestr, cchstr, maargs.ftable(), maargs, (unsigned)-1, fmlist ) )
-          if ( (nerror = _do_it( nlexid, fmlist.size(), fmlist.begin() )) != 0 )
+          if ( (nerror = _do_it( nlexid, fmlist.GetForms( aforms ), aforms )) != 0 )
             return nerror;
       }
         else
@@ -242,6 +265,8 @@ namespace LIBMORPH_NAMESPACE
         const byte_t* mixtab = maargs.mtable();   // Собственно таблица
         int           mixcnt = *mixtab++;         // Количество чередований
         int           mindex;
+        byte_t        aforms[0x100];
+        int           nforms;
 
         for ( mindex = 0; mindex < mixcnt; ++mindex, mixtab += 1 + (0x0f & *mixtab) )
         {
@@ -252,8 +277,8 @@ namespace LIBMORPH_NAMESPACE
           GetIntrMatch( curmix, mixlen, thestr, cchstr, maargs, powers, fmlist );
         }
 
-        if ( fmlist.size() > 0 )
-          if ( (nerror = _do_it( nlexid, fmlist.size(), fmlist.begin() )) != 0 )
+        if ( (nforms = fmlist.GetForms( aforms )) > 0 )
+          if ( (nerror = _do_it( nlexid, nforms, aforms )) != 0 )
             return nerror;
       }
     }
@@ -290,7 +315,7 @@ namespace LIBMORPH_NAMESPACE
     GetIntrMatch( mixstr, mixlen, thestr + 1, cchstr - 1, maargs, powers, _do_it );
     GetIntrMatch( mixstr + 1, mixlen - 1, thestr, cchstr, maargs, powers, _do_it );
 
-    return _do_it.size() > 0;
+    return _do_it.HasForms();
   }
 
   inline
@@ -405,7 +430,7 @@ namespace LIBMORPH_NAMESPACE
           _do_it( grInfo, bflags );
       }
     }
-    return _do_it.size() > 0;
+    return _do_it.HasForms();
   }
 
   size_t  WildScan( byte_t* output, size_t cchout, const byte_t* ptempl, size_t  cchstr );
