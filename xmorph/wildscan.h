@@ -204,7 +204,7 @@ namespace LIBMORPH_NAMESPACE
               if ( (uforms[i] & (1 << o)) != 0 )
                 *outptr++ = (byte_t)(i * word_bits + o);
           }
-        return outptr - output;
+        return (int)(outptr - output);
       }
   };
 
