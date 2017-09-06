@@ -29,3 +29,8 @@ add_library(morphrus STATIC
 )
 
 install(TARGETS morphrus DESTINATION lib)
+install(
+  FILES
+    rus/include/mlma1049.h
+  DESTINATION include/libmorph/rus/include
+)
