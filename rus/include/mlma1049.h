@@ -1,7 +1,7 @@
 # if !defined( _mlma1049_h_ )
 # define _mlma1049_h_
 
-# if defined( WIN32 )
+# if defined( _WIN32 )
 #   include <pshpack1.h>
 # endif
 
@@ -358,7 +358,7 @@ extern "C" {
 }
 # endif /* __cplusplus */
 
-# if defined( WIN32 )
+# if defined( _WIN32 )
 #   include <poppack.h>
 # endif
 
