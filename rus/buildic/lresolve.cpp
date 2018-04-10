@@ -117,7 +117,7 @@ bool  ResolveClassInfo( const zarray<>& ztypes,
   pstems[strlen( sznorm ) - ExtractPostfix( clinfo.szpost, szcomm )] = '\0';
 
 // Извлечь флаги описания лексической базы
-  if ( strstr( szcomm, "[превосх.]" ) != nullptr )
+  if ( strstr( szcomm, "{превосх.}" ) != nullptr )
     clinfo.wdinfo |= wfExcellent;
   if ( strstr( szcomm, "{исчисл.}" ) != nullptr )
     clinfo.wdinfo |= wfCountable;
