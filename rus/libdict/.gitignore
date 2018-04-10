@@ -1,1 +1,2 @@
-libmorphukr.vcxproj.filters
+*.vcxproj.user
+*.vcxproj.filters
