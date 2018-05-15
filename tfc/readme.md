@@ -1,5 +1,6 @@
 # libmorph/tfc
-Компилятор таблиц окончаний / inflexion tables compiler
+Морфологический анализатор русского и украинского языка / компилятор таблиц окончаний
+Morphological analyser for Russian and Ukrainian / inflexion tables compiler
 
 ---------------------
 ## Использование
