@@ -1,5 +1,6 @@
 # if !defined( __scandict_h__ )
 # define  __scandict_h__
+# include "typedefs.h"
 # include <assert.h>
 # include <limits.h>
 # include <stddef.h>
@@ -7,17 +8,6 @@
 # if defined( LIBMORPH_NAMESPACE )
 namespace LIBMORPH_NAMESPACE {
 # endif  // LIBMORPH_NAMESPACE
-
-  inline  unsigned  __xmorph__getserial__( const unsigned char*& p )
-  {
-    unsigned char bfetch = *p++;
-    unsigned      serial = bfetch & ~0x80;
-    int           nshift = 1;
-
-    while ( (bfetch & 0x80) != 0 )
-      serial |= (((unsigned)(bfetch = *p++) & ~0x80) << (nshift++ * 7));
-    return serial;
-  }
 
   template <class T>
   struct loader
@@ -78,7 +68,7 @@ namespace LIBMORPH_NAMESPACE {
         while ( ccount-- > 0 )
         {
           unsigned char         chnext = *thedic++;
-          unsigned              sublen = __xmorph__getserial__( thedic );
+          unsigned              sublen = getserial( thedic );
           const unsigned char*  subdic = thedic;  thedic += sublen;
 
           if ( chfind == chnext )
@@ -132,7 +122,7 @@ namespace LIBMORPH_NAMESPACE {
     for ( chfind = *thestr; ncount-- > 0; )
     {
       unsigned char         chnext = *thedic++;
-      unsigned              sublen = __xmorph__getserial__( thedic );
+      unsigned              sublen = getserial( thedic );
       const unsigned char*  subdic = thedic;  thedic += sublen;
 
       if ( chnext == chfind && cchstr > 0 )
@@ -155,13 +145,13 @@ namespace LIBMORPH_NAMESPACE {
     while ( ncount-- > 0 )
     {
       unsigned char         chnext = *thedic++;
-      unsigned              sublen = __xmorph__getserial__( thedic );
+      unsigned              sublen = getserial( thedic );
       const unsigned char*  subdic;
       int                   nerror;
 
       thedic = (subdic = thedic) + sublen;
 
-      if ( dicpos == NULL || ( dicpos >= subdic && dicpos <= thedic ) )
+      if ( dicpos == NULL || (dicpos >= subdic && dicpos <= thedic) )
       {
         ptrack[ltrack] = chnext;
 

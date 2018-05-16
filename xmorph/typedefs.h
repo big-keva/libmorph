@@ -36,7 +36,7 @@ namespace LIBMORPH_NAMESPACE {
 
   inline  unsigned  getserial( const byte_t*& p )
   {
-    byte_t  bfetch = *p++;
+    byte_t    bfetch = *p++;
     unsigned  serial = bfetch & ~0x80;
     int       nshift = 1;
 

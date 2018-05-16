@@ -16,8 +16,8 @@ namespace LIBMORPH_NAMESPACE
     int           fcount;
 
   public:     // collector
-    stringCollect( byte_t* o, const byte_t* p, size_t l ):
-      output( o ), prefix( p ), ccpref( l ), fcount( 0 )  {}
+    stringCollect( byte_t* o, const byte_t* p, size_t l ): output( o ), prefix( p ), ccpref( l ), fcount( 0 )
+      {}
     void  AddStr( const byte_t* addstr, size_t cchstr )
       {
         size_t        cbcopy;
@@ -81,3 +81,4 @@ namespace LIBMORPH_NAMESPACE
 } // end namespace
 
 # endif // _flexmake_h_
+

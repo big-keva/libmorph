@@ -30,11 +30,11 @@ namespace LIBMORPH_NAMESPACE
 
         // check postfix
           if ( (oclass & 0x8000) != 0 ) pstems += 1 + *(szpost = pstems);
-            else szpost = NULL;
+            else szpost = nullptr;
 
         // check match
           if ( thepos == dicpos )
-            return 1 + output.InsertStem( nlexid, stemcheck( (oclass & ~0x8000) + classmap ), szpost, ptrace + ltrace, NULL, 0 );
+            return 1 + output.InsertStem( nlexid, stemcheck( (oclass & ~0x8000) + classmap ), szpost, ptrace + ltrace, nullptr, 0 );
         }
 
         return (int)(pstems > dicpos);
@@ -90,7 +90,7 @@ namespace LIBMORPH_NAMESPACE
               continue;
           }
             else
-          szpost = NULL;
+          szpost = nullptr;
 
         // оценить, может ли хотя бы потенциально такое окончание быть у основ начиная с этой и далее
           if ( ccflex > 0 )
@@ -106,7 +106,7 @@ namespace LIBMORPH_NAMESPACE
             continue;
 
         // check if non-flective
-          if ( stinfo.GetFlexTable() == NULL )
+          if ( stinfo.GetFlexTable() == nullptr )
           {
             if ( ccflex == 0 )
             {
@@ -123,7 +123,7 @@ namespace LIBMORPH_NAMESPACE
         // Для этого достаточно проверить, не выставлен ли флаг наличия
         // чередований, так как при попадании в эту точку слово заведомо
         // будет флективным.
-          if ( stinfo.GetSwapTable() == NULL )
+          if ( stinfo.GetSwapTable() == nullptr )
           {
             gramBuffer  grlist( stinfo, (unsigned)-1, fxlist );
 
@@ -182,3 +182,4 @@ namespace LIBMORPH_NAMESPACE
 }  // LIBMORPH_NAMESPACE
 
 # endif  // __scandict_h__
+

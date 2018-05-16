@@ -54,8 +54,8 @@ namespace LIBMORPH_NAMESPACE
   protected:  // filler
     template <class isplural, class mixlevel>
     int   FilterGram( const byte_t* thedic,
-                        isplural      plural,     // plural filter, defined if wfMultiple
-                        mixlevel      isswap )    // mixpower filter
+                      isplural      plural,     // plural filter, defined if wfMultiple
+                      mixlevel      isswap )    // mixpower filter
       {
         for ( auto nforms = *thedic++; nforms-- > 0; )
         {
@@ -95,3 +95,4 @@ namespace LIBMORPH_NAMESPACE
 }  // LIBMORPH_NAMESPACE
 
 # endif  // __gramlist_h__
+

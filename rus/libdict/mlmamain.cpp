@@ -17,7 +17,7 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-    Commercial license is available upîn request.
+    Commercial license is available upon request.
 
     Contacts:
       email: keva@meta.ua, keva@rambler.ru
@@ -64,8 +64,8 @@ namespace LIBMORPH_NAMESPACE
   //
   struct  CMlmaMb: public IMlmaMb
   {
-    virtual int MLMAPROC  Attach();
-    virtual int MLMAPROC  Detach();
+    virtual int MLMAPROC  Attach() {  return 0;  }
+    virtual int MLMAPROC  Detach() {  return 0;  }
 
     virtual int MLMAPROC  SetLoCase( char*            pszstr, size_t    cchstr );
     virtual int MLMAPROC  SetUpCase( char*            pszstr, size_t    cchstr );
@@ -114,8 +114,8 @@ namespace LIBMORPH_NAMESPACE
 
   struct  CMlmaWc: public IMlmaWc
   {
-    virtual int MLMAPROC  Attach();
-    virtual int MLMAPROC  Detach();
+    virtual int MLMAPROC  Attach() {  return 0;  }
+    virtual int MLMAPROC  Detach() {  return 0;  }
 
     virtual int MLMAPROC  SetLoCase( widechar*        pwsstr, size_t    cchstr );
     virtual int MLMAPROC  SetUpCase( widechar*        pwsstr, size_t    cchstr );
@@ -142,16 +142,6 @@ namespace LIBMORPH_NAMESPACE
   CMlmaWc mlmaWcInstance;
 
   // CMlmaMb implementation
-
-  int   CMlmaMb::Attach()
-  {
-    return 0;
-  }
-
-  int   CMlmaMb::Detach()
-  {
-    return 0;
-  }
 
   int   CMlmaMb::SetLoCase( char* pszstr, size_t  cchstr )
   {
@@ -417,16 +407,6 @@ namespace LIBMORPH_NAMESPACE
   }
 
   // CMlmaWc wrapper implementation
-
-  int   CMlmaWc::Attach()
-  {
-    return 0;
-  }
-
-  int   CMlmaWc::Detach()
-  {
-    return 0;
-  }
 
   int   CMlmaWc::SetLoCase( widechar* pwsstr, size_t  cchstr )
   {
