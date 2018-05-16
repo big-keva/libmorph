@@ -1,6 +1,6 @@
 # libmorph
 
-## Morphologycal analyser / tagger for Russian &amp; Ukrainian
+## Morphological analyser for Russian &amp; Ukrainian
 ## Морфологический анализатор русского и украинского языка / русская и украинская морфология
 
 Морфологический анализатор распространяется одновременно как под коммерческой, так и под открытой
