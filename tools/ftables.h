@@ -1,33 +1,45 @@
 # if !defined( __ftables_h__ )
 # define __ftables_h__
-# include <string.h>
+# include <cstdint>
+# include <string>
+# include <tuple>
 
-extern const unsigned short verbLevels[];
-extern const unsigned short nounLevels[];
+namespace libmorph {
 
-# if defined( _MSC_VER )
-#   pragma warning( disable: 4237 )
-# endif
+  extern const uint16_t verbLevels[];
+  extern const uint16_t nounLevels[];
 
-bool          StripDefault( char*           szstem,
-                            unsigned short  grinfo,
-                            unsigned short  tfoffs,
-                            unsigned short* levels,
-                            int             clevel,
-                            const char*     tables );
-unsigned char GetMinLetter( const char*     tables, unsigned  tfoffs );
-unsigned char GetMaxLetter( const char*     tables, unsigned  tfoffs );
+  class FlexStripper
+  {
+    const uint16_t* levels;
+    const void*     tables;
 
-inline  bool  StringHasEnd( const char* stem, const char* tail )
-{
-  size_t  ccStem = strlen( stem );
-  size_t  ccTail = 0x0f & *tail++;
+  public:     // construction
+    FlexStripper( const uint16_t* lev, const void* tab ): levels( lev ), tables( tab )  {}
 
-  return ccTail <= ccStem && memcmp( stem + ccStem - ccTail, tail, ccTail ) == 0;
+  public:     // helpers
+    static  std::tuple<uint8_t, uint8_t>  GetMinMaxChar( const char* tables, uint16_t     tfoffs );
+    static  bool                          StringHasTail( const char* szstem, const char*  sztail );
+    static  bool                          StringHasTail( std::string& rstem, const char*  sztail );
+
+  public:     // stripper
+    bool  StripStr( std::string&, uint16_t grinfo, uint16_t tfoffs, int clevel = 0 ) const;
+
+  };
+
+  inline  bool  FlexStripper::StringHasTail( const char* stem, const char* tail )
+  {
+    size_t  ccStem = strlen( stem );
+    size_t  ccTail = 0x0f & *tail++;
+
+    return ccTail <= ccStem && memcmp( stem + ccStem - ccTail, tail, ccTail ) == 0;
+  }
+
+  inline  bool  FlexStripper::StringHasTail( std::string& rstr, const char* tail )
+  {
+    return StringHasTail( rstr.c_str(), tail );
+  }
+
 }
-
-# if defined( _MSC_VER )
-#   pragma warning( default: 4237 )
-# endif
 
 # endif // __ftables_h__
