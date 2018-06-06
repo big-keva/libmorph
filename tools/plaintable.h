@@ -1,28 +1,30 @@
 # if !defined( __plaintable_h__ )
 #	define	__plaintable_h__
-# include "plaintree.h"
-# include <mtc/serialize.h>
-# include <errno.h>
+# include "wordtree.h"
+# include <algorithm>
+# include <vector>
 
 namespace libmorph
 {
 
   struct graminfo
   {
-    unsigned short  grinfo;
-    unsigned char   bflags;
+    uint16_t  grinfo;
+    uint8_t   bflags;
 
-    bool  operator == ( const graminfo& r ) const
-      {  return grinfo == r.grinfo && bflags == r.bflags;  }
+  public:
+    graminfo( uint16_t g = 0, uint8_t b = 0 ): grinfo( g ), bflags( b ) {}
+
+  public:
+    bool  operator == ( const graminfo& r ) const {  return grinfo == r.grinfo && bflags == r.bflags;  }
   };
 
-  struct gramlist: public array<graminfo>
+  struct gramlist: public std::vector<graminfo>
   {
-    int Insert( unsigned short g, unsigned char b )
+    void  Insert( const graminfo& g )
       {
-        graminfo  grinfo = { g, b };
-
-        return Lookup( grinfo ) == end() ? Append( grinfo ) : 0;
+        if ( std::find( begin(), end(), g ) == end() )
+          push_back( g );
       }
   };
 }
@@ -35,10 +37,9 @@ inline  size_t  GetBufLen( const libmorph::gramlist& gl )
 template <class O>
 inline  O*      Serialize( O* o, const libmorph::gramlist& gl )
 {
-  const libmorph::graminfo* p;
-  byte_t                    n = (byte_t)gl.size();
+  o = ::Serialize( o, (char)gl.size() );
 
-  for ( o = ::Serialize( o, (char)n ), p = gl.begin(); o != nullptr && p < gl.end(); ++p )
+  for ( auto p = gl.begin(); o != nullptr && p != gl.end(); ++p )
     o = ::Serialize( ::Serialize( o, &p->grinfo, sizeof(p->grinfo) ), &p->bflags, sizeof(p->bflags) );
 
   return o;
@@ -47,43 +48,59 @@ inline  O*      Serialize( O* o, const libmorph::gramlist& gl )
 namespace libmorph
 {
 
-  inline  int FillFlexTree( wordtree<gramlist>& rplain,
-                            const void*         tables, unsigned      tfoffs,
-                            unsigned short      grInfo, unsigned char bFlags,
-                            char*               prefix, unsigned      ccpref )
+  class FlexTree
   {
-    const unsigned char*  ftable = (tfoffs << 1) + (const unsigned char*)tables;
-    int                   nitems = *ftable++;
+    const uint8_t*  tables;     // global flex tables pointer
 
-    while ( nitems-- > 0 )
-    {
-      unsigned char         bflags = *ftable++;
-      unsigned short        grinfo = *(unsigned short*)ftable;  ftable += sizeof(unsigned short);
-      const unsigned char*  szflex = ftable;
-      int                   ccflex = *szflex++;
-      unsigned short        ofnext;
-    
-      ftable = szflex + ccflex;
-    
-      if ( (bflags & 0xc0) != 0 ) {  ofnext = *(unsigned short*)ftable;  ftable += sizeof(unsigned short);  }
-        else ofnext = 0;
+  public:     // construction
+    FlexTree( const void* p_tables ): tables( (const uint8_t*)p_tables )  {}
 
-      memcpy( prefix + ccpref, szflex, ccflex );
-
-      if ( (bflags & 0x80) == 0 )
+  public:     // generator
+    wordtree<gramlist>  operator () ( unsigned tfoffs ) const
       {
-        gramlist* grlist;
+        wordtree<gramlist>  inflex;
+        char                szflex[0x100];
 
-        if ( (grlist = rplain.InsertStr( prefix, ccpref + ccflex )) == NULL )
-          return ENOMEM;
-        if ( grlist->Insert( grInfo | grinfo, bFlags & bflags ) != 0 )
-          return ENOMEM;
+        CreateTree( inflex, tfoffs, 0, 0xff, szflex, 0 );
+
+        return std::move( inflex );
       }
-      if ( ofnext != 0 && FillFlexTree( rplain, tables, ofnext, grInfo | grinfo, bFlags & bflags, prefix, ccpref + ccflex ) != 0 )
-        return ENOMEM;
-    }
-    return 0;
-  }
+
+  protected:
+    void  CreateTree( wordtree<gramlist>& wotree, unsigned  tfoffs,
+                      uint16_t            grInfo, uint8_t   bFlags,
+                      char*               prefix, size_t    ccpref ) const
+      {
+        auto  ftable = (tfoffs << 1) + tables;
+
+        for ( auto nitems = *ftable++; nitems-- > 0; )
+        {
+          auto      bflags = *ftable++;
+          auto      grinfo = *(uint16_t*)ftable;  ftable += sizeof(uint16_t);
+          auto      szflex = ftable;
+          auto      ccflex = *szflex++;
+          unsigned  ofnext;
+    
+          ftable = szflex + ccflex;
+    
+          if ( (bflags & 0xc0) != 0 )
+          {
+            ofnext = *(uint16_t*)ftable;
+            ftable += sizeof(uint16_t);
+          }
+            else
+          ofnext = 0;
+
+          memcpy( prefix + ccpref, szflex, ccflex );
+
+          if ( (bflags & 0x80) == 0 )
+            wotree.Insert( prefix, ccpref + ccflex )->Insert( graminfo( grInfo | grinfo, bFlags & bflags ) );
+
+          if ( ofnext != 0 )
+            CreateTree( wotree, ofnext, grInfo | grinfo, bFlags & bflags, prefix, ccpref + ccflex );
+        }
+      }
+  };
 
 }  // libmorph namespace
 
