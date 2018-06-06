@@ -10,25 +10,22 @@
   #pragma warning( disable: 4237 )
 #endif
 
-struct  rusclassinfo
+struct  morphclass
 {
-  word16_t  wdinfo;
-  word16_t  tfoffs;
-  word16_t  mtoffs;
-  byte_t    chrmin;
-  byte_t    chrmax;
-  char      szpost[16];             // Текст пост-части слова
+  uint16_t  wdinfo = 0;
+  uint16_t  tfoffs = 0;
+  uint16_t  mtoffs = 0;
 
-public:     // construction
-  rusclassinfo(): wdinfo( 0 ), tfoffs( 0 ), mtoffs( 0 )
-    {
-      szpost[0] = '\0';
-    }
-  bool  operator == ( const rusclassinfo& r ) const
+public:     // compare
+  bool  operator == ( const morphclass& r ) const
     {
       return wdinfo == r.wdinfo
           && tfoffs == r.tfoffs
           && mtoffs == r.mtoffs;
+    }
+  bool  operator != ( const morphclass& r ) const
+    {
+      return !(*this == r);
     }
 
 public:     // serialization
@@ -50,18 +47,45 @@ public:     // serialization
 
       return o;
     }
-
 };
 
-bool  ResolveClassInfo( const zarray<>& ztypes,
-                        char*           pstems,
-                        rusclassinfo&   rclass,
-                        const char*     sznorm, const char*   szdies, const char*   sztype, const char* zapart, const char*   szcomm,
-                        const char*     ftable, CReferences&  findex,
-                        const char*     mtable, mixfiles&     mindex );
+constexpr morphclass nullclass;
 
-#if defined( _MSC_VER )
-  #pragma warning( default: 4237 )
-#endif
+struct  lexemeinfo: public morphclass
+{
+  std::string ststem;
+  std::string stpost;
+
+  byte_t      chrmin = 0;
+  byte_t      chrmax = 0;
+
+public:
+  lexemeinfo()
+    {}
+  lexemeinfo( const lexemeinfo& li ): morphclass( li ),
+    ststem( li.ststem ),
+    stpost( li.stpost ),
+    chrmin( li.chrmin ),
+    chrmax( li.chrmax ) {}
+  lexemeinfo( lexemeinfo&& li ): morphclass( std::move( li ) ),
+    ststem( std::move( li.ststem ) ),
+    stpost( std::move( li.stpost ) ),
+    chrmin( li.chrmin ),
+    chrmax( li.chrmax ) {}
+  lexemeinfo& operator = ( lexemeinfo&& li )
+    {
+      morphclass::operator = ( std::move( li ) );
+      ststem = std::move( li.ststem );
+      stpost = std::move( li.stpost );
+      chrmin = li.chrmin;
+      chrmax = li.chrmax;
+      return *this;
+    }
+};
+
+lexemeinfo  ResolveClassInfo( 
+  const char*     sznorm, const char*   szdies, const char*   sztype, const char* zapart, const char*   szcomm,
+  const char*     ftable, const libmorph::TableIndex& findex,
+  const char*     mtable, const libmorph::rus::Alternator& mindex );
 
 #endif // __lresolve_h__

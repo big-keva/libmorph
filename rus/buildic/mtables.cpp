@@ -1,140 +1,196 @@
 # include "mtables.h"
+# include <tools/utf81251.h>
+# include <cassert>
 
-// CMixTable
+namespace libmorph {
+namespace rus {
 
-// Поддерживаемые типы чередований в данной реализации
-//{ ле            - перед последней согласной стоит "ле"          }
-//{ ге            - перед последней согласной стоит гласная + е   }
-//{ ш             - шипящие - ш, ж, ч, щ, ц                       }
-//{ к             - символы к, г, х                               }
-//{ ь             - символ ь                                      }
-//{ й             - символ й                                      }
-//{ о             - так называемый "обычный" вариант              }
+  // РџРѕРґРґРµСЂР¶РёРІР°РµРјС‹Рµ С‚РёРїС‹ С‡РµСЂРµРґРѕРІР°РЅРёР№ РІ РґР°РЅРЅРѕР№ СЂРµР°Р»РёР·Р°С†РёРё
+  //{ Р»Рµ            - РїРµСЂРµРґ РїРѕСЃР»РµРґРЅРµР№ СЃРѕРіР»Р°СЃРЅРѕР№ СЃС‚РѕРёС‚ "Р»Рµ"          }
+  //{ РіРµ            - РїРµСЂРµРґ РїРѕСЃР»РµРґРЅРµР№ СЃРѕРіР»Р°СЃРЅРѕР№ СЃС‚РѕРёС‚ РіР»Р°СЃРЅР°СЏ + Рµ   }
+  //{ С€             - С€РёРїСЏС‰РёРµ - С€, Р¶, С‡, С‰, С†                       }
+  //{ Рє             - СЃРёРјРІРѕР»С‹ Рє, Рі, С…                               }
+  //{ СЊ             - СЃРёРјРІРѕР» СЊ                                      }
+  //{ Р№             - СЃРёРјРІРѕР» Р№                                      }
+  //{ Рѕ             - С‚Р°Рє РЅР°Р·С‹РІР°РµРјС‹Р№ "РѕР±С‹С‡РЅС‹Р№" РІР°СЂРёР°РЅС‚              }
 
-//=======================================================================
-// Method:: MapMixType
-// Определяет тип чередования по переданному тексту
-//=======================================================================
-static int  MapMixType( const char* strmixtype )
-{
-  const struct
+  static const struct
   {
-    const char* typeSt;
+    std::string typeSt;
     int         typeId;
   } typeList[] =
   {
-    { "ге", 1 },
-    { "й",  5 },
-    { "к",  3 },
-    { "ле", 0 },
-    { "о",  6 },
-    { "ш",  2 },
-    { "ь",  4 }
+    { utf8to1251( "РіРµ" ), 1 },
+    { utf8to1251( "Р№" ),  5 },
+    { utf8to1251( "Рє" ),  3 },
+    { utf8to1251( "Р»Рµ" ), 0 },
+    { utf8to1251( "Рѕ" ),  6 },
+    { utf8to1251( "С€" ),  2 },
+    { utf8to1251( "СЊ" ),  4 }
   };
 
-  for ( int i = 0; i < (int)(sizeof(typeList) / sizeof(typeList[0])); i++ )
+  auto  string_le   = utf8to1251( "Р»Рµ" );
+  auto  string_o    = utf8to1251( "Рѕ" );
+  auto  string_e    = utf8to1251( "Рµ" );
+  auto  string_vow  = utf8to1251( "Р°РµРёРѕСѓС‹СЌСЋСЏ" );
+  auto  string_his  = utf8to1251( "Р¶С†С‡С€С‰" );
+  auto  string_kgh  = utf8to1251( "РєРіС…" );
+  auto  string_soft = utf8to1251( "СЊ" );
+  auto  string_yot  = utf8to1251( "Р№" );
+
+  //=======================================================================
+  // Method:: MapMixType
+  // РћРїСЂРµРґРµР»СЏРµС‚ С‚РёРї С‡РµСЂРµРґРѕРІР°РЅРёСЏ РїРѕ РїРµСЂРµРґР°РЅРЅРѕРјСѓ С‚РµРєСЃС‚Сѓ
+  //=======================================================================
+  inline  int  MapMixType( const char* strmixtype )
   {
-    int   cmpres = strcmp( strmixtype, typeList[i].typeSt );
-
-    if ( cmpres > 0 )
-      continue;
-    if ( cmpres < 0 )
-      break;
-    return typeList[i].typeId;
-  }
-  return -1;
-}
-
-inline  bool  StemHasTail( const char* stem, const char* tail )
-{
-  size_t  ccStem = strlen( stem );
-  size_t  ccTail = 0x0f & *tail++;
-
-  return ccTail <= ccStem && memcmp( stem + ccStem - ccTail, tail, ccTail ) == 0;
-}
-         
-unsigned  mixtable::GetMix( unsigned short type, const char* stem, const char* rems )
-{
-  const mixclass* p;
-
-  for ( p = begin(); p < end(); ++p )
-  {
-  // Проверить, есть ли совпадение конца слова с чередованием по умолчанию
-    if ( !StemHasTail( stem, GetDefText( tables, p->offset ) ) )
-      continue;
-
-  // Если слово является глаголом, применяются специальные правила
-  // определения соответствия чередования
-    if ( (type & 0x001F) >= 1 && (type & 0x001F) <= 6 )
+    for ( int i = 0; i < (int)(sizeof(typeList) / sizeof(typeList[0])); i++ )
     {
-    // Ссылка присваивается, если совпадает комментарий или это -
-    // обычный случай, и если есть совпадение первой ступени че-
-    // редования с концом переданного слова
-      if ( strcmp( p->szcond, rems ) != 0 && strcmp( p->szcond, "о" ) != 0 )
+      int   cmpres = strcmp( strmixtype, typeList[i].typeSt.c_str() );
+
+      if ( cmpres > 0 )
+        continue;
+      if ( cmpres < 0 )
+        break;
+      return typeList[i].typeId;
+    }
+    return -1;
+  }
+
+  inline  bool  StemHasTail( const char* stem, const char* tail )
+  {
+    size_t  ccStem = strlen( stem );
+    size_t  ccTail = 0x0f & *tail++;
+
+    return ccTail <= ccStem && memcmp( stem + ccStem - ccTail, tail, ccTail ) == 0;
+  }
+
+  inline  bool  IsVowel( char c )
+  {
+    return strchr( string_vow.c_str(), c ) != nullptr;
+  }
+
+  inline  bool  IsHissing( char c )
+  {
+    return strchr( string_his.c_str(), c ) != nullptr;
+  }
+         
+  inline  bool  IsKgh( char c )
+  {
+    return strchr( string_kgh.c_str(), c ) != nullptr;
+  }
+         
+  // Alternator
+
+  const char* Alternator::GetDefaultStr( const char* tables, unsigned tbOffs )
+  {
+    const char* mixtab = tables + tbOffs;
+    int         tablen = *mixtab++;
+
+    while ( tablen-- > 0 )
+    {
+      if ( (*mixtab & 0x10) != 0 )  return mixtab;
+        else  mixtab += 1 + (*mixtab & 0x0f);
+    }
+    assert( "Invalid interchange table: no default string!" == NULL );
+    return nullptr;
+  }
+
+  std::tuple<uint8_t, uint8_t>  Alternator::GetMinMaxChar( const char* tables, uint16_t tboffs, uint8_t chrmin, uint8_t chrmax )
+  {
+    const uint8_t*  mixtab = (const uint8_t*)tables + tboffs;
+    int             tablen = *mixtab++;
+    int             mixmin = 0xff;
+    int             mixmax = -1;
+    uint8_t         mflags;
+
+    for ( ; tablen-- > 0; mixtab += (mflags & 0x0f) )
+    {
+      mflags = *mixtab++;
+
+      if ( (mflags & 0x0f) > 0 )
+      {
+        mixmin = std::min( mixmin, (int)*mixtab );
+        mixmax = std::max( mixmax, (int)*mixtab );
+      }
+        else
+      mixmin = mixmax = 0;
+    }
+
+    return std::make_tuple(
+      (uint8_t)(mixmin != 0 ? mixmin : chrmin),
+      (uint8_t)(mixmax <= 0 ? chrmax : mixmax)
+    );
+  }
+
+  uint16_t  Alternator::tab::Find( const char* tabs, uint16_t type, const char* stem, const char* rems ) const
+  {
+    size_t  ccStem = strlen( stem );
+
+    for ( auto& alt: *this )
+    {
+      // РџСЂРѕРІРµСЂРёС‚СЊ, РµСЃС‚СЊ Р»Рё СЃРѕРІРїР°РґРµРЅРёРµ РєРѕРЅС†Р° СЃР»РѕРІР° СЃ С‡РµСЂРµРґРѕРІР°РЅРёРµРј РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ;
+      if ( !StemHasTail( stem, GetDefaultStr( tabs, alt.offset ) ) )
         continue;
 
-      return p->offset;
-    }
-      else
-    {
-      size_t  ccStem = strlen( stem );
-
-      switch ( MapMixType( p->szcond ) )
+      // Р•СЃР»Рё СЃР»РѕРІРѕ СЏРІР»СЏРµС‚СЃСЏ РіР»Р°РіРѕР»РѕРј, РїСЂРёРјРµРЅСЏСЋС‚СЃСЏ СЃРїРµС†РёР°Р»СЊРЅС‹Рµ РїСЂР°РІРёР»Р° РѕРїСЂРµРґРµР»РµРЅРёСЏ С‡РµСЂРµРґРѕРІР°РЅРёСЏ:
+      // СЃСЃС‹Р»РєР° РїСЂРёСЃРІР°РёРІР°РµС‚СЃСЏ, РµСЃР»Рё СЃРѕРІРїР°РґР°РµС‚ РєРѕРјРјРµРЅС‚Р°СЂРёР№ РёР»Рё СЌС‚Рѕ - РѕР±С‹С‡РЅС‹Р№ СЃР»СѓС‡Р°Р№
+      if ( (type & 0x001F) >= 1 && (type & 0x001F) <= 6 )
       {
-      /* ле */
+        if ( strcmp( alt.szcond, rems ) == 0 || alt.szcond == string_o )
+          return alt.offset;
+        continue;
+      }
+
+      // РРЅР°С‡Рµ РїСЂРёРјРµРЅРёС‚СЊ РѕР±С‹С‡РЅС‹Рµ РїСЂР°РІРёР»Р° РІС‹Р±РѕСЂР° СЃС‚СѓРїРµРЅРё С‡РµСЂРµРґРѕРІР°РЅРёСЏ
+      switch ( MapMixType( alt.szcond ) )
+      {
+      /* Р»Рµ */
         case 0:
-          if ( ccStem < 3 )
-            break;
-          if ( memcmp( stem + ccStem - 3, "ле", 2 ) != 0 )
-            break;
-          return p->offset;
-      /* ге */
+          if ( ccStem >= 3 && string_le == stem + ccStem - 3 )  return alt.offset;
+            else break;
+
+      /* РіРµ */
         case 1:
-          if ( ccStem < 3 )
-            break;
-          if ( stem[ccStem - 2] != 'е' )
-            break;
-          if ( strchr( "аеиоуыэюя", stem[ccStem - 3] ) == NULL )
-            break;
-          return p->offset;
-      /* ш  */
+          if ( ccStem >= 3 && IsVowel( stem[ccStem - 3] ) && stem[ccStem - 2] == string_e[0] )  return alt.offset;
+            else break;
+
+      /* С€  */
         case 2:
-          if ( strchr( "жцчшщ", stem[ccStem - 2] ) == NULL )
-            break;
-          return p->offset;
-      /* к  */
+          if ( ccStem >= 2 && IsHissing( stem[ccStem - 2] ) ) return alt.offset;
+            else break;
+
+      /* Рє  */
         case 3:
-          if ( strchr( "кгх", stem[ccStem - 2] ) == NULL )
-            break;
-          return p->offset;
-      /* ь  */
+          if ( ccStem >= 2 && IsKgh( stem[ccStem - 2] ) ) return alt.offset;
+            else break;
+
+      /* СЊ  */
         case 4:
-          if ( stem[ccStem - 2] != 'ь' )
-            break;
-          return p->offset;
-      /* й  */
+          if ( ccStem >= 2 && stem[ccStem - 2] == string_soft[0] )  return alt.offset;
+            else break;
+
+      /* Р№  */
         case 5:
-          if ( stem[ccStem - 2] != 'й' )
-            break;
-      /* о  */
+          if ( ccStem >= 2 && stem[ccStem - 2] == string_yot[0] ) return alt.offset;
+            else break;
+
+      /* Рѕ  */
         case 6:
-          return p->offset;
+          return alt.offset;
+
         default:
-          continue;
+          break;
       }
     }
+    return 0;
   }
-  return 0;
-}
 
-// mixfiles
+  uint16_t  Alternator::Find( const char* tabs, const char* ztyp, uint16_t  type, const char* stem, const char* rems ) const
+  {
+    auto  it = mapper.find( std::string( ztyp ) );
 
-unsigned  mixfiles::GetMix( unsigned short type, const char* stem, const char* ztyp, const char* rems )
-{
-  int*  tabpos;
+    return it != mapper.end() ? it->second->Find( tabs, type, stem, rems ) : 0;
+  }
 
-  if ( (tabpos = tableref.Search( ztyp )) != NULL )
-    return (*this)[(size_t)*tabpos].GetMix( type, stem, rems );
-
-  return 0;
-}
+}}

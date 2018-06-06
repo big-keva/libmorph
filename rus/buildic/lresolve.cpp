@@ -1,163 +1,355 @@
 # include "lresolve.h"
-# include <libcodes/codes.h>
+# include <tools/utf81251.h>
 # include <tools/ftables.h>
-# include <assert.h>
+# include <cstdint>
+# include <cassert>
+# include <map>
 
-#if defined( _MSC_VER )
-  #pragma warning( disable: 4237 )
-#endif
+class TypeMatrix
+{
+  std::map<std::string, uint16_t> typesMap;
+
+public:     // construction and initialization
+  TypeMatrix();
+
+
+public:     // mapping
+  uint16_t  operator [] ( const std::string& s ) const  {  return find( s );  }
+  uint16_t  operator [] ( const char* s ) const {  return find( s );  }
+
+protected:
+  uint16_t  find( const std::string& s ) const
+    {
+      auto  it = typesMap.find( s );
+
+      return it != typesMap.end() ? it->second : 0;
+    }
+};
+
+TypeMatrix  typesMap;
+
+// TypeMatrix implementation
+
+TypeMatrix::TypeMatrix()
+{
+# define  add_type( key, val )  typesMap.insert( { utf8to1251( key ), val } )
+
+  add_type( "# РЅСЃРІ",        1 );  // Р“Р»Р°РіРѕР»С‹ РЅРµСЃРѕРІ. РІРёРґР°                
+  add_type( "# РЅСЃРІ_РЅРї",     2 );  // Р“Р»Р°РіРѕР»С‹ РЅРµСЃРѕРІ. РІРёРґР°, РЅРµРїРµСЂРµС…РѕРґРЅС‹Рµ  
+  add_type( "# СЃРІ",         3 );  // Р“Р»Р°РіРѕР»С‹ СЃРѕРІ. РІРёРґР°                  
+  add_type( "# СЃРІ_РЅРї",      4 );  // Р“Р»Р°РіРѕР»С‹ СЃРѕРІ. РІРёРґР°, РЅРµРїРµСЂРµС…РѕРґРЅС‹Рµ    
+  add_type( "# СЃРІ-РЅСЃРІ",     5 );  // Р”РІСѓС…РІРёРґРѕРІС‹Рµ РіР»Р°РіРѕР»С‹                
+  add_type( "# СЃРІ-РЅСЃРІ_РЅРї",  6 );  // РќРµРїРµСЂРµС…РѕРґРЅС‹Рµ РґРІСѓС…РІРёРґРѕРІС‹Рµ РіР»Р°РіРѕР»С‹   
+		
+		// РќРµРѕРґСѓС€. СЃСѓС‰. РјСѓР¶СЃРєРѕРіРѕ СЂРѕРґР°
+  add_type( "# Рј",          7 );
+  add_type( "Рј РјРї",         7 );
+  add_type( "Рј РјРјСЃ",        7 );
+  add_type( "РјРЅ. Рј",        7 + wfMultiple );
+  add_type( "# РјРЅ._РѕС‚_Рј",   7 + wfMultiple );
+  add_type( "РјРЅ._РЅРµРѕРґ. РјРї", 7 + wfMultiple );
+
+		// РћРґСѓС€. СЃСѓС‰. РјСѓР¶СЃРєРѕРіРѕ СЂРѕРґР°           
+  add_type( "# РјРѕ",         8 );
+  add_type( "РјРѕ РјРїРѕ",       8 );
+  add_type( "РјРѕ РјРѕРјСЃ",      8 );
+  add_type( "РјРЅ. РјРѕ",       8 + wfMultiple );
+  add_type( "РјРЅ._РѕРґСѓС€. РјРїРѕ",8 + wfMultiple );
+
+		// РћРґСѓС€.-РЅРµРѕРґСѓС€. СЃСѓС‰. РјСѓР¶СЃРєРѕРіРѕ СЂРѕРґР°   
+  add_type( "# Рј//РјРѕ",      9 );
+  add_type( "# РјРѕ//Рј",      9 );
+
+  add_type( "Рј СЃ",          10 );   // РЎСѓС‰. РјСѓР¶. СЂРѕРґР°, СЃРєР». РїРѕ СЃС…РµРјРµ СЃСЂ.   
+  add_type( "РјРѕ Р¶Рѕ",        11 );   // РЎСѓС‰. РјСѓР¶. СЂРѕРґР°, СЃРєР»., РєР°Рє Р¶. РѕРґСѓС€.  
+  add_type( "РјРѕ СЃРѕ",        12 );   // РЎСѓС‰. РјСѓР¶. СЂРѕРґР°, СЃРєР»., РєР°Рє СЃ. РѕРґСѓС€.  
+
+		// РќРµРѕРґСѓС€. СЃСѓС‰. Р¶РµРЅСЃРєРѕРіРѕ СЂРѕРґР°         
+  add_type( "# Р¶",          13 );
+  add_type( "Р¶ Р¶Рї",         13 );
+  add_type( "Р¶ Р¶РјСЃ",        13 );
+  add_type( "РјРЅ. Р¶",        13 + wfMultiple );
+  add_type( "# РјРЅ._РѕС‚_Р¶",   13 + wfMultiple );
+
+		// РћРґСѓС€. СЃСѓС‰. Р¶РµРЅСЃРєРѕРіРѕ СЂРѕРґР°           
+  add_type( "# Р¶Рѕ",         14 );
+  add_type( "Р¶Рѕ Р¶РїРѕ",       14 );
+  add_type( "РјРЅ. Р¶Рѕ",       14 + wfMultiple );
+
+		// РћРґСѓС€.-РЅРµРѕРґСѓС€. СЃСѓС‰. Р¶РµРЅСЃРєРѕРіРѕ СЂРѕРґР°   
+  add_type( "# Р¶//Р¶Рѕ",      15 );
+  add_type( "# Р¶Рѕ//Р¶",      15 );
+
+		// РќРµРѕРґСѓС€. СЃСѓС‰. СЃСЂРµРґРЅРµРіРѕ СЂРѕРґР°         
+  add_type( "# СЃ",          16 );
+  add_type( "СЃ СЃРї",         16 );
+  add_type( "СЃ СЃРјСЃ",        16 );
+  add_type( "РјРЅ. СЃ",        16 + wfMultiple );
+  add_type( "# РјРЅ._РѕС‚_СЃ",   16 + wfMultiple );
+  add_type( "РјРЅ._РѕС‚_СЃ СЃРї",  16 + wfMultiple );
+
+		// РћРґСѓС€. СЃСѓС‰. СЃСЂРµРґРЅРµРіРѕ СЂРѕРґР°           
+  add_type( "# СЃРѕ",         17 );
+  add_type( "СЃРѕ СЃРїРѕ",       17 );
+  add_type( "РјРЅ. СЃРѕ",       17 + wfMultiple );
+
+		// РћРґСѓС€.-РЅРµРѕРґСѓС€. СЃСѓС‰. СЃСЂРµРґРЅРµРіРѕ СЂРѕРґР°   
+  add_type( "# СЃ//СЃРѕ",      18 );
+  add_type( "# СЃРѕ//СЃ",      18 );
+
+		// РЎСѓС‰РµСЃС‚РІРёС‚РµР»СЊРЅС‹Рµ РѕР±С‰РµРіРѕ СЂРѕРґР°, РЅР°РїСЂ., РЅРµРїРѕСЃРµРґР° 
+  add_type( "Рј//Р¶ Р¶",       19 ); 
+  add_type( "# РјРѕ-Р¶Рѕ",      20 );
+  add_type( "# РјРѕ//Р¶Рѕ",     20 );
+  add_type( "РјРѕ-Р¶Рѕ Р¶Рѕ",     20 );
+  add_type( "РјРѕ//Р¶Рѕ Р¶Рѕ",    20 );
+
+		// РЎСѓС‰. РјСѓР¶СЃРєРѕРіРѕ/СЃСЂРµРґРЅРµРіРѕ СЂРѕРґР°         
+  add_type( "# Рј//СЃ",       21 );
+  add_type( "# СЃ//Рј",       21 );
+  add_type( "РјРѕ//СЃРѕ СЃРѕ",    22 );
+
+		// РЎСѓС‰. Р¶РµРЅСЃРєРѕРіРѕ/СЃСЂРµРґРЅРµРіРѕ СЂРѕРґР°         
+  add_type( "# Р¶//СЃ",       23 );
+  add_type( "# СЃ//Р¶",       23 );
+
+		// РЎСѓС‰РµСЃС‚РІРёС‚РµР»СЊРЅС‹Рµ РјРЅРѕР¶РµСЃС‚РІРµРЅРЅРѕРіРѕ С‡РёСЃР»Р° 
+  add_type( "РјРЅ. Р¶//Рј",     24 + wfMultiple );
+  add_type( "РјРЅ. Рј//Р¶",     24 + wfMultiple );
+
+		// РџСЂРёР»Р°РіР°С‚РµР»СЊРЅС‹Рµ 
+  add_type( "# Рї",          25 );   // РџСЂРёР»Р°РіР°С‚РµР»СЊРЅС‹Рµ                
+  add_type( "# Рі-Рї",        26 );   // "Р“РµРѕРіСЂР°С„РёС‡." РїСЂРёР»Р°РіР°С‚РµР»СЊРЅС‹Рµ   
+  add_type( "Рї РјСЃ",         27 );   // РџСЂРёС‚СЏР¶Р°С‚РµР»СЊРЅС‹Рµ РјРµСЃС‚РѕРёРјРµРЅРёСЏ    
+  add_type( "РјСЃ-Рї РјСЃРї",     28 );   // РњРµСЃС‚РѕРёРјРµРЅРЅС‹Рµ РїСЂРёР»Р°РіР°С‚РµР»СЊРЅС‹Рµ   
+  add_type( "# РјСЃ-Рї",       28 );   // РњРµСЃС‚РѕРёРјРµРЅРЅС‹Рµ РїСЂРёР»Р°РіР°С‚РµР»СЊРЅС‹Рµ   
+
+		// РњРµСЃС‚РѕРёРјРµРЅРёРµ 
+  add_type( "# РјСЃ",         29 );
+  add_type( "# РјСЃ_РјРЅ.",     93 );
+
+  add_type( "# РјСЃРј",        30 );   // РњРµСЃС‚РѕРёРјРµРЅРёСЏ С‚СЂРµС… СЂРѕРґРѕРІ        
+  add_type( "# РјСЃР¶",        31 );
+  add_type( "# РјСЃСЃ",        32 );
+
+		// Р§РёСЃР»РёС‚РµР»СЊРЅС‹Рµ 
+  add_type( "# С‡РёСЃР».",      33 ); 
+  add_type( "# С‡РёСЃР»._2",    34 ); 
+  add_type( "# С‡РёСЃР»._СЃ",    35 ); 
+  add_type( "С‡РёСЃР».-Рї РјСЃ",   36 );   // РџРѕСЂСЏРґРєРѕРІС‹Рµ С‡РёСЃР»РёС‚РµР»СЊРЅС‹Рµ            
+  add_type( "С‡РёСЃР».-Рї РјСЃРї",  36 );   // РџРѕСЂСЏРґРєРѕРІС‹Рµ С‡РёСЃР»РёС‚РµР»СЊРЅС‹Рµ            
+  add_type( "С‡РёСЃР».-Рї РјСЃ-Рї", 36 );   // РџРѕСЂСЏРґРєРѕРІС‹Рµ С‡РёСЃР»РёС‚РµР»СЊРЅС‹Рµ            
+
+  add_type( "# Рё",          37 );   // РРјРµРЅР° СЃРѕР±СЃС‚РІРµРЅРЅС‹Рµ
+  add_type( "# РёРј",         38 );   // РРјРµРЅР° РјСѓР¶СЃРєРѕРіРѕ СЂРѕРґР°
+  add_type( "РёРј РёР¶",        38 );
+  add_type( "# РёР¶",         39 );   // РРјРµРЅР° Р¶РµРЅСЃРєРѕРіРѕ СЂРѕРґР°
+  add_type( "# РѕРј",         40 );   // РћС‚С‡РµСЃС‚РІР° РјСѓР¶. СЂРѕРґР°
+  add_type( "# РѕР¶",         41 );   // РћС‚С‡РµСЃС‚РІР° Р¶РµРЅ. СЂРѕРґР°
+  add_type( "# С„",          42 );   // Р¤Р°РјРёР»РёРё
+  add_type( "С„ С„Рї",         42 );   
+
+		// Р“РµРѕРіСЂР°С„РёС‡РµСЃРєРёРµ РЅР°Р·РІР°РЅРёСЏ 
+  add_type( "# Рі",          43 );
+  add_type( "# РіРї",         43 );
+  add_type( "# РіРј",         44 );   // РјСѓР¶СЃРєРѕРіРѕ СЂРѕРґР°
+  add_type( "# РіРјРї",        44 );
+  add_type( "# РіР¶",         45 );   // Р–РµРЅСЃРєРѕРіРѕ СЂРѕРґР°
+  add_type( "# РіР¶Рї",        45 );
+  add_type( "# РіСЃ",         46 );   // РЎСЂРµРґРЅРµРіРѕ СЂРѕРґР°
+  add_type( "# РіСЃРї",        46 );
+
+		// РњРЅРѕР¶. С‡РёСЃР»Р°
+  add_type( "# РјРЅ._РѕС‚_РіР¶",  47 + wfMultiple );
+  add_type( "# РјРЅ._РѕС‚_РіРј",  47 + wfMultiple );
+  add_type( "РјРЅ. РіРї",       47 + wfMultiple );
+
+		// РќРµРёР·РјРµРЅСЏРµРјС‹Рµ С‡Р°СЃС‚Рё СЂРµС‡Рё 
+  add_type( "# РІРІРѕРґРЅ.",         48 );
+  add_type( "# РјРµР¶Рґ.",          49 );
+  add_type( "# РїСЂРµРґРёРє.",        50 );
+  add_type( "# РїСЂРµРґР».",         51 );
+  add_type( "# СЃРѕСЋР·",           52 );
+  add_type( "# СЃРѕСЋР·_СЃРѕС‡.",      52 + wfUnionS );
+  add_type( "# С‡Р°СЃС‚.",          53 );
+  add_type( "# РЅ",              54 );
+  add_type( "# СЃРѕРєСЂ._СЃСѓС‰.",     55 );
+  add_type( "# СЃРѕРєСЂ._РїСЂРёР».",    56 );
+  add_type( "# СЃРѕРєСЂ._РІРІРѕРґРЅ.",   57 );
+  add_type( "# СЃСЂР°РІРЅ.",         58 );
+
+		// РђР±Р±СЂРµРІРёР°С‚СѓСЂС‹ 
+  add_type( "# РђР‘",             59 );   // РџРёС€СѓС‰РёРµСЃСЏ С‚РѕР»СЊРєРѕ Р±РѕР»СЊС€РёРјРё Р±СѓРєРІР°РјРё  
+  add_type( "# Р°Р±",             60 );   // РџРёС€СѓС‰РёРµСЃСЏ РґРІРѕСЏРєРѕ                   
+
+  add_type( "# #1",             61 );
+  add_type( "# #2",             62 );
+
+# undef add_type
+}
+
+auto  st_excellent  = utf8to1251( "{РїСЂРµРІРѕСЃС….}" );
+auto  st_countable  = utf8to1251( "{РёСЃС‡РёСЃР».}" );
+auto  st_colloquial = utf8to1251( "{СЂР°Р·Рі.}" );
+auto  st_obscene    = utf8to1251( "{СЂСѓРі.}" );
+
+auto  st_casemark   = utf8to1251( "РЁРџ:" );
+auto  st_casescale  = utf8to1251( "РР Р”Р’РўРџ" );
+
+auto  st_reflex     = utf8to1251( "СЃСЏ" );
 
 //=====================================================================
 // Method: GetRemark()
-// Функция ищет пометы об особенностях в чередовании, соответствующие
-// формату -nx-, где nx - некоторое количество символов, и возвращает
-// строку - помету.
+// Р¤СѓРЅРєС†РёСЏ РёС‰РµС‚ РїРѕРјРµС‚С‹ РѕР± РѕСЃРѕР±РµРЅРЅРѕСЃС‚СЏС… РІ С‡РµСЂРµРґРѕРІР°РЅРёРё, СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓСЋС‰РёРµ
+// С„РѕСЂРјР°С‚Сѓ -nx-, РіРґРµ nx - РЅРµРєРѕС‚РѕСЂРѕРµ РєРѕР»РёС‡РµСЃС‚РІРѕ СЃРёРјРІРѕР»РѕРІ, Рё РІРѕР·РІСЂР°С‰Р°РµС‚
+// СЃС‚СЂРѕРєСѓ - РїРѕРјРµС‚Сѓ.
 //=====================================================================
-static  char* GetRemark( char* lpdest, const char* string )
+std::string GetRemark( const char* string )
 {
   const char* strTop;
   const char* strEnd;
   
-  *lpdest = '\0';
-
   if ( (strEnd = strTop = strchr( string, '-' )) == nullptr )
-    return lpdest;
+    return "";
 
   do ++strEnd;
     while ( *strEnd != '\0' && *strEnd != '-' && (unsigned char)*strEnd > 0x20 );
 
-  if ( *strEnd == '-' )
-    strncpy( lpdest, strTop + 1, strEnd - strTop - 1 )[strEnd - strTop - 1] = '\0';
+  return *strEnd == '-' ? std::string( strTop + 1, strEnd - strTop - 1 ) : "";
+}
 
-  return lpdest;
+bool        Reflexive( const std::string& s )
+{
+  auto  cchstr = s.length();
+
+  return cchstr > 2 && strcmp( s.c_str() + cchstr - 2, st_reflex.c_str() ) == 0;
 }
 
 //=========================================================================
-// Method: GetCaseScale( ... )
+// Method: CaseVector( ... )
 //
-// Функция извлекает падежную шкалу предлога из строки комметариев к слову
+// Р¤СѓРЅРєС†РёСЏ РёР·РІР»РµРєР°РµС‚ РїР°РґРµР¶РЅСѓСЋ С€РєР°Р»Сѓ РїСЂРµРґР»РѕРіР° РёР· СЃС‚СЂРѕРєРё РєРѕРјРјРµС‚Р°СЂРёРµРІ Рє СЃР»РѕРІСѓ
 //=========================================================================
-static byte_t GetCaseScale( const char* string )
+byte_t      CaseScale( const char* string )
 {
-  static char caseString[] = "ИРДВТП";
   static char caseScales[] = "\x01\x02\x04\x08\x10\x20";
   byte_t      fetchValue = 0;
   const char* searchChar;
 
-  if ( (string = strstr( string, "ШП:" )) != nullptr )
-    for ( string += 3; *string != '\0' && (searchChar = strchr( caseString, *string )) != nullptr; ++string )
-      fetchValue |= caseScales[searchChar - caseString];
+  if ( (string = strstr( string, st_casemark.c_str() )) != nullptr )
+    for ( string += 3; *string != '\0' && (searchChar = strchr( st_casescale.c_str(), *string )) != nullptr; ++string )
+      fetchValue |= caseScales[searchChar - st_casescale.c_str()];
 
   return fetchValue;
 }
 
 //=====================================================================
-// Method: ExtractPostfix()
-// Функция извлекает строку постфикса из комментария к слову и возвра-
-// щает длину постфикса
+// Method: GetPostfix()
+// Р¤СѓРЅРєС†РёСЏ РёР·РІР»РµРєР°РµС‚ СЃС‚СЂРѕРєСѓ РїРѕСЃС‚С„РёРєСЃР° РёР· РєРѕРјРјРµРЅС‚Р°СЂРёСЏ Рє СЃР»РѕРІСѓ Рё РІРѕР·РІСЂР°-
+// С‰Р°РµС‚ РґР»РёРЅСѓ РїРѕСЃС‚С„РёРєСЃР°
 //=====================================================================
-inline  int   ExtractPostfix( char* szpost, const char* string )
+std::string GetPostfix( const char* string )
 {
   const char* strtop;
   const char* strend;
 
-// Проверить, есть ли постфикс в строке, пропустить пробелы
-// Извлечь собственно текст постфикса
-  if ( (strtop = strstr( string, "post:" )) == NULL )
-    return 0;
-  for ( strtop += 5; *strtop != '\0' && (unsigned char)*strtop <= 0x20; strtop++ )
-    (void)NULL;
-  for ( strend = strtop; (unsigned char)*strend > 0x20; strend++ )
-    (void)NULL;
+  if ( (strtop = strstr( string, "post:" )) != nullptr )
+  {
+    for ( strtop += 5; *strtop != '\0' && (unsigned char)*strtop <= 0x20; strtop++ )
+      (void)NULL;
+    for ( strend = strtop; (unsigned char)*strend > 0x20; strend++ )
+      (void)NULL;
 
-// Скопировать текст
-  strncpy( szpost, strtop, strend - strtop )[strend - strtop] = '\0';
-    return (int)(strend - strtop);
+    return std::string( strtop, strend - strtop );
+  }
+  return "";
 }
 
-bool  ResolveClassInfo( const zarray<>& ztypes,
-                        char*           pstems,
-                        rusclassinfo&   clinfo,
-                        const char*     sznorm, const char*   szdies, const char*   sztype, const char* zapart, const char*   szcomm,
-                        const char*     ftable, CReferences&  findex, const char*   mtable, mixfiles&   mindex )
+lexemeinfo  ResolveClassInfo(
+  const char* sznorm, const char*   szdies, const char*   sztype, const char* zapart, const char*   szcomm,
+  const char* ftable, const libmorph::TableIndex& findex, const char*   mtable, const libmorph::rus::Alternator&   mindex )
 {
-  char    ansiType[32];
-  char    utf8Type[32];
-  char    origType[32];
-  char    szremark[32];
-  int     mixIndex = 0;
+  lexemeinfo  lexeme;
+  std::string stType = std::string( szdies ) + ' ' + sztype;
+  std::string stOrig = std::string( sztype ) + ' ' + zapart;
+  int         mixIndex = 0;
 
-// Сразу определить тип слова
-  strcat( strcat( strcpy( ansiType, szdies ), " " ), sztype );
-  strcat( strcat( strcpy( origType, sztype ), " " ), zapart );
+  if ( (lexeme.wdinfo = (word16_t)(int32_t)typesMap[stType]) == 0 )
+    return lexemeinfo();
 
-  codepages::mbcstombcs( codepages::codepage_utf8, utf8Type, sizeof(utf8Type),
-                         codepages::codepage_1251, ansiType );
-
-  if ( (clinfo.wdinfo = (word16_t)(int32_t)ztypes[utf8Type]) == 0 )
-    return false;
-
-// Далее делается проверка типа слова, чтобы включить в обработку
-// неизменяемые части речи, типы которых перечислены ниже. В этих
-// случаях несмотря на нулевую ссылку на таблицы окончаний основа
-// считается вполне легальной и поступает в список словооснов.
-  if ( (clinfo.wdinfo & 0x3F) < 48 )
+/*
+  if ( utf8to1251( "СѓС‡Р°С‰РёР№СЃСЏ" ) == sznorm )
   {
-    if ( (clinfo.tfoffs = findex.GetOffset( origType )) == 0 && strcmp( zapart, "0" ) != 0 )
-      return false;
+    int i = 0;
+  }
+*/
+// Р”Р°Р»РµРµ РґРµР»Р°РµС‚СЃСЏ РїСЂРѕРІРµСЂРєР° С‚РёРїР° СЃР»РѕРІР°, С‡С‚РѕР±С‹ РІРєР»СЋС‡РёС‚СЊ РІ РѕР±СЂР°Р±РѕС‚РєСѓ
+// РЅРµРёР·РјРµРЅСЏРµРјС‹Рµ С‡Р°СЃС‚Рё СЂРµС‡Рё, С‚РёРїС‹ РєРѕС‚РѕСЂС‹С… РїРµСЂРµС‡РёСЃР»РµРЅС‹ РЅРёР¶Рµ. Р’ СЌС‚РёС…
+// СЃР»СѓС‡Р°СЏС… РЅРµСЃРјРѕС‚СЂСЏ РЅР° РЅСѓР»РµРІСѓСЋ СЃСЃС‹Р»РєСѓ РЅР° С‚Р°Р±Р»РёС†С‹ РѕРєРѕРЅС‡Р°РЅРёР№ РѕСЃРЅРѕРІР°
+// СЃС‡РёС‚Р°РµС‚СЃСЏ РІРїРѕР»РЅРµ Р»РµРіР°Р»СЊРЅРѕР№ Рё РїРѕСЃС‚СѓРїР°РµС‚ РІ СЃРїРёСЃРѕРє СЃР»РѕРІРѕРѕСЃРЅРѕРІ.
+  if ( (lexeme.wdinfo & 0x3F) < 48 )
+  {
+    if ( (lexeme.tfoffs = findex.Find( stOrig.c_str() )) == 0 && strcmp( zapart, "0" ) != 0 )
+      return lexemeinfo();
   }
     else
-  clinfo.tfoffs = 0;
+  lexeme.tfoffs = 0;
 
-// Скопировать основную форму слова и отщепить постфикс, если он есть
-  for ( auto d = strcpy( pstems, sznorm ), s = pstems; (*d = *s++) != '\0'; )
-    if ( *d != '=' )  ++d;
+// РЎРєРѕРїРёСЂРѕРІР°С‚СЊ РѕСЃРЅРѕРІРЅСѓСЋ С„РѕСЂРјСѓ СЃР»РѕРІР° Рё РѕС‚С‰РµРїРёС‚СЊ РїРѕСЃС‚С„РёРєСЃ, РµСЃР»Рё РѕРЅ РµСЃС‚СЊ
+  lexeme.ststem = std::string( sznorm );
 
-// Отщепить постфикс
-  pstems[strlen( sznorm ) - ExtractPostfix( clinfo.szpost, szcomm )] = '\0';
+  for ( auto pos = lexeme.ststem.find( '=' ); pos != std::string::npos; pos = lexeme.ststem.find( '=', pos ) )
+    lexeme.ststem.erase( pos, 1 );
+    
+// РћС‚С‰РµРїРёС‚СЊ РїРѕСЃС‚С„РёРєСЃ
+  lexeme.stpost = GetPostfix( szcomm );
+  lexeme.ststem.resize( lexeme.ststem.length() - lexeme.stpost.length() );
 
-// Извлечь флаги описания лексической базы
-  if ( strstr( szcomm, "{превосх.}" ) != nullptr )
-    clinfo.wdinfo |= wfExcellent;
-  if ( strstr( szcomm, "{исчисл.}" ) != nullptr )
-    clinfo.wdinfo |= wfCountable;
-  if ( strstr( szcomm, "{разг.}" ) != nullptr )
-    clinfo.wdinfo |= wfInformal;
-  if ( strstr( szcomm, "{руг.}" ) != nullptr )
-    clinfo.wdinfo |= wfObscene;
+// РР·РІР»РµС‡СЊ С„Р»Р°РіРё РѕРїРёСЃР°РЅРёСЏ Р»РµРєСЃРёС‡РµСЃРєРѕР№ Р±Р°Р·С‹
+  if ( strstr( szcomm, st_excellent.c_str() ) != nullptr )
+    lexeme.wdinfo |= wfExcellent;
+  if ( strstr( szcomm, st_countable.c_str() ) != nullptr )
+    lexeme.wdinfo |= wfCountable;
+  if ( strstr( szcomm, st_colloquial.c_str() ) != nullptr )
+    lexeme.wdinfo |= wfInformal;
+  if ( strstr( szcomm, st_obscene.c_str() ) != nullptr )
+    lexeme.wdinfo |= wfObscene;
 
-// Закончить обработку нефлективных слов
-  if ( clinfo.tfoffs == 0 )
+// Р—Р°РєРѕРЅС‡РёС‚СЊ РѕР±СЂР°Р±РѕС‚РєСѓ РЅРµС„Р»РµРєС‚РёРІРЅС‹С… СЃР»РѕРІ
+  if ( lexeme.tfoffs == 0 )
   {
-  // Если слово - предлог, извлечь падежную шкалу
-    if ( (clinfo.wdinfo & 0x3F) == 51 )
-      clinfo.tfoffs = GetCaseScale( zapart );
-    clinfo.chrmin = clinfo.chrmax = '\0';
-      return true;
+  // Р•СЃР»Рё СЃР»РѕРІРѕ - РїСЂРµРґР»РѕРі, РёР·РІР»РµС‡СЊ РїР°РґРµР¶РЅСѓСЋ С€РєР°Р»Сѓ
+    if ( (lexeme.wdinfo & 0x3F) == 51 )
+      lexeme.tfoffs = CaseScale( zapart );
+    lexeme.chrmin = lexeme.chrmax = '\0';
+      return std::move( lexeme );
   }
 
-// В случае, если ссылка на таблицу окончаний ненулевая, отбросить
-// окончание нормальной формы или специально помеченное символом
-// @ - для случаев, когда в современном языке нормальная форма
-// слова не употребляется
-// Сначала делается проверка, нет ли специально помеченного
-// окончания, как это бывает, например, у существительных, упот-
-// ребляемых только в определенных формах. Если так, то окон-
-// чание отщепляется простым уменьшением длины строки.
-  if ( strchr( pstems, '@' ) != NULL ) strchr( pstems, '@' )[0] = '\0';
+// Р’ СЃР»СѓС‡Р°Рµ, РµСЃР»Рё СЃСЃС‹Р»РєР° РЅР° С‚Р°Р±Р»РёС†Сѓ РѕРєРѕРЅС‡Р°РЅРёР№ РЅРµРЅСѓР»РµРІР°СЏ, РѕС‚Р±СЂРѕСЃРёС‚СЊ
+// РѕРєРѕРЅС‡Р°РЅРёРµ РЅРѕСЂРјР°Р»СЊРЅРѕР№ С„РѕСЂРјС‹ РёР»Рё СЃРїРµС†РёР°Р»СЊРЅРѕ РїРѕРјРµС‡РµРЅРЅРѕРµ СЃРёРјРІРѕР»РѕРј
+// @ - РґР»СЏ СЃР»СѓС‡Р°РµРІ, РєРѕРіРґР° РІ СЃРѕРІСЂРµРјРµРЅРЅРѕРј СЏР·С‹РєРµ РЅРѕСЂРјР°Р»СЊРЅР°СЏ С„РѕСЂРјР°
+// СЃР»РѕРІР° РЅРµ СѓРїРѕС‚СЂРµР±Р»СЏРµС‚СЃСЏ
+// РЎРЅР°С‡Р°Р»Р° РґРµР»Р°РµС‚СЃСЏ РїСЂРѕРІРµСЂРєР°, РЅРµС‚ Р»Рё СЃРїРµС†РёР°Р»СЊРЅРѕ РїРѕРјРµС‡РµРЅРЅРѕРіРѕ
+// РѕРєРѕРЅС‡Р°РЅРёСЏ, РєР°Рє СЌС‚Рѕ Р±С‹РІР°РµС‚, РЅР°РїСЂРёРјРµСЂ, Сѓ СЃСѓС‰РµСЃС‚РІРёС‚РµР»СЊРЅС‹С…, СѓРїРѕС‚-
+// СЂРµР±Р»СЏРµРјС‹С… С‚РѕР»СЊРєРѕ РІ РѕРїСЂРµРґРµР»РµРЅРЅС‹С… С„РѕСЂРјР°С…. Р•СЃР»Рё С‚Р°Рє, С‚Рѕ РѕРєРѕРЅ-
+// С‡Р°РЅРёРµ РѕС‚С‰РµРїР»СЏРµС‚СЃСЏ РїСЂРѕСЃС‚С‹Рј СѓРјРµРЅСЊС€РµРЅРёРµРј РґР»РёРЅС‹ СЃС‚СЂРѕРєРё.
+  if ( lexeme.ststem.find( '@' ) != std::string::npos )
+  {
+    lexeme.ststem.resize( lexeme.ststem.find( '@' ) );
+  }
     else
   {
-  //   В противном случае строится исходя из типа слова граммати-
-  // ческая информация о нормальной форме и вызывается процедура
-  // его отщепления. Это бывает, вообще, практически всегда.
-  //   В случае глаголов (типы 1..6) нормальной формой является
-  // инфинитив (с возможной возвратной частицей). В случае прила-
-  // гательных и других слов, склоняющихся по родам, выставляется
-  // признак мужского рода в дополнение к именительному падежу.
-    unsigned short* lpLevels;
-    unsigned short  normInfo;
+  //   Р’ РїСЂРѕС‚РёРІРЅРѕРј СЃР»СѓС‡Р°Рµ СЃС‚СЂРѕРёС‚СЃСЏ РёСЃС…РѕРґСЏ РёР· С‚РёРїР° СЃР»РѕРІР° РіСЂР°РјРјР°С‚Рё-
+  // С‡РµСЃРєР°СЏ РёРЅС„РѕСЂРјР°С†РёСЏ Рѕ РЅРѕСЂРјР°Р»СЊРЅРѕР№ С„РѕСЂРјРµ Рё РІС‹Р·С‹РІР°РµС‚СЃСЏ РїСЂРѕС†РµРґСѓСЂР°
+  // РµРіРѕ РѕС‚С‰РµРїР»РµРЅРёСЏ. Р­С‚Рѕ Р±С‹РІР°РµС‚, РІРѕРѕР±С‰Рµ, РїСЂР°РєС‚РёС‡РµСЃРєРё РІСЃРµРіРґР°.
+  //   Р’ СЃР»СѓС‡Р°Рµ РіР»Р°РіРѕР»РѕРІ (С‚РёРїС‹ 1..6) РЅРѕСЂРјР°Р»СЊРЅРѕР№ С„РѕСЂРјРѕР№ СЏРІР»СЏРµС‚СЃСЏ
+  // РёРЅС„РёРЅРёС‚РёРІ (СЃ РІРѕР·РјРѕР¶РЅРѕР№ РІРѕР·РІСЂР°С‚РЅРѕР№ С‡Р°СЃС‚РёС†РµР№). Р’ СЃР»СѓС‡Р°Рµ РїСЂРёР»Р°-
+  // РіР°С‚РµР»СЊРЅС‹С… Рё РґСЂСѓРіРёС… СЃР»РѕРІ, СЃРєР»РѕРЅСЏСЋС‰РёС…СЃСЏ РїРѕ СЂРѕРґР°Рј, РІС‹СЃС‚Р°РІР»СЏРµС‚СЃСЏ
+  // РїСЂРёР·РЅР°Рє РјСѓР¶СЃРєРѕРіРѕ СЂРѕРґР° РІ РґРѕРїРѕР»РЅРµРЅРёРµ Рє РёРјРµРЅРёС‚РµР»СЊРЅРѕРјСѓ РїР°РґРµР¶Сѓ.
+    const uint16_t* lpLevels;
+    uint16_t        normInfo;
 
-    switch ( clinfo.wdinfo & 0x3F )
+    switch ( lexeme.wdinfo & 0x3F )
     {
       case 1:
       case 2:
@@ -166,7 +358,7 @@ bool  ResolveClassInfo( const zarray<>& ztypes,
       case 5:
       case 6:
         normInfo = vtInfinitiv|gfRetForms;
-        lpLevels = (unsigned short*)verbLevels;
+        lpLevels = libmorph::verbLevels;
         break;
       case 25:
       case 26:
@@ -176,43 +368,39 @@ bool  ResolveClassInfo( const zarray<>& ztypes,
       case 36:
       case 42:
       case 52:
-        normInfo = 1 << 9;    // Мужской род для прилагательных
-        if ( strcmp( pstems + strlen( pstems ) - 2, "ся" ) == 0 )
-          normInfo |= gfRetForms;
-        lpLevels = (unsigned short*)nounLevels;
+        normInfo = (1 << 9) + (Reflexive( lexeme.ststem ) ? gfRetForms : 0);    // РњСѓР¶СЃРєРѕР№ СЂРѕРґ РґР»СЏ РїСЂРёР»Р°РіР°С‚РµР»СЊРЅС‹С…
+        lpLevels = libmorph::nounLevels;
         break;
       default:
         normInfo = 0;
-        lpLevels = (unsigned short*)nounLevels;
+        lpLevels = libmorph::nounLevels;
         break;
     }
-  // Обозначить множественное число, если оно есть
-    if ( clinfo.wdinfo & wfMultiple )
+  // РћР±РѕР·РЅР°С‡РёС‚СЊ РјРЅРѕР¶РµСЃС‚РІРµРЅРЅРѕРµ С‡РёСЃР»Рѕ, РµСЃР»Рё РѕРЅРѕ РµСЃС‚СЊ
+    if ( lexeme.wdinfo & wfMultiple )
       normInfo |= gfMultiple;
 
-  // Отщепить окончание нормальной формы
-    if ( !StripDefault( pstems, normInfo, clinfo.tfoffs, lpLevels, 0, ftable ) && ( strchr( zapart, ':' ) == NULL ) )
-      return false;
+  // РћС‚С‰РµРїРёС‚СЊ РѕРєРѕРЅС‡Р°РЅРёРµ РЅРѕСЂРјР°Р»СЊРЅРѕР№ С„РѕСЂРјС‹
+    if ( !libmorph::FlexStripper( lpLevels, ftable ).StripStr( lexeme.ststem, normInfo, lexeme.tfoffs ) && strchr( zapart, ':' ) == nullptr )
+      return lexemeinfo();
   }
 
-// инициализировать минимальный и максимальный символы по таблице окончаний
-  clinfo.chrmin = GetMinLetter( ftable, clinfo.tfoffs );
-  clinfo.chrmax = GetMaxLetter( ftable, clinfo.tfoffs );
+// РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°С‚СЊ РјРёРЅРёРјР°Р»СЊРЅС‹Р№ Рё РјР°РєСЃРёРјР°Р»СЊРЅС‹Р№ СЃРёРјРІРѕР»С‹ РїРѕ С‚Р°Р±Р»РёС†Рµ РѕРєРѕРЅС‡Р°РЅРёР№
+  std::tie(lexeme.chrmin, lexeme.chrmax) = libmorph::FlexStripper::GetMinMaxChar( ftable, lexeme.tfoffs );
 
-// После отщепления окончания нормальной формы словооснова прове-
-// ряется на наличие чередований.
-  clinfo.mtoffs = mindex.GetMix( clinfo.wdinfo, pstems, origType, GetRemark( szremark, szcomm ) );
+// РџРѕСЃР»Рµ РѕС‚С‰РµРїР»РµРЅРёСЏ РѕРєРѕРЅС‡Р°РЅРёСЏ РЅРѕСЂРјР°Р»СЊРЅРѕР№ С„РѕСЂРјС‹ СЃР»РѕРІРѕРѕСЃРЅРѕРІР° РїСЂРѕРІРµСЂСЏРµС‚СЃСЏ РЅР° РЅР°Р»РёС‡РёРµ С‡РµСЂРµРґРѕРІР°РЅРёР№.
+  lexeme.mtoffs = mindex.Find( mtable, stOrig.c_str(),
+                               lexeme.wdinfo, lexeme.ststem.c_str(), GetRemark( szcomm ).c_str() );
 
-// Если чередования присутствуют, то отщепляется первая ступень
-// чередования в основе, т. к. она соответствует нормальной форме.
-  if ( clinfo.mtoffs != 0 )
+// Р•СЃР»Рё С‡РµСЂРµРґРѕРІР°РЅРёСЏ РїСЂРёСЃСѓС‚СЃС‚РІСѓСЋС‚, С‚Рѕ РѕС‚С‰РµРїР»СЏРµС‚СЃСЏ РїРµСЂРІР°СЏ СЃС‚СѓРїРµРЅСЊ
+// С‡РµСЂРµРґРѕРІР°РЅРёСЏ РІ РѕСЃРЅРѕРІРµ, С‚. Рє. РѕРЅР° СЃРѕРѕС‚РІРµС‚СЃС‚РІСѓРµС‚ РЅРѕСЂРјР°Р»СЊРЅРѕР№ С„РѕСЂРјРµ.
+  if ( lexeme.mtoffs != 0 )
   {
-    clinfo.chrmin = GetMinLetter( mtable, clinfo.mtoffs, clinfo.chrmin );
-    clinfo.chrmax = GetMaxLetter( mtable, clinfo.mtoffs, clinfo.chrmax );
+    std::tie(lexeme.chrmin, lexeme.chrmax) = libmorph::rus::Alternator::GetMinMaxChar( mtable, lexeme.mtoffs, lexeme.chrmin, lexeme.chrmax );
 
-  // Проверить, нет ли явного указания типа чередования
-  // Отщепить чередование первой ступени
-    if ( (clinfo.wdinfo & 0x3F) <= 6 )
+  // РџСЂРѕРІРµСЂРёС‚СЊ, РЅРµС‚ Р»Рё СЏРІРЅРѕРіРѕ СѓРєР°Р·Р°РЅРёСЏ С‚РёРїР° С‡РµСЂРµРґРѕРІР°РЅРёСЏ
+  // РћС‚С‰РµРїРёС‚СЊ С‡РµСЂРµРґРѕРІР°РЅРёРµ РїРµСЂРІРѕР№ СЃС‚СѓРїРµРЅРё
+    if ( (lexeme.wdinfo & 0x3F) <= 6 )
     {
       switch ( zapart[0] )
       {
@@ -238,11 +426,13 @@ bool  ResolveClassInfo( const zarray<>& ztypes,
           break;
       }
     }
-    pstems[strlen( pstems ) - (0x0f & *GetDefText( mtable, clinfo.mtoffs ))] = '\0';
+    lexeme.ststem.resize( lexeme.ststem.length() - (0x0f & *libmorph::rus::Alternator::GetDefaultStr( mtable, lexeme.mtoffs )) );
   }
+
   if ( mixIndex != 0 )
-    clinfo.wdinfo |= (mixIndex << 8);
-  return true;
+    lexeme.wdinfo |= (mixIndex << 8);
+
+  return std::move( lexeme );
 }
 
 #if defined( _MSC_VER )

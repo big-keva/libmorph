@@ -1,12 +1,10 @@
 # include <tools/buildmorph.h>
 # include <tools/plaintable.h>
 # include <tools/ftables.h>
+# include <tools/dumppage.h>
 # include "mtables.h"
 # include "lresolve.h"
-# include <tools/dumppage.h>
-# include <sys/types.h>
-# include <sys/stat.h>
-# include <stdarg.h>
+# include <map>
 
 #if defined( _MSC_VER ) && defined( _DEBUG )
   #include <crtdbg.h>
@@ -16,39 +14,37 @@
 #   pragma warning( disable: 4237 )
 # endif // _MSC_VER
 
-using namespace libmorph;
-
 static unsigned char mixTypes[64] =
 {
-  0x00,                                 /* Несуществующий тип слова     */
-  0x01, 0x01, 0x01, 0x01, 0x01, 0x01,   /* 1..6: глаголы                */
-/* Существительные мужского рода */
-  0x02,                                 /* 7: # м                       */
-  0x03,                                 /* 8: # мо                      */
-  0x04,                                 /* 9: # м//мо, # мо//м          */
-  0x05,                                 /* 10: м с                      */
-  0x06,                                 /* 11: мо жо                    */
-  0x06,                                 /* 12: мо со                    */
-/* Существительные женского рода */
-  0x05,                                 /* 13: # ж                      */
-  0x06,                                 /* 14: # жо                     */
-  0x07,                                 /* 15: # ж//жо, # жо//ж         */
-/* Существительные среднего рода */
-  0x05,                                 /* 16: # с                      */
-  0x06,                                 /* 17: # со                     */
-  0x07,                                 /* 18: # с//со, # со//с         */
-/* Существительные общего рода   */
-  0x05,                                 /* 19: м//ж ж                   */
-  0x06,                                 /* 20: мо//жо жо                */
-/* Существительные муж./ср. рода */
-  0x05,                                 /* 21: # м//с                   */
-  0x06,                                 /* 22: мо//со со                */
-/* Существительные жен./ср. рода */
-  0x05,                                 /* 23: # ж//с, # с//ж           */
-/* Существительные множ. числа   */
-  0x05,                                 /* 24: мн. ж//м, мн. м//ж       */
-/* Прилагательные                */
-  0x08,                                 /* 25: # п                      */
+  0x00,                                 /* РќРµСЃСѓС‰РµСЃС‚РІСѓСЋС‰РёР№ С‚РёРї СЃР»РѕРІР°     */
+  0x01, 0x01, 0x01, 0x01, 0x01, 0x01,   /* 1..6: РіР»Р°РіРѕР»С‹                */
+/* РЎСѓС‰РµСЃС‚РІРёС‚РµР»СЊРЅС‹Рµ РјСѓР¶СЃРєРѕРіРѕ СЂРѕРґР° */
+  0x02,                                 /* 7: # Рј                       */
+  0x03,                                 /* 8: # РјРѕ                      */
+  0x04,                                 /* 9: # Рј//РјРѕ, # РјРѕ//Рј          */
+  0x05,                                 /* 10: Рј СЃ                      */
+  0x06,                                 /* 11: РјРѕ Р¶Рѕ                    */
+  0x06,                                 /* 12: РјРѕ СЃРѕ                    */
+/* РЎСѓС‰РµСЃС‚РІРёС‚РµР»СЊРЅС‹Рµ Р¶РµРЅСЃРєРѕРіРѕ СЂРѕРґР° */
+  0x05,                                 /* 13: # Р¶                      */
+  0x06,                                 /* 14: # Р¶Рѕ                     */
+  0x07,                                 /* 15: # Р¶//Р¶Рѕ, # Р¶Рѕ//Р¶         */
+/* РЎСѓС‰РµСЃС‚РІРёС‚РµР»СЊРЅС‹Рµ СЃСЂРµРґРЅРµРіРѕ СЂРѕРґР° */
+  0x05,                                 /* 16: # СЃ                      */
+  0x06,                                 /* 17: # СЃРѕ                     */
+  0x07,                                 /* 18: # СЃ//СЃРѕ, # СЃРѕ//СЃ         */
+/* РЎСѓС‰РµСЃС‚РІРёС‚РµР»СЊРЅС‹Рµ РѕР±С‰РµРіРѕ СЂРѕРґР°   */
+  0x05,                                 /* 19: Рј//Р¶ Р¶                   */
+  0x06,                                 /* 20: РјРѕ//Р¶Рѕ Р¶Рѕ                */
+/* РЎСѓС‰РµСЃС‚РІРёС‚РµР»СЊРЅС‹Рµ РјСѓР¶./СЃСЂ. СЂРѕРґР° */
+  0x05,                                 /* 21: # Рј//СЃ                   */
+  0x06,                                 /* 22: РјРѕ//СЃРѕ СЃРѕ                */
+/* РЎСѓС‰РµСЃС‚РІРёС‚РµР»СЊРЅС‹Рµ Р¶РµРЅ./СЃСЂ. СЂРѕРґР° */
+  0x05,                                 /* 23: # Р¶//СЃ, # СЃ//Р¶           */
+/* РЎСѓС‰РµСЃС‚РІРёС‚РµР»СЊРЅС‹Рµ РјРЅРѕР¶. С‡РёСЃР»Р°   */
+  0x05,                                 /* 24: РјРЅ. Р¶//Рј, РјРЅ. Рј//Р¶       */
+/* РџСЂРёР»Р°РіР°С‚РµР»СЊРЅС‹Рµ                */
+  0x08,                                 /* 25: # Рї                      */
   0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x00, 0x00,
@@ -92,13 +88,14 @@ static char GPL_header[] =
 
 class ResolveRus
 {
-  array<char>         ftable;
-  CReferences         findex;
-  array<char>         mtable;
-  mixfiles            mindex;
+  std::vector<char>         ftable;
+  libmorph::TableIndex      findex;
 
-  array<char>         aplain;
-  stringmap<unsigned> iplain;
+  std::vector<char>         mtable;
+  libmorph::rus::Alternator mindex;
+
+  std::vector<char>         aplain;
+  std::map<size_t, size_t>  iplain;
 
 protected:
   template <size_t N>
@@ -117,121 +114,80 @@ protected:
       }
       return source;
     }
+
+protected:
+  template <class O>
+  void  LoadObject( O& o, const std::string& szpath ) const
+    {
+      mtc::file   lpfile;
+
+      if ( (lpfile = fopen( szpath.c_str(), "rb" )) == nullptr )
+        throw std::runtime_error( "could not open file '" + std::string( szpath ) + "'" );
+
+      if ( o.Load( (FILE*)lpfile ) == nullptr )
+        throw std::runtime_error( "could not load object from file '" + std::string( szpath ) + "'" );
+    }
+
 public:
-  int   InitTables( const ZArray& config )
+  void  InitTables( const std::string&  flex_table, const std::string& flex_index,
+                    const std::string&  intr_table, const std::string& intr_index )
     {
-      const ZArray* tabset;
-      file          lpfile;
+      static const char amagic[] = "*inflex by Keva*";
 
-      if ( aplain.Append( 16, (char*)"*inflex by Keva*" ) != 0 )
-        return ENOMEM;
+      aplain.insert( aplain.end(), amagic, amagic + 16 );
 
-    // load flex tables
-      if ( (tabset = config.get_zarray( "flex" )) != nullptr )
-      {
-        const char*   ptable;
-        const char*   pindex;
-
-        if ( (ptable = tabset->get_charstr( "table" )) == nullptr )
-          return LogMessage( EINVAL, "Configuration file contains no 'flex->table' string variable!\n" );
-
-        if ( (pindex = tabset->get_charstr( "index" )) == nullptr )
-          return LogMessage( EINVAL, "Configuration file contains no 'flex->index' string variable!\n" );
-
-        if ( LoadSource( ftable, ptable ) != 0 )
-          return LogMessage( ENOENT, "Could not open file \'%s\'!\n", ptable );
-
-        if ( (lpfile = fopen( pindex, "rb" )) == NULL )
-          return LogMessage( ENOENT, "Could not open file \'%s\'!\n", pindex );
-
-        if ( findex.FetchFrom( (FILE*)lpfile ) == NULL )
-          return LogMessage( EACCES, "Could not load the flex tables references!\n" );
-      }
-        else
-      return LogMessage( EINVAL, "Configuration file contains no 'flex->{}' section!\n" );
-
-    // load interchange tables
-      if ( (tabset = config.get_zarray( "intr" )) != nullptr )
-      {
-        const char*   ptable;
-        const char*   pindex;
-
-        if ( (ptable = tabset->get_charstr( "table" )) == nullptr )
-          return LogMessage( EINVAL, "Configuration file contains no 'intr->table' string variable!\n" );
-
-        if ( (pindex = tabset->get_charstr( "index" )) == nullptr )
-          return LogMessage( EINVAL, "Configuration file contains no 'intr->index' string variable!\n" );
-
-        if ( LoadSource( mtable, ptable ) != 0 )
-          return LogMessage( ENOENT, "Could not open file \'%s\'!\n", ptable );
-
-        if ( (lpfile = fopen( pindex, "rb" )) == NULL )
-          return LogMessage( ENOENT, "Could not open file \'%s\'!\n", pindex );
-
-        if ( mindex.DoLoad( mtable, (FILE*)lpfile ) == NULL )
-          return LogMessage( EACCES, "Could not load the interchange references!\n" );
-      }
-        else
-      return LogMessage( EINVAL, "Configuration file contains no 'intr->{}' section!\n" );
-
-      return 0;
+    // load flex ad mix tables
+      ftable = libmorph::LoadSource( flex_table.c_str() );
+        LoadObject( findex, flex_index );
+      mtable = libmorph::LoadSource( intr_table.c_str() );
+        LoadObject( mindex, intr_index );
     }
-  int   SaveTables( const ZArray& settings )
+  void  SaveTables( const std::string& outdir, const std::string& nspace )
     {
-      const char* dstdir = settings.get_charstr( "TargetDir", "./" );
-      const char* nspace = settings.get_charstr( "namespace", "__libmorphrus__" );
-
-      BinaryDumper().OutDir( dstdir ).Namespace( nspace ).Header( GPL_header ).Dump( "mxTables", serialbuff( mtable, mtable.GetLen() ) );
-      BinaryDumper().OutDir( dstdir ).Namespace( nspace ).Header( GPL_header ).Dump( "flexTree", serialbuff( aplain, aplain.GetLen() ) );
-      BinaryDumper().OutDir( dstdir ).Namespace( nspace ).Header( GPL_header ).Dump( "mixTypes", serialbuff( mixTypes, sizeof(mixTypes) ) );
-
-      return 0;
+      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( GPL_header ).Dump( "mxTables", libmorph::serialbuff( mtable.data(), mtable.size() ) );
+      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( GPL_header ).Dump( "flexTree", libmorph::serialbuff( aplain.data(), aplain.size() ) );
+      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( GPL_header ).Dump( "mixTypes", libmorph::serialbuff( mixTypes, sizeof(mixTypes) ) );
     }
-  int   PatchClass( rusclassinfo& rclass )
+  /*
+    PatchClass( class )
+
+    РС‰РµС‚ СѓР¶Рµ РѕС‚РѕР±СЂР°Р¶С‘РЅРЅС‹Рµ С‚Р°Р±Р»РёС†С‹ РІ patricia-РїСЂРµРґСЃС‚Р°РІР»РµРЅРёРµ С‚Р°Р±Р»РёС†С‹ РѕРєРѕРЅС‡Р°РЅРёР№; РµСЃР»Рё РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚
+    С‚Р°РєРѕРіРѕ - РґРѕР±Р°РІР»СЏРµС‚ РѕС‚РѕР±СЂР°Р¶РµРЅРёРµ, Рё РјРµРЅСЏРµС‚ СЃСЃС‹Р»РєСѓ РЅР° РєРѕРјРїР°РєС‚РЅС‹Рµ С‚Р°Р±Р»РёС†С‹ РѕРєРѕРЅС‡Р°РЅРёР№ СЃСЃС‹Р»РєРѕР№ РЅР°
+    СЂР°Р·РІС‘СЂРЅСѓС‚С‹Рµ
+  */
+  void  PatchClass( morphclass& rclass )
     {
-      unsigned* ptrofs;
-      char      sclass[0x20];
-
-      if ( rclass.tfoffs == 0 || rclass.wdinfo == 51 )
-        return 0;
-      sprintf( sclass, "%x", rclass.tfoffs );
-
-      if ( (ptrofs = iplain.Search( sclass )) == NULL )
+      if ( rclass.tfoffs != 0 && rclass.wdinfo != 51 )
       {
-        wordtree<gramlist>  atable;
-        size_t              ltable;
-        size_t              theofs;
-        char                szflex[0x40];
-        
-        if ( FillFlexTree( atable, ftable, rclass.tfoffs, 0, 0xff, szflex, 0 ) != 0 ) 
-          return ENOMEM;
+        auto  it = iplain.find( rclass.tfoffs );
 
-        ltable = atable.GetBufLen();
-        theofs = aplain.GetLen();
+        if ( it == iplain.end() )
+        {
+          wordtree<libmorph::gramlist>  atable = libmorph::FlexTree( ftable.data() )( rclass.tfoffs );
+          size_t                        ltable = atable.GetBufLen();
+          size_t                        theofs = aplain.size();
 
-        assert( (theofs & 0x0f) == 0 );
+          assert( (theofs & 0x0f) == 0 );
 
-        if ( aplain.SetLen( (theofs + ltable + 0x0f) & ~0x0f ) == 0 )  atable.Serialize( (char*)aplain + theofs );
-          else return ENOMEM;
+          aplain.resize( (theofs + ltable + 0x0f) & ~0x0f );
+          atable.Serialize( theofs + aplain.data() );
 
-        if ( (ptrofs = iplain.Insert( sclass, theofs )) == nullptr )
-          return ENOMEM;
+          iplain.insert( { rclass.tfoffs, theofs } );
+          rclass.tfoffs = static_cast<uint16_t>(theofs >> 4);
+        }
+          else
+        rclass.tfoffs = static_cast<uint16_t>(it->second >> 4);
       }
-
-      rclass.tfoffs = *ptrofs >> 4;
-      return 0;
     }
-  int   BuildStems( char* pstems, rusclassinfo* pclass, const char* string, const zarray<>& zasets )
+  std::vector<lexemeinfo> BuildStems( const char* string )
     {
-      const zarray<>* ztypes;
-      char            sznorm[0x100];
-      char            szdies[0x20];
-      char            sztype[0x20];
-      char            zindex[0x20];
-      char*           strptr;
-
-      if ( (ztypes = zasets.get_zarray( "type" )) == nullptr )
-        return EINVAL;
+      std::vector<lexemeinfo> lexset;
+      lexemeinfo              lexinf;
+      char                    sznorm[0x100];
+      char                    szdies[0x20];
+      char                    sztype[0x20];
+      char                    zindex[0x20];
+      char*                   strptr;
 
     // get the parts
       string = GetSubtext( GetSubtext( GetSubtext( GetSubtext( string,
@@ -240,39 +196,40 @@ public:
         sztype ),
         zindex );
 
-      for ( auto p = sznorm; *p != '\0'; ++p )
-        if ( *p == 'ё' ) *p = 'е';
+    // Р·Р°РјРµРЅРёС‚СЊ 'С‘' РЅР° 'Рµ'
+      std::replace( sznorm, sznorm + strlen( sznorm ), 0xB8, 0xe5 );
 
     // try recolve class
-      if ( ResolveClassInfo( *ztypes, pstems, *pclass, sznorm, szdies, sztype, zindex, string, ftable, findex, mtable, mindex ) )
-        return PatchClass( *pclass ) == 0 ? 1 : -1;
+      if ( (lexinf = ResolveClassInfo( sznorm, szdies, sztype, zindex, string,
+        ftable.data(), findex,
+        mtable.data(), mindex )) != nullclass )
+      {
+        PatchClass( lexinf );
+        lexset.push_back( std::move( lexinf ) );
+        return std::move( lexset );
+      }
 
     // sheck if no alter forms
       if ( (strptr = (char*)strstr( zindex, "//" )) != NULL )
       {
         char  zapart[0x20];
-        int   rescnt = 0;
 
         strncpy( zapart, zindex, strptr - zindex )[strptr - zindex] = '\0';
 
-        if ( ResolveClassInfo( *ztypes, pstems, *pclass, sznorm, szdies, sztype, zapart, string, ftable, findex, mtable, mindex ) )
+        if ( (lexinf = ResolveClassInfo( sznorm, szdies, sztype, zapart, string, ftable.data(), findex, mtable.data(), mindex )) != nullclass )
         {
-          if ( PatchClass( *pclass++ ) == 0 ) ++rescnt;
-            else return -1;
-          while ( *pstems++ != '\0' )
-            (void)NULL;
+          PatchClass( lexinf );
+          lexset.push_back( std::move( lexinf ) );
         }
 
-        if ( ResolveClassInfo( *ztypes, pstems, *pclass, sznorm, szdies, sztype, strptr + 2, string, ftable, findex, mtable, mindex ) )
+        if ( (lexinf = ResolveClassInfo( sznorm, szdies, sztype, strptr + 2, string, ftable.data(), findex, mtable.data(), mindex )) != nullclass )
         {
-          if ( PatchClass( *pclass++ ) == 0 ) ++rescnt;
-            else return -1;
+          PatchClass( lexinf );
+          lexset.push_back( std::move( lexinf ) );
         }
-
-        return rescnt;
       }
 
-      return 0;
+      return std::move( lexset );
     }
 };
 
@@ -288,22 +245,6 @@ public:     // comparison
   bool  operator <  ( const rusteminfo& r ) const {  return compare( r ) < 0;   }
   bool  operator == ( const rusteminfo& r ) const {  return compare( r ) == 0;  }
 
-public:     // serialization
-  size_t  GetBufLen() const
-    {
-      return 2 + ::GetBufLen( nlexid ) + sizeof(word16_t) + (szpost[0] != 0 ? strlen( szpost ) + 1 : 0);
-    }
-  template <class O>
-  O*      Serialize( O* o ) const
-    {
-      word16_t  wstore = oclass | (szpost[0] != 0 ? 0x8000 : 0);
-
-      o = ::Serialize( ::Serialize( ::Serialize( ::Serialize( o,
-        &chrmin, sizeof(chrmin) ),
-        &chrmax, sizeof(chrmax) ), nlexid ), &wstore, sizeof(wstore) );
-      return (wstore & 0x8000) != 0 ? ::Serialize( o, szpost ) : o;
-    }
-
 protected:  // helpers
   int   compare( const rusteminfo& r ) const
     {
@@ -317,28 +258,103 @@ protected:  // helpers
     }
 };
 
-class BuildRus: public buildmorph<rusclassinfo, rusteminfo, ResolveRus>
+size_t  GetBufLen( const rusteminfo& s )
 {
-  ResolveRus  rusmorph;
+  return 2 + ::GetBufLen( s.nlexid ) + sizeof(word16_t) + (s.szpost[0] != 0 ? strlen( s.szpost ) + 1 : 0);
+}
+
+template <class O>
+O*      Serialize( O* o, const rusteminfo& s )
+  {
+    word16_t  wstore = s.oclass | (s.szpost[0] != 0 ? 0x8000 : 0);
+
+    o = ::Serialize( ::Serialize( ::Serialize( ::Serialize( o,
+      &s.chrmin, sizeof(s.chrmin) ),
+      &s.chrmax, sizeof(s.chrmax) ), s.nlexid ), &wstore, sizeof(wstore) );
+
+    return (wstore & 0x8000) != 0 ? ::Serialize( o, s.szpost ) : o;
+  }
+
+class BuildRus: public buildmorph<lexemeinfo, rusteminfo, ResolveRus>
+{
+  using inherited = buildmorph<lexemeinfo, rusteminfo, ResolveRus>;
+
+  bool  GetSwitch( std::string& out, const char* arg, const char* key ) const
+  {
+    size_t  keylen = strlen( key );
+
+    if ( strncmp( arg, key, keylen ) != 0 )
+      return false;
+
+    if ( arg[keylen] != '=' && arg[keylen] != '=' )
+      return false;
+
+    if ( out.length() != 0 )
+      throw std::runtime_error( std::string( "'" ) + key + "' is already defined as '" + out + "'" );
+
+    out = arg + 1 + keylen;
+      return true;
+  };
 
 public:
-  BuildRus(): buildmorph<rusclassinfo, rusteminfo, ResolveRus>( rusmorph, GPL_header, codepages::codepage_866 ), rusmorph()
+  BuildRus(): buildmorph<lexemeinfo, rusteminfo, ResolveRus>( rusmorph, GPL_header, codepages::codepage_866 ), rusmorph()
     {
     }
-  int   Run( const char* pszcfg )
+  void  Run( int argc, char* argv[] )
     {
-      int   nerror;
+      std::string flex_tab;
+      std::string flex_idx;
+      std::string intr_tab;
+      std::string intr_idx;
 
-      if ( (nerror = buildmorph<rusclassinfo, rusteminfo, ResolveRus>::Initialize( pszcfg )) != 0 )
-        return nerror;
-      if ( (nerror = rusmorph.InitTables( settings )) != 0 )
-        return nerror;
-      if ( (nerror = CreateDict()) != 0 )
-        return nerror;
-      if ( (nerror = rusmorph.SaveTables( settings )) != 0 )
-        return nerror;
-      return 0;
+      std::string outp_dir;
+      std::string name_spc = "#";
+      std::string unknowns;
+
+      std::vector<const char*>  dict_set;
+
+      for ( auto arg = argv + 1; arg < argv + argc; ++arg )
+      {
+        if ( **arg == '-' )
+        {
+          if ( !GetSwitch( flex_tab, 1 + *arg, "flex-table" )
+            && !GetSwitch( flex_idx, 1 + *arg, "flex-index" )
+            && !GetSwitch( intr_tab, 1 + *arg, "intr-table" )
+            && !GetSwitch( intr_idx, 1 + *arg, "intr-index" )
+            && !GetSwitch( outp_dir, 1 + *arg, "target-dir" )
+
+            && !GetSwitch( unknowns, 1 + *arg, "unknown" )
+            && !GetSwitch( name_spc, 1 + *arg, "namespace" ) )
+          throw std::runtime_error( "invalid switch: " + std::string( *arg ) );
+        }
+          else
+        dict_set.push_back( *arg );
+      }
+
+    // check parameters
+      if ( outp_dir == "" )
+        libmorph::LogMessage( 0, "undefined output directory was set to default '%s'\n", (outp_dir = "./").c_str() );
+
+      if ( name_spc == "#" )
+        libmorph::LogMessage( 0, "undefined 'namespace' was set to default '%s'\n", (name_spc = "__libmorphrus__").c_str() );
+
+      if ( unknowns == "" )
+        libmorph::LogMessage( 0, "'-unknown' parameter undefined, unknown words will not be dumped\n" );
+
+      if ( flex_tab == "" || flex_idx == "" || intr_tab == "" || intr_idx == "" )
+        throw std::runtime_error( "no flexion/interchange tables specified, use --help" );
+
+      if ( dict_set.size() == 0 )
+        throw std::runtime_error( "no dictinaries specified, use --help" );
+
+      rusmorph.InitTables( flex_tab, flex_idx, intr_tab, intr_idx );
+        CreateDict( dict_set, outp_dir, name_spc, unknowns );
+      rusmorph.SaveTables( outp_dir, name_spc );
     }
+
+protected:
+  ResolveRus  rusmorph;
+
 };
 
 /*
@@ -348,10 +364,19 @@ char about[] = "makerus - the dictionary builder;\n"
 
 int   main( int argc, char* argv[] )
 {
-  BuildRus  generate;
+  try
+  {
+    BuildRus  generate;
 
-  if ( argc < 2 )
-    return LogMessage( 0, about );
+    if ( argc < 2 )
+      return libmorph::LogMessage( 0, about );
 
-  return generate.Run( argv[1] );
+    generate.Run( argc, argv );
+
+    return 0;
+  }
+  catch ( const std::runtime_error& x )
+  {
+    return libmorph::LogMessage( EFAULT, "%s\n", x.what() );
+  }
 }

@@ -1,158 +1,128 @@
 #if !defined( __mtables_h__ )
 #define __mtables_h__
-# include <mtc/stringmap.h>
-# include <mtc/array.h>
+# include <algorithm>
+# include <vector>
+# include <tuple>
+# include <map>
 
-using namespace mtc;
+namespace libmorph {
+namespace rus{
 
-struct  mixclass
-{
-  word16_t  offset;
-  char      szcond[0x10];
-};
+  class Alternator
+  {
+    //
+    // „ередование с условием
+    //
+    struct  alt
+    {
+      uint16_t  offset;
+      char      szcond[0x10];
 
-// ѕредставление ссылок на некоторую таблицу чередований, то есть элементов CMixItem
-class mixtable: public array<mixclass>
-{
-  const char* tables;
+    public:     // loading
+      template <class S>  S*  Load( S* s );
 
-public:     // construction
-            mixtable(): array<mixclass>( 0x4 ), tables( nullptr ) {}
+    };
 
-public:     // API
-  unsigned  GetMix( unsigned short  type,
-                    const char*     stem,
-                    const char*     rems );
+    //
+    // ѕредставление ссылок на некоторую таблицу чередований
+    //
+    struct tab: public std::vector<alt>
+    {
+      uint16_t                Find( const char* tabs,
+                                    uint16_t    type, const char* stem, const char* rems ) const;
+
+      template <class S>  S*  Load( S* s );
+
+    };
+
+    struct ref: public std::pair<std::string, size_t>
+    {
+      template <class S>  S*  Load( S* s );
+    };
+
+  public:     // static helpers
+    static  const char*                   GetDefaultStr( const char* tables, unsigned tbOffs );
+    static  std::tuple<uint8_t, uint8_t>  GetMinMaxChar( const char* tables, uint16_t tboffs, uint8_t chrmin, uint8_t chrmax );
+
+  public:     // API
+    uint16_t                  Find( const char* tabs, const char* ztyp,
+                                    uint16_t    type, const char* stem, const char* rems ) const;
+    template <class S>  S*    Load( S* s );
+
+  protected:  // vars
+    std::vector<tab>            tabset;
+    std::map<std::string, tab*> mapper;
+
+  };
+
+  // Alternator inline implementation
+
   template <class S>
-  S*        DoLoad( const char* ptable, S* s );
+  S*  Alternator::alt::Load( S* s )
+  {
+    size_t  cchstr;
 
-};
+    if ( (s = ::FetchFrom( ::FetchFrom( s, offset ), cchstr )) == nullptr )
+      return nullptr;
+    if ( cchstr >= sizeof(szcond) )
+      return nullptr;
+    if ( (s = ::FetchFrom( s, szcond, cchstr )) == nullptr )
+      return nullptr;
+    szcond[cchstr] = '\0';
+      return s;
+  }
 
-class mixfiles: public array<mixtable>
-{
-  stringmap<int>  tableref;
-
-public:     // cnostruction
-            mixfiles(): array<mixtable>( 0x80 ) {}
-
-public:     // API
-  unsigned  GetMix( unsigned short type,
-                    const char*    stem,
-                    const char*    ztyp,
-                    const char*    rems );
   template <class S>
-  S*        DoLoad( const char* mtable, S* s );
-};
-
-// helpers
-
-inline  const char* GetDefText( const char* tables, unsigned tbOffs )
-{
-  const char* mixtab = tables + tbOffs;
-  int         tablen = *mixtab++;
-
-  while ( tablen-- > 0 )
+  S*  Alternator::tab::Load( S* s )
   {
-    if ( (*mixtab & 0x10) != 0 )  return mixtab;
-      else  mixtab += 1 + (*mixtab & 0x0f);
+    alt     newalt;
+    size_t  toload;
+
+    if ( (s = ::FetchFrom( s, toload )) != nullptr ) reserve( toload );
+      else return nullptr;
+
+    while ( toload-- > 0 && (s = newalt.Load( s )) != nullptr )
+      push_back( newalt );
+
+    return s;
   }
-  assert( "Invalid interchange table: no default string!" == NULL );
-  return nullptr;
-}
 
-inline  unsigned char GetMinLetter( const char* tables, unsigned tbOffs, unsigned char chrmin )
-{
-  const char*   mixtab = tables + tbOffs;
-  int           tablen = *mixtab++;
-  unsigned char mixmin = 0xff;
-
-  while ( tablen-- > 0 )
+  template <class S>
+  S*  Alternator::ref::Load( S* s )
   {
-    unsigned char mflags = (unsigned char)*mixtab++;
+    size_t  ccname;
 
-    if ( (mflags & 0x0f) > 0 )  mixmin = mixmin <= (unsigned char)*mixtab ? mixmin : (unsigned char)*mixtab;
-      else mixmin = '\0';
-    mixtab += (mflags & 0x0f);
+    if ( (s = ::FetchFrom( ::FetchFrom( s, second ), ccname )) != nullptr )
+    {
+      first.assign( ccname, ' ' );
+
+      s = ::FetchFrom( s, (char*)first.c_str(), ccname );
+    }
+    return s;
   }
-  return mixmin != '\0' ? mixmin : chrmin;
-}
 
-inline  unsigned char GetMaxLetter( const char* tables, unsigned tbOffs, unsigned char chrmax )
-{
-  const char*   mixtab = tables + tbOffs;
-  int           tablen = *mixtab++;
-  int           mixmax = -1;
-
-  while ( tablen-- > 0 )
+  template <class S>
+  S*  Alternator::Load( S* s )
   {
-    unsigned char mflags = (unsigned char)*mixtab++;
+    tab               newtab;
+    ref               newref;
+    size_t            toload;
 
-    if ( (mflags & 0x0f) > 0 )  mixmax = mixmax >= (unsigned char)*mixtab ? mixmax : (unsigned char)*mixtab;
-      else  mixmax = '\0';
-    mixtab += (mflags & 0x0f);
-  }
-  return mixmax <= 0 ? chrmax : mixmax;
-}
+    if ( (s = ::FetchFrom( s, toload )) != nullptr )  {  tabset.clear();  tabset.reserve( toload );  }
+      else return nullptr;
 
-// mixtable inline implementation
+    while ( toload-- > 0 && (s = newtab.Load( s )) != nullptr )
+      tabset.push_back( std::move( newtab ) );
 
-template <class S>
-S*  mixtable::DoLoad( const char*  mxtabs, S* s )
-{
-  mixclass* getone;
-  int       toload;
-
-  if ( (s = ::FetchFrom( s, toload )) == nullptr || SetLen( toload ) != 0 )
-    return nullptr;
-
-  for ( tables = mxtabs, getone = begin(); s != nullptr && getone < end(); ++getone )
-  {
-    unsigned  cchstr;
-
-    if ( (s = ::FetchFrom( ::FetchFrom( s, getone->offset ), cchstr )) == nullptr )
+    if ( (s = ::FetchFrom( s, toload )) == nullptr )
       return nullptr;
-    if ( cchstr >= sizeof(getone->szcond) )
-      return nullptr;
-    if ( (s = ::FetchFrom( s, getone->szcond, cchstr )) == nullptr )
-      return nullptr;
-    getone->szcond[cchstr] = '\0';
+
+    while ( toload-- > 0 && (s = newref.Load( s )) != nullptr )
+      mapper.insert( { std::move( newref.first ), tabset.data() + newref.second } );
+
+    return s;
   }
-  return s;
-}
 
-// mixfiles inline implementation
-
-template <class S>
-S*  mixfiles::DoLoad( const char* mtable, S* s )
-{
-  mixtable* mixtab;
-  int       tcount;
-
-  if ( (s = ::FetchFrom( s, tcount )) == NULL || SetLen( tcount ) != 0 )
-    return NULL;
-
-  for ( mixtab = begin(); s != NULL && mixtab < end(); ++mixtab )
-    s = mixtab->DoLoad( mtable, s );
-
-  if ( (s = ::FetchFrom( s, tcount )) == NULL )
-    return NULL;
-
-  while ( s != NULL && tcount-- > 0 )
-  {
-    char  szname[0x100];
-    int   tabpos;
-    int   ccname;
-
-    if ( (s = ::FetchFrom( ::FetchFrom( s, tabpos ), ccname )) == NULL )
-      return NULL;
-    if ( ccname < sizeof(szname) )  szname[ccname] = '\0';
-      else  return NULL;
-    if ( (s = ::FetchFrom( s, szname, ccname )) == NULL )
-      return NULL;
-    if ( tableref.Insert( szname, tabpos ) == nullptr )
-      return NULL;
-  }
-  return s;
-}
+}}
 
 #endif // __mtables_h__
