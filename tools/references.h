@@ -1,39 +1,65 @@
 # if !defined( __references_h__ )
 # define __references_h__
-# include <mtc/stringmap.h>
+# include <cstdint>
+# include <map>
 
-using namespace mtc;
-
-struct  CReferences: protected stringmap<unsigned>
+namespace libmorph
 {
-  unsigned  GetOffset( const char* thekey )
-    {
-      unsigned* ptrofs;
 
-      return (ptrofs = Search( thekey )) != NULL ? *ptrofs : 0;
-    }
+  class TableIndex
+  {
+    std::map<std::string, uint32_t> refmap;
+
+    struct ref
+    {
+      std::string key;
+      uint32_t    ofs;
+
+    public:
+      template <class S>  S*  Load( S* s );
+    };
+
+  public:
+    uint32_t                Find( const char* thekey ) const;
+    template <class S>  S*  Load( S* s );
+  };
+
+  // TableIndex implementation
+
   template <class S>
-  S*        FetchFrom( S* s )
+  S*  TableIndex::ref::Load( S* s )
     {
-      int   toload;
+      uint32_t  cchkey;
 
-      for ( s = ::FetchFrom( s, toload ); s != NULL && toload != 0; --toload )
+      if ( (s = ::FetchFrom( ::FetchFrom( s, ofs ), cchkey )) != nullptr )
       {
-        unsigned  offset;
-        unsigned  cchkey;
-        char      thekey[0x100];
+        key.assign( cchkey, ' ' );
 
-        if ( (s = ::FetchFrom( ::FetchFrom( s, offset ), cchkey )) == NULL )
-          return NULL;
-        if ( cchkey < sizeof(thekey) )  thekey[cchkey] = 0;
-          else  return NULL;
-        if ( (s = ::FetchFrom( s, thekey, cchkey )) == NULL )
-          return NULL;
-        if ( Insert( thekey, offset ) == nullptr )
-          return NULL;
+        s = ::FetchFrom( s, (char*)key.c_str(), cchkey );
       }
       return s;
     }
-};
+
+  inline
+  uint32_t  TableIndex::Find( const char* thekey ) const
+    {
+      auto  it = refmap.find( thekey );
+
+      return it != refmap.end() ? it->second : 0;
+    }
+
+  template <class S>
+  S*  TableIndex::Load( S* s )
+    {
+      size_t  toload;
+      ref     newref;
+
+      for ( s = ::FetchFrom( s, toload ); toload-- > 0 && (s = newref.Load( s )) != nullptr; )
+        refmap.insert( { newref.key, newref.ofs } );
+        
+      return s;
+    }
+
+}
 
 # endif  // __references_h__
