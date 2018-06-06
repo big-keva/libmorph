@@ -1,15 +1,13 @@
 # if !defined( __sweets_h__ )
 # define __sweets_h__
 # include <mtc/file.h>
-# include <mtc/array.h>
-# include <mtc/zarray.h>
 # include <mtc/serialize.h>
-# include <stdarg.h>
-# include <stdio.h>
+# include <cstdarg>
+# include <cstdint>
+# include <cstdio>
 
 namespace libmorph
 {
-  using namespace mtc;
 
   class serialbuff
   {
@@ -32,27 +30,34 @@ namespace libmorph
     return nerror;
   }
 
-  inline  int   LoadSource( array<char>&  output, const char* szfile )
+  std::vector<char> LoadSource( const char* szfile )
   {
-    file  lpfile;
-    long  cbfile;
+    std::vector<char> output;
+    mtc::file         lpfile;
+    long              cbfile;
 
-    if ( (lpfile = fopen( szfile, "rb" )) != NULL ) fseek( lpfile, 0, SEEK_END );
-      else  return ENOENT;
-    if ( output.SetLen( cbfile = ftell( lpfile ) ) == 0 ) fseek( lpfile, 0, SEEK_SET );
-      else  return ENOMEM;
-    return fread( (char*)output, 1, cbfile, lpfile ) == cbfile ? 0 : EACCES;
+    if ( (lpfile = fopen( szfile, "rb" )) == nullptr )
+      throw std::runtime_error( "file '" + std::string( szfile ) + "' not found" );
+
+    fseek( lpfile, 0, SEEK_END );
+      output.resize( (size_t)(cbfile = ftell( lpfile )) );
+    fseek( lpfile, 0, SEEK_SET );
+
+    if ( fread( output.data(), 1, cbfile, lpfile ) != cbfile )
+      throw std::runtime_error( "could not read " + std::to_string( cbfile ) + " bytes from '" + szfile + "'" );
+
+    return std::move( output );
   }
 
   inline  char* TrimString( char* thestr )
   {
     char* endstr;
 
-    while ( *thestr != '\0' && (byte_t)*thestr <= 0x20 )
+    while ( *thestr != '\0' && (uint8_t)*thestr <= 0x20 )
       ++thestr;
     for ( endstr = thestr; *endstr != '\0'; ++endstr )
       (void)NULL;
-    while ( endstr > thestr && (byte_t)endstr[-1] <= 0x20 )
+    while ( endstr > thestr && (uint8_t)endstr[-1] <= 0x20 )
       *--endstr = '\0';
     return thestr;
   }
