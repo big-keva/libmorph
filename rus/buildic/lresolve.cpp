@@ -188,10 +188,28 @@ TypeMatrix::TypeMatrix()
 # undef add_type
 }
 
-auto  st_excellent  = utf8to1251( "{превосх.}" );
-auto  st_countable  = utf8to1251( "{исчисл.}" );
-auto  st_colloquial = utf8to1251( "{разг.}" );
-auto  st_obscene    = utf8to1251( "{руг.}" );
+static struct
+{
+  std::string s_flag;
+  uint16_t    w_flag;
+} lexflags[4] =
+{
+  { utf8to1251( "{превосх.}" ), wfExcellent },
+  { utf8to1251( "{исчисл.}" ),  wfCountable },
+  { utf8to1251( "{разг.}" ),    wfInformal  },
+  { utf8to1251( "{руг.}" ),     wfObscene   }
+};
+
+uint16_t  LexFlags( const char* comments )
+{
+  uint16_t  uflags = 0;
+
+  for ( auto p = std::begin( lexflags ); p != std::end( lexflags ); ++p )
+    if ( strstr( comments, p->s_flag.c_str() ) != nullptr )
+      uflags |= p->w_flag;
+
+  return uflags;
+}
 
 auto  st_casemark   = utf8to1251( "ШП:" );
 auto  st_casescale  = utf8to1251( "ИРДВТП" );
@@ -277,12 +295,6 @@ lexemeinfo  ResolveClassInfo(
   if ( (lexeme.wdinfo = (word16_t)(int32_t)typesMap[stType]) == 0 )
     return lexemeinfo();
 
-/*
-  if ( utf8to1251( "учащийся" ) == sznorm )
-  {
-    int i = 0;
-  }
-*/
 // Далее делается проверка типа слова, чтобы включить в обработку
 // неизменяемые части речи, типы которых перечислены ниже. В этих
 // случаях несмотря на нулевую ссылку на таблицы окончаний основа
@@ -301,19 +313,10 @@ lexemeinfo  ResolveClassInfo(
   for ( auto pos = lexeme.ststem.find( '=' ); pos != std::string::npos; pos = lexeme.ststem.find( '=', pos ) )
     lexeme.ststem.erase( pos, 1 );
     
-// Отщепить постфикс
+// Отщепить постфикс и извлечь флаги описания лексической базы
   lexeme.stpost = GetPostfix( szcomm );
   lexeme.ststem.resize( lexeme.ststem.length() - lexeme.stpost.length() );
-
-// Извлечь флаги описания лексической базы
-  if ( strstr( szcomm, st_excellent.c_str() ) != nullptr )
-    lexeme.wdinfo |= wfExcellent;
-  if ( strstr( szcomm, st_countable.c_str() ) != nullptr )
-    lexeme.wdinfo |= wfCountable;
-  if ( strstr( szcomm, st_colloquial.c_str() ) != nullptr )
-    lexeme.wdinfo |= wfInformal;
-  if ( strstr( szcomm, st_obscene.c_str() ) != nullptr )
-    lexeme.wdinfo |= wfObscene;
+  lexeme.wdinfo |= LexFlags( szcomm );
 
 // Закончить обработку нефлективных слов
   if ( lexeme.tfoffs == 0 )
