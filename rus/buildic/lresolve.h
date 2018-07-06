@@ -6,9 +6,9 @@
 # include "mtables.h"
 # include <assert.h>
 
-#if defined( _MSC_VER )
-  #pragma warning( disable: 4237 )
-#endif
+# if defined( _MSC_VER )
+#   pragma warning( disable: 4237 )
+# endif
 
 struct  morphclass
 {
@@ -84,8 +84,8 @@ public:
 };
 
 lexemeinfo  ResolveClassInfo( 
-  const char*     sznorm, const char*   szdies, const char*   sztype, const char* zapart, const char*   szcomm,
-  const char*     ftable, const libmorph::TableIndex& findex,
-  const char*     mtable, const libmorph::rus::Alternator& mindex );
+  const char* sznorm, const char*   szdies, const char*   sztype, const char* zapart, const char*   szcomm,
+  const char* ftable, const libmorph::TableIndex& findex,
+  const char* mtable, const libmorph::rus::Alternator& mindex );
 
 #endif // __lresolve_h__
