@@ -20,7 +20,7 @@ void  BuildDicDump( FILE* dump, IMlmaMb* mlma )
     if ( mlma->GetWdInfo( &wdinfo, nlexid ) != 0 )
       for ( int formid = 0; formid != 0x100; ++formid )
       {
-        auto  nforms = mlma->BuildForm( aforms, sizeof(aforms), nlexid, (formid_t)formid );
+        int   nforms = mlma->BuildForm( aforms, sizeof(aforms), nlexid, (formid_t)formid );
         char* pforms;
 
         if ( nforms == 0 )
