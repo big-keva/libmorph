@@ -16,4 +16,16 @@ inline  std::string utf8to1251( const char* s )
   return winstr;
 }
 
+inline  std::string toCodepage( unsigned cp, const char* s )
+{
+  std::string str;
+
+  if ( cp == codepages::codepage_utf8 ) str.resize( strlen( s ) * 6 );
+    else str.resize( strlen( s ) );
+
+  codepages::mbcstombcs( cp, (char*)str.c_str(), str.length(), codepages::codepage_1251, s );
+
+  return (str.shrink_to_fit(), str);
+}
+
 # endif   // __utf8to1251_h__
