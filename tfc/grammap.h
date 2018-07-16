@@ -9,8 +9,8 @@ struct  graminfo
   uint8_t   bflags;
 };
 
-int       InitRus();
-int       InitUkr();
+void      InitRus();
+void      InitUkr();
 graminfo  MapInfo( const char*, graminfo );   // throws std::exception
 
 # endif  // __grammap_h__

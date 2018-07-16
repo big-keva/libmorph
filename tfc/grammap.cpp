@@ -1,9 +1,9 @@
 # include "grammap.h"
-# include <mtc/stringmap.h>
-# include <mtc/autoptr.h>
-# include <mtc/wcsstr.h>
-
-using namespace mtc;
+# include <tools/utf81251.h>
+# include <stdexcept>
+# include <cassert>
+# include <string>
+# include <map>
 
 struct  gramdata
 {
@@ -13,32 +13,31 @@ struct  gramdata
   unsigned  bflags;
 };
 
-static  stringmap<gramdata> gramMapper;
+static  std::map<std::string, gramdata> gramMapper;
 
-#define add_key( szkey, gmask, ginfo, fmask, flags )                                        \
-  if ( gramMapper.Insert( szkey, { (unsigned)(gmask), (unsigned)(ginfo),                    \
-                                   (unsigned)(fmask), (unsigned)(flags) } ) == nullptr )    \
-    return ENOMEM;
+# define add_key( szkey, gmask, ginfo, fmask, flags )   \
+  gramMapper.insert( { utf8to1251( szkey ), { (unsigned)(gmask), (unsigned)(ginfo), (unsigned)(fmask), (unsigned)(flags) } } );
 
 graminfo  MapInfo( const char*  pszkey, graminfo cginfo )
 {
   while ( *pszkey != '\0' )
   {
-    const char*     pszorg;
-    const gramdata* pginfo;
+    const char* pszorg;
+    std::string gtoken;
     
     for ( pszorg = pszkey; *pszkey != '\0' && *pszkey != '|'; ++pszkey )
       (void)NULL;
-    assert( pszkey > pszorg && (*pszkey == '\0' || *pszkey == '|') );
 
-    if ( (pginfo = gramMapper.Search( pszorg, pszkey - pszorg )) == nullptr )
-    {
-      throw _auto_<char>( strduprintf( "Undefined grammar description '%s'!",
-        _auto_<char>( w_strdup( pszorg, pszkey - pszorg ) ).ptr() ) );
-    }
+    if ( pszkey == pszorg || !(*pszkey == '\0' || *pszkey == '|') )
+      throw std::runtime_error( std::string( "invalid grammatic expression '" ) + pszorg + "'" );
 
-    cginfo.grinfo = (cginfo.grinfo & pginfo->grmask) | pginfo->grinfo;
-    cginfo.bflags = (cginfo.bflags & pginfo->mflags) | pginfo->bflags;
+    auto  pfound = gramMapper.find( gtoken = std::string( pszorg, pszkey - pszorg ) );
+    
+    if ( pfound == gramMapper.end() )
+      throw std::runtime_error( "unknown grammatic token '" + gtoken + "'" );
+
+    cginfo.grinfo = (cginfo.grinfo & pfound->second.grmask) | pfound->second.grinfo;
+    cginfo.bflags = (cginfo.bflags & pfound->second.mflags) | pfound->second.bflags;
 
     if ( *pszkey == '|' )
       ++pszkey;
@@ -46,51 +45,50 @@ graminfo  MapInfo( const char*  pszkey, graminfo cginfo )
   return cginfo;
 }
 
-int   InitRus()
+void  InitRus()
 {
-  gramMapper.DelAll();
+  gramMapper.clear();
 
-  add_key( "Â",         ~gfFormMask,  3 << 12, -1, afAnimated + afNotAlive )
-  add_key( "Âí",        ~gfFormMask,  3 << 12, ~(afAnimated + afNotAlive), afNotAlive )
-  add_key( "Âî",        ~gfFormMask,  3 << 12,  ~(afAnimated + afNotAlive),  afAnimated )
-  add_key( "Ä",         ~gfFormMask,  2 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "È",         ~gfFormMask,  0,        -1,  afAnimated + afNotAlive )
-  add_key( "Ï",         ~gfFormMask,  5 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "Ï2",        ~gfFormMask,  7 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "Ð",         ~gfFormMask,  1 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "Ð2",        ~gfFormMask,  6 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "Ò",         ~gfFormMask,  4 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "âðåìÿ Á",   0,            vtFuture,     -1, afAnimated + afNotAlive )
-  add_key( "âðåìÿ Í",   0,            vtPresent,    -1, afAnimated + afNotAlive )
-  add_key( "âðåìÿ Ï",   0,            vtPast,       -1, afAnimated + afNotAlive )
-  add_key( "âô",        -1,           gfRetForms,   -1, 0 )
-  add_key( "äååïð",     gfVerbTime,   vfVerbDoing,  -1, afAnimated + afNotAlive )
-  add_key( "äåéñòâ",    gfVerbTime,   vfVerbActive, -1, afAnimated + afNotAlive )
-  add_key( "çàòðóäí",   -1,           0,            -1, afHardForm )
-  add_key( "èíôèíèòèâ", 0,            vtInfinitiv,  0,            afAnimated + afNotAlive )
-  add_key( "êô",        gfVerbTime+gfVerbForm+gfGendMask+gfMultiple,   gfShortOne, -1, afAnimated + afNotAlive )
-  add_key( "ëèöî 1",    gfVerbTime,   vbFirstFace, -1, afAnimated + afNotAlive )
-  add_key( "ëèöî 2",    gfVerbTime,   vbSecondFace, -1, afAnimated + afNotAlive )
-  add_key( "ëèöî 3",    gfVerbTime,   vbThirdFace, -1, afAnimated + afNotAlive )
-  add_key( "íð",        0,            gfAdverb,     -1, afAnimated + afNotAlive )
-  add_key( "ïîâåë",     0,            vtImperativ,  -1, afAnimated + afNotAlive )
-  add_key( "ïðîô",      -1,           0,            -1, 0 )                      
-  add_key( "ðîä",       gfVerbTime|gfVerbForm|gfMultiple, 0,      -1, 0 )
-  add_key( "ðîä æ",     gfVerbTime|gfVerbForm, 2 << 9, -1, 0 )
-  add_key( "ðîä ì",     gfVerbTime|gfVerbForm, 1 << 9, -1, 0 )
-  add_key( "ðîä ñ",     gfVerbTime|gfVerbForm, 3 << 9, -1, 0 )
-  add_key( "ñîåä",      -1,           0,      -1, afJoiningC  )
-  add_key( "ñð",        0,            gfCompared,   -1, afAnimated + afNotAlive )
-  add_key( "ñòðàä",     gfVerbTime,   vfVerbPassiv, -1, afAnimated + afNotAlive )
-  add_key( "÷èñëî",     gfVerbTime|gfVerbForm, 0, -1, afAnimated + afNotAlive )
-  add_key( "÷èñëî Å",   gfVerbTime|gfVerbForm, 0, -1, afAnimated + afNotAlive )
-  add_key( "÷èñëî Ì",   gfVerbTime|gfVerbForm, gfMultiple, -1, afAnimated + afNotAlive )
-  return 0;
+  add_key( "Ð’",         ~gfFormMask,  3 << 12, -1, afAnimated + afNotAlive )
+  add_key( "Ð’Ð½",        ~gfFormMask,  3 << 12, ~(afAnimated + afNotAlive), afNotAlive )
+  add_key( "Ð’Ð¾",        ~gfFormMask,  3 << 12,  ~(afAnimated + afNotAlive),  afAnimated )
+  add_key( "Ð”",         ~gfFormMask,  2 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "Ð˜",         ~gfFormMask,  0,        -1,  afAnimated + afNotAlive )
+  add_key( "ÐŸ",         ~gfFormMask,  5 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "ÐŸ2",        ~gfFormMask,  7 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "Ð ",         ~gfFormMask,  1 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "Ð 2",        ~gfFormMask,  6 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "Ð¢",         ~gfFormMask,  4 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "Ð²Ñ€ÐµÐ¼Ñ Ð‘",   0,            vtFuture,     -1, afAnimated + afNotAlive )
+  add_key( "Ð²Ñ€ÐµÐ¼Ñ Ð",   0,            vtPresent,    -1, afAnimated + afNotAlive )
+  add_key( "Ð²Ñ€ÐµÐ¼Ñ ÐŸ",   0,            vtPast,       -1, afAnimated + afNotAlive )
+  add_key( "Ð²Ñ„",        -1,           gfRetForms,   -1, 0 )
+  add_key( "Ð´ÐµÐµÐ¿Ñ€",     gfVerbTime,   vfVerbDoing,  -1, afAnimated + afNotAlive )
+  add_key( "Ð´ÐµÐ¹ÑÑ‚Ð²",    gfVerbTime,   vfVerbActive, -1, afAnimated + afNotAlive )
+  add_key( "Ð·Ð°Ñ‚Ñ€ÑƒÐ´Ð½",   -1,           0,            -1, afHardForm )
+  add_key( "Ð¸Ð½Ñ„Ð¸Ð½Ð¸Ñ‚Ð¸Ð²", 0,            vtInfinitiv,  0,            afAnimated + afNotAlive )
+  add_key( "ÐºÑ„",        gfVerbTime+gfVerbForm+gfGendMask+gfMultiple,   gfShortOne, -1, afAnimated + afNotAlive )
+  add_key( "Ð»Ð¸Ñ†Ð¾ 1",    gfVerbTime,   vbFirstFace, -1, afAnimated + afNotAlive )
+  add_key( "Ð»Ð¸Ñ†Ð¾ 2",    gfVerbTime,   vbSecondFace, -1, afAnimated + afNotAlive )
+  add_key( "Ð»Ð¸Ñ†Ð¾ 3",    gfVerbTime,   vbThirdFace, -1, afAnimated + afNotAlive )
+  add_key( "Ð½Ñ€",        0,            gfAdverb,     -1, afAnimated + afNotAlive )
+  add_key( "Ð¿Ð¾Ð²ÐµÐ»",     0,            vtImperativ,  -1, afAnimated + afNotAlive )
+  add_key( "Ð¿Ñ€Ð¾Ñ„",      -1,           0,            -1, 0 )                      
+  add_key( "Ñ€Ð¾Ð´",       gfVerbTime|gfVerbForm|gfMultiple, 0,      -1, 0 )
+  add_key( "Ñ€Ð¾Ð´ Ð¶",     gfVerbTime|gfVerbForm, 2 << 9, -1, 0 )
+  add_key( "Ñ€Ð¾Ð´ Ð¼",     gfVerbTime|gfVerbForm, 1 << 9, -1, 0 )
+  add_key( "Ñ€Ð¾Ð´ Ñ",     gfVerbTime|gfVerbForm, 3 << 9, -1, 0 )
+  add_key( "ÑÐ¾ÐµÐ´",      -1,           0,      -1, afJoiningC  )
+  add_key( "ÑÑ€",        0,            gfCompared,   -1, afAnimated + afNotAlive )
+  add_key( "ÑÑ‚Ñ€Ð°Ð´",     gfVerbTime,   vfVerbPassiv, -1, afAnimated + afNotAlive )
+  add_key( "Ñ‡Ð¸ÑÐ»Ð¾",     gfVerbTime|gfVerbForm, 0, -1, afAnimated + afNotAlive )
+  add_key( "Ñ‡Ð¸ÑÐ»Ð¾ Ð•",   gfVerbTime|gfVerbForm, 0, -1, afAnimated + afNotAlive )
+  add_key( "Ñ‡Ð¸ÑÐ»Ð¾ Ðœ",   gfVerbTime|gfVerbForm, gfMultiple, -1, afAnimated + afNotAlive )
 }
 
-int   InitUkr()
+void  InitUkr()
 {
-  gramMapper.DelAll();
+  gramMapper.clear();
 
   add_key( "act",    gfVerbTime,   vfVerbActive, -1, afAnimated + afNotAlive )
   add_key( "face 1", gfVerbTime,   vbFirstFace, -1, afAnimated + afNotAlive )
@@ -109,15 +107,14 @@ int   InitUkr()
   add_key( "sing",   gfVerbTime|gfVerbForm, 0, -1, afAnimated + afNotAlive )
   add_key( "plur",   gfVerbTime|gfVerbForm, gfMultiple, -1, afAnimated + afNotAlive )
 
-  add_key( "Â",      ~gfFormMask,  3 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "Âí",     ~gfFormMask,  3 << 12,  ~(afAnimated + afNotAlive),  afNotAlive )
-  add_key( "Âî",     ~gfFormMask,  3 << 12,  ~(afAnimated + afNotAlive),  afAnimated )
-  add_key( "Ä",      ~gfFormMask,  2 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "Ç",      ~gfFormMask,  6 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "È",      ~gfFormMask,  0,        -1,  afAnimated + afNotAlive )
-  add_key( "Ï",      ~gfFormMask,  5 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "Ð",      ~gfFormMask,  1 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "Ò",      ~gfFormMask,  4 << 12,  -1,  afAnimated + afNotAlive )
-  add_key( "âô",     -1, gfRetForms,   -1, 0 )
-  return 0;
+  add_key( "Ð’",      ~gfFormMask,  3 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "Ð’Ð½",     ~gfFormMask,  3 << 12,  ~(afAnimated + afNotAlive),  afNotAlive )
+  add_key( "Ð’Ð¾",     ~gfFormMask,  3 << 12,  ~(afAnimated + afNotAlive),  afAnimated )
+  add_key( "Ð”",      ~gfFormMask,  2 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "Ð—",      ~gfFormMask,  6 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "Ð˜",      ~gfFormMask,  0,        -1,  afAnimated + afNotAlive )
+  add_key( "ÐŸ",      ~gfFormMask,  5 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "Ð ",      ~gfFormMask,  1 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "Ð¢",      ~gfFormMask,  4 << 12,  -1,  afAnimated + afNotAlive )
+  add_key( "Ð²Ñ„",     -1, gfRetForms,   -1, 0 )
 }

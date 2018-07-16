@@ -1,66 +1,112 @@
 # if !defined( __ftable_h__ )
 # define  __ftable_h__
-# include <mtc/stringmap.h>
 # include <mtc/serialize.h>
-# include <mtc/array.h>
-# include <string.h>
-# include <stdlib.h>
-# include <stdio.h>
+# include <algorithm>
+# include <vector>
+# include <string>
+# include <map>
 
-# if defined( _MSC_VER )
-#   pragma  warning( disable: 4291 )
-# endif  // _MSC_VER
-
-using namespace mtc;
-
-struct  fxitem;
-class   ftable;
-class   fxlist;
-
-struct  fxitem
+class fxitem
 {
-  char      sztail[32];
-  char      sznext[32];
-  word16_t  grinfo;
-  byte_t    bflags;
-  word16_t  ofnext;
+  friend class ftable;
 
 public:
-  static int  compare( const fxitem& r1, const fxitem& r2 )
-              {
-                int   rescmp = strcmp( r1.sztail, r2.sztail );
+  std::string sztail;
+  std::string sznext;
+  uint16_t    grinfo;
+  uint8_t     bflags;
+  uint16_t    ofnext;
 
-                if ( rescmp == 0 )
-                  rescmp = (int)r1.grinfo - (int)r2.grinfo;
-                if ( rescmp == 0 )
-                  rescmp = (int)r1.bflags - (int)r2.bflags;
-                if ( rescmp == 0 )
-                  rescmp = strcmp( r1.sznext, r2.sznext );
-                return rescmp;
-              }
+public:     // construction
+  fxitem(): grinfo( 0 ), bflags( 0 ), ofnext( 0 ) {}
+  fxitem( const fxitem& ) = delete;
+  fxitem& operator = ( const fxitem& ) = delete;
+  fxitem( fxitem&& fx ):
+    sztail( std::move( fx.sztail ) ),
+    sznext( std::move( fx.sznext ) ),
+    grinfo( fx.grinfo ),
+    bflags( fx.bflags ),
+    ofnext( fx.ofnext ) {}
+  fxitem& operator = ( fxitem&& fx )
+    {
+      sztail = std::move( fx.sztail );
+      sznext = std::move( fx.sznext );
+      grinfo = fx.grinfo;
+      bflags = fx.bflags;
+      ofnext = fx.ofnext;
+      return *this;
+    }
+
+public:     // operators
+  bool  operator == ( const fxitem& fx ) const  {  return comp( fx ) == 0;  }
+  bool  operator != ( const fxitem& fx ) const  {  return !(*this == fx);   }
+  bool  operator <  ( const fxitem& fx ) const  {  return comp( fx ) <  0;  }
+
+protected:  // helpers
+  int   comp( const fxitem& fx ) const
+    {
+      int   rescmp = strcmp( sztail.c_str(), fx.sztail.c_str() );
+
+      if ( rescmp == 0 )
+        rescmp = grinfo - fx.grinfo;
+      if ( rescmp == 0 )
+        rescmp = bflags - fx.bflags;
+      if ( rescmp == 0 )
+        rescmp = strcmp( sznext.c_str(), fx.sznext.c_str() );
+      return rescmp;
+    }
+
 public:     // serialization
-  size_t  GetBufLen(      ) const;
   template <class O>
-  O*      Serialize( O* o ) const;
+  O*      Serialize( O* ) const;
+  size_t  GetBufLen(    ) const;
 };
 
-class   ftable: public array<fxitem>
+class ftable
 {
   friend class fxlist;
 
-  word16_t  offset = 0;
+  std::vector<fxitem> flexet;
+  uint16_t            offset;
 
-public:
-  bool  Insert( const fxitem& );
+public:     // construction
+  ftable(): offset( 0 ) {}
+  ftable( const ftable& ) = delete;
+  ftable& operator = ( const ftable& ) = delete;
+  ftable( ftable&& f ): flexet( std::move( f.flexet ) ), offset( f.offset ) {}
+  ftable& operator = ( ftable&& f )
+    {
+      flexet = std::move( f.flexet );
+      offset = f.offset;  return *this;
+    }
+
+public:     // compare
+  bool  operator == ( const ftable& fx ) const  {  return flexet == fx.flexet;  }
+  bool  operator != ( const ftable& fx ) const  {  return !(*this == fx);   }
+  bool  operator <  ( const ftable& fx ) const  {  return flexet <  fx.flexet;  }
+  
+public:     // adding
+  void  Insert( fxitem&& fx )
+    {
+      auto  beg = flexet.begin();
+      auto  end = flexet.end();
+
+      while ( beg != end && *beg < fx )
+        ++beg;
+
+      if ( beg == end || *beg != fx )
+        flexet.insert( beg, std::move( fx ) );
+    }
+
+  bool  empty() const {  return flexet.empty();  }
 
 public:     // serialization
   template <class O>
   O*    Serialize( O* ) const;
 
-protected:
-  int         Compare( const ftable& ) const;
-  int         RelocateReferences( fxlist&   rflist );
-  unsigned    RelocateOffsetSize( unsigned  offset );
+protected:  // helpers
+  void        RelocateReferences( fxlist&  );
+  unsigned    RelocateOffsetSize( size_t );
 
 };
 
@@ -68,15 +114,14 @@ class   fxlist
 {
   friend class ftable;
 
-  array<ftable*>      tables;
-  stringmap<ftable*>  tabmap;
-
-public:     // construction
-           ~fxlist();
+  std::vector<ftable>           tables;
+  std::map<std::string, size_t> tabmap;
 
 public:     // API
-                      int Insert( ftable*, const char* );
-                      int Relocate();
+  void  Insert( ftable&&, const char* );
+  void  Relocate();
+
+public:     // serialization
   template <class O>  O*  StoreTab( O* );
   template <class O>  O*  StoreRef( O* );
 };
@@ -86,7 +131,7 @@ public:     // API
 inline
 size_t  fxitem::GetBufLen() const
 {
-  size_t  l = sizeof(bflags) + sizeof(grinfo) + ::GetBufLen( sztail );
+  size_t  l = sizeof(bflags) + sizeof(grinfo) + ::GetBufLen( sztail.c_str() );
 
   return (bflags & 0xC0) != 0 ? l + sizeof(ofnext) : l;
 }
@@ -107,11 +152,11 @@ O*      fxitem::Serialize( O* o ) const
 template <class O>
 O*      ftable::Serialize( O*  o ) const
 {
-  size_t  l = sizeof(char);   assert( size() != 0 );
+  size_t  l = sizeof(char);
 
-  o = ::Serialize( o, (byte_t)size() );
+  o = ::Serialize( o, (uint8_t)flexet.size() );
 
-  for ( auto flex = begin(); flex < end() && o != nullptr; l += (flex++)->GetBufLen() )
+  for ( auto flex = flexet.begin(); o != nullptr && flex != flexet.end(); l += flex->GetBufLen(), ++flex )
     o = flex->Serialize( o );
 
   return (l & 0x01) != 0 ? ::Serialize( o, (char)0 ) : o;
@@ -122,10 +167,10 @@ O*      ftable::Serialize( O*  o ) const
 template <class O>
 O*  fxlist::StoreTab( O* o )
 {
-  ftable**  ptable;
+  o = ::Serialize( o, "inflex", 6 );
 
-  for ( o = ::Serialize( o, "inflex", 6 ), ptable = tables.begin(); o != NULL && ptable < tables.end(); ++ptable )
-    o = (*ptable)->Serialize( o );
+  for ( auto tab = tables.begin(); o != nullptr && tab != tables.end(); ++tab )
+    o = tab->Serialize( o );
 
   return o;
 }
@@ -133,10 +178,10 @@ O*  fxlist::StoreTab( O* o )
 template <class O>
 O*  fxlist::StoreRef( O* o )
 {
-  void*   lpenum;
+  o = ::Serialize( o, tabmap.size() );
 
-  for ( o = ::Serialize( o, tabmap.GetLen() ), lpenum = NULL; o != NULL && (lpenum = tabmap.Enum( lpenum )) != NULL; )
-    o = ::Serialize( ::Serialize( o, tabmap.GetVal( lpenum )->offset ), tabmap.GetKey( lpenum ) );
+  for ( auto next = tabmap.begin(); o != nullptr && next != tabmap.end(); ++next )
+    o = ::Serialize( ::Serialize( o, tables[next->second].offset ), next->first.c_str() );
 
   return o;
 }

@@ -4,129 +4,77 @@
 # include <assert.h>
 # include <errno.h>
 
-# if defined( _MSC_VER )
-#   pragma warning( disable: 4291 )
-# endif  // _MSC_VER
-
 // ftable implementation
 
-bool      ftable::Insert( const fxitem& f )
+void  ftable::RelocateReferences( fxlist& rflist )
 {
-  int   search;
-
-  if ( !Search( [&]( const fxitem& r ){  return fxitem::compare( f, r );  }, search ) )
-    return array<fxitem>::Insert( search, f ) == 0;
-  fprintf( stderr, "Element already exists!\n" );
-    return true;
-}
-
-int       ftable::Compare( const ftable& reftab ) const
-{
-  int   rescmp;
-  int   findex;
-  
-  if ( (rescmp = ncount - reftab.ncount) != 0 )
-    return rescmp;
-    
-  for ( findex = 0; findex < ncount; findex++ )
-    if ( (rescmp = fxitem::compare( pitems[findex], reftab.pitems[findex] )) != 0 )
-      return rescmp;
-
-  return 0;
-}
-
-int       ftable::RelocateReferences( fxlist& rflist )
-{
-  fxitem* lpflex;
-
-  for ( lpflex = begin(); lpflex < end(); ++lpflex )
-    if ( (lpflex->bflags & 0xc0) != 0 )
+  for ( auto flex = flexet.begin(); flex != flexet.end(); ++flex )
+    if ( (flex->bflags & 0xc0) != 0 )
     {
-      ftable**  ptable;
+      auto  pfound = rflist.tabmap.find( flex->sznext );
 
-    // Relocate the element
-      if ( (ptable = rflist.tabmap.Search( lpflex->sznext )) == NULL )
-        return libmorph::LogMessage( EINVAL, "Could not resolve internal reference \"%s\"!", lpflex->sznext );
+      if ( pfound == rflist.tabmap.end() )
+        throw std::runtime_error( "Could not resolve internal reference '" + flex->sznext + "'" );
 
-      lpflex->ofnext = (*ptable)->offset;
+      flex->ofnext = rflist.tables[pfound->second].offset;
     }
-  return 0;
 }
 
-unsigned  ftable::RelocateOffsetSize( unsigned dwoffs )
+unsigned  ftable::RelocateOffsetSize( size_t dwoffs )
 {
-  const fxitem* lpflex;
+  if ( dwoffs >= 0x1ffff || (dwoffs & 0x01) != 0 )
+    throw std::runtime_error( "invalid (not aligned) offset passed to relocation" );
 
-  assert( dwoffs < 0x1ffff && (dwoffs & 0x01) == 0 );
+  offset = (uint16_t)(dwoffs++ >> 1);
 
-  for ( offset = (dwoffs++ >> 1), lpflex = begin(); lpflex < end(); ++lpflex )
-    dwoffs += lpflex->GetBufLen();
+  for ( auto flex = flexet.begin(); flex != flexet.end(); ++flex )
+    dwoffs += flex->GetBufLen();
 
   return (dwoffs + 1) & ~0x01;
 }
 
 // fxlist implementation
 
-fxlist::~fxlist()
+//
+// проверить, существует ли такая таблица; если существует, использует индекс существующей,
+// иначе добавляет новую и использует её индекс
+void  fxlist::Insert( ftable&& ft, const char* ix )
 {
-  ftable**  ptrtop;
+  auto    l_trim = []( const char* s ){  while ( *s != '\0' && (unsigned char)*s <= 0x20 ) ++s;  return s;  };
+  auto    ptable = std::find_if( tables.begin(), tables.end(), [&]( const ftable& tf ){  return tf == ft;  } );
+  size_t  findex;
 
-  for ( ptrtop = tables.begin(); ptrtop < tables.end(); ++ptrtop )
-    delete *ptrtop;
+  if ( ptable == tables.end() )
+    {  findex = tables.size();  tables.push_back( std::move( ft ) );  }
+  else
+    {  findex = ptable - tables.begin();  }
+
+  while ( *(ix = l_trim( ix )) != '\0' )
+  {
+    const char* pszorg = ix;
+
+    while ( *ix != '\0' && *ix != ',' )
+      ++ix;
+    while ( ix > pszorg && (unsigned char)ix[-1] <= 0x20 )
+      --ix;
+
+    if ( ix > pszorg )
+      tabmap.insert( { std::string( pszorg, ix - pszorg ), findex } );
+
+    if ( *(ix = l_trim( ix )) == ',' )
+      ++ix;
+  }
 }
 
-int   fxlist::Insert( ftable*     ptable,
-                      const char* pnames )
+void  fxlist::Relocate()
 {
-  int     search;
-  int     nerror;
-
-// First check if the table already exists
-  if ( tables.Search( [&]( const ftable* f1 ){  return ptable->Compare( *f1 );  }, search ) )
-  {
-    delete ptable;
-    ptable = tables[search];
-  }
-    else
-  if ( (nerror = tables.Insert( search, ptable )) != 0 )
-  {
-    delete ptable;
-    return nerror;
-  }
-
-  while ( *(pnames = ltrim( pnames )) != '\0' )
-  {
-    char  szname[0x100];
-    char* pszout = szname;
-
-    while ( *pnames != '\0' && *pnames != ',' )
-      *pszout++ = *pnames++;
-    for ( *pszout = '\0'; pszout > szname && isspace( pszout[-1] ); )
-      *--pszout = '\0';
-
-    if ( pszout > szname && tabmap.Insert( szname, ptable ) == nullptr )
-      return ENOMEM;
-
-    if ( *pnames == ',' )
-      ++pnames;
-  }
-  return 0;
-}
-
-int   fxlist::Relocate()
-{
-  ftable**  ptable;
-  unsigned  offset;
-  int       nerror;
+  size_t  offset = 6;
 
 // Relocate the tables
-  for ( offset = 6, ptable = tables.begin(); ptable < tables.end(); ++ptable )
-    offset = (*ptable)->RelocateOffsetSize( offset );
+  for ( auto tab = tables.begin(); tab != tables.end(); ++tab )
+    offset = tab->RelocateOffsetSize( offset );
 
 // Relocate the references
-  for ( ptable = tables.begin(); ptable < tables.end(); ++ptable )
-    if ( (nerror = (*ptable)->RelocateReferences( *this )) != 0 )
-      return nerror;
-    
-  return 0;
+  for ( auto tab = tables.begin(); tab != tables.end(); ++tab )
+    tab->RelocateReferences( *this );
 }

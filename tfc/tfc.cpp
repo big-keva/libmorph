@@ -1,6 +1,7 @@
 # include "ftable.h"
 # include "grammap.h"
-# include "../tools/csource.h"
+# include "../tools/sourcefile.h"
+# include "../tools/utf81251.h"
 # include "../tools/sweets.h"
 # include <libcodes/codes.h>
 # include <mtc/autoptr.h>
@@ -11,188 +12,150 @@ using namespace codepages;
 
 bool  source1251 = false;
 
-template <size_t N, class filter>
-const char* substr( char (&output)[N], const filter& _allow, const char* source )
+template <class filter>
+const char* substr( std::string& output, const filter& _allow, const char* source )
 {
-  char* outptr = output;
-  char* outend = output + N - 1;
+  const char* srcorg = source;
 
-  while ( source != nullptr && output < outend && *source != '\0' && _allow( *source ) )
-    *outptr++ = *source++;
-  *outptr = '\0';
+  while ( source != nullptr && *source != '\0' && _allow( *source ) )
+    ++source;
+
+  output = std::move( std::string( srcorg, source - srcorg ) );
     return source;
 }
 
 fxitem  MapLine( const char*  string, graminfo cginfo )
 {
-  auto    fxchar = []( char c ){  return c != ',' && !isspace( c );  };
-  auto    commas = []( const char* s ){  return *(s = ltrim( s )) == ',' ? s + 1 : s;  };
-  fxitem  inflex;
-  char    grtext[32];
-  char    sznext[sizeof(inflex.sznext)];
-  char    szopts[sizeof(inflex.sznext)];
+  auto    is_space = [ ]( char c ){  return c != '\0' && (unsigned char)c <= 0x20;  };
+  auto    flexchar = [&]( char c ){  return c != ',' && !is_space( c );  };
+  auto    no_space = [&]( const char* s ){  while ( is_space( *s ) ) ++s;  return s;  };
+  auto    no_comma = [&]( const char* s ){  return *(s = no_space( s )) == ',' ? s + 1 : s;  };
 
-  substr(        szopts, fxchar, ltrim( commas(
-  substr(        sznext, fxchar, ltrim( commas(
-  substr(        grtext, fxchar, ltrim( commas(
-  substr( inflex.sztail, fxchar, ltrim( string ) ) ) ) ) ) ) ) ) ) );
+  fxitem      inflex;
+  std::string grtext;
+  std::string sznext;
+  std::string szopts;
 
-  if ( w_strcmp( inflex.sztail, "\'\'" ) == 0 )
-    inflex.sztail[0] = '\0';
+  substr(        szopts, flexchar, no_space( no_comma(
+  substr(        sznext, flexchar, no_space( no_comma(
+  substr(        grtext, flexchar, no_space( no_comma(
+  substr( inflex.sztail, flexchar, no_space( string ) ) ) ) ) ) ) ) ) ) );
 
-  if ( grtext[0] != '\0' )
-    cginfo = MapInfo( grtext, cginfo );
+  if ( inflex.sztail == "''" )
+    inflex.sztail = "";
+
+  if ( grtext != "" )
+    cginfo = MapInfo( grtext.c_str(), cginfo );
 
   inflex.grinfo = cginfo.grinfo;
   inflex.bflags = cginfo.bflags;
 
-  if ( sznext[0] != '\0' )  {  inflex.bflags |= 0x80;  strcpy( inflex.sznext, sznext );  }  else
-  if ( szopts[0] != '\0' )  {  inflex.bflags |= 0x40;  strcpy( inflex.sznext, szopts );  }  else
-    inflex.sznext[0] = '\0';
+  if ( sznext != "" ) {  inflex.bflags |= 0x80;  inflex.sznext = sznext;  }  else
+  if ( szopts != "" ) {  inflex.bflags |= 0x40;  inflex.sznext = szopts;  }  else
+    inflex.sznext = "";
 
   return inflex;
 }
 
-int   MakeTab( CSource& source, fxlist& rflist )
+inline  bool  is_space( char ch ) {  return ch != '\0' && (unsigned char)ch <= 0x20;  }
+inline  bool  is_space( const char* pch ) {  return is_space( *pch );  }
+
+inline  bool  has_command( const std::string& s, const std::string& cmd )
 {
-  char            header[256];
-  char            string[256];
-  char*           lphead;
-  graminfo        cginfo = { 0, afAnimated|afNotAlive };
-  _auto_<ftable>  tablep;
-  int             nerror;
+  size_t  cmdlen = cmd.length();
 
-// Get top line
-  if ( !source.GetLine( header ) || !source.GetLine( string ) )
-    return source.Message( EINVAL, "Invalid file format!" );
+  return s.length() > cmdlen && strncmp( s.c_str(), cmd.c_str(), cmdlen ) == 0
+    && is_space( s[cmdlen] );
+}
 
-// Create header info
-  if ( !source1251 )
+unsigned  source_encoding = codepages::codepage_866;
+# if defined( WIN32 )
+unsigned  console_encoding = codepages::codepage_866;
+# else
+unsigned  console_encoding = codepages::codepage_utf8;
+# endif
+
+auto  s_rus_table   = utf8to1251( ".таблица" );
+auto  s_eng_table   = utf8to1251( ".table" );
+auto  s_rus_type    = utf8to1251( ".тип" );
+auto  s_eng_type    = utf8to1251( ".type" );
+auto  s_rus_include = utf8to1251( ".включить" );
+auto  s_eng_include = utf8to1251( ".include" );
+
+void  MakeTab( Source& src, fxlist& tab )
+{
+  auto        header = src.Get();
+  std::string stnext;
+  ftable      newtab;
+  graminfo    cginfo = { 0, afAnimated|afNotAlive };
+
+// извлечь индексы таблицы
+  if ( header.length() == 0 )
+    throw std::runtime_error( "unexpected end of file, table header expected" );
+
+  if ( has_command( header, s_rus_table ) ) header.erase( 0, s_rus_table.length() + 1 );  else
+  if ( has_command( header, s_eng_table ) ) header.erase( 0, s_eng_table.length() + 1 );  else
+  if ( has_command( header, s_rus_type ) )  header.erase( 0, s_rus_type.length() + 1 );   else
+  if ( has_command( header, s_eng_type ) )  header.erase( 0, s_eng_type.length() + 1 );   else
+    throw std::runtime_error( "'.table' declaration followed by table index expected" );
+
+  if ( (header = libmorph::trim( header )).length() == 0 )
+    throw std::runtime_error( "unexpected end of line, table index expected" );
+
+  if ( strstr( header.c_str(), utf8to1251( "нсв 4a32'" ).c_str() ) != nullptr )
   {
-    mbcstombcs( codepage_1251, header, sizeof(header), codepage_866, header );
-    mbcstombcs( codepage_1251, string, sizeof(string), codepage_866, string );
+    int i = 0;
   }
 
-  if ( strncmp( header, ".�������", 8 ) == 0 )  lphead = header + 8;  else
-  if ( strncmp( header, ".���",     4 ) == 0 )  lphead = header + 4;  else
-  if ( strncmp( header, ".table",   6 ) == 0 )  lphead = header + 6;  else
-  if ( strncmp( header, ".type",    5 ) == 0 )  lphead = header + 5;  else
-    return source.Message( EINVAL, "Table header '.table' or '.type' expected!" );
+// извлечь первую строку
+  if ( (stnext = src.Get()).length() == 0 )
+    throw std::runtime_error( "unexpected end of file" );
 
-// Check if the empty header
-  if ( *(lphead = libmorph::TrimString( lphead )) == '\0' )
-    return source.Message( EINVAL, "Unnamed table!" );
-  
-// Check table start
-  if ( strcmp( string, "{" ) != 0 )
-    return source.Message( EINVAL, "\'{\' expected!" );
+  if ( stnext != "{" )
+    throw std::runtime_error( "'{' exected" );
 
-// Create the table
-  if ( (tablep = allocate<ftable>()) == nullptr )
-    return source.Message( ENOMEM, "Could not allocate memory!" );
-
-// Parse the table
-  while ( source.GetLine( string ) && strcmp( string, "}" ) != 0 )
+// последовательно считать таблицу
+  for ( ; ; )
   {
-    if ( !source1251 )
-      mbcstombcs( codepage_1251,  string, sizeof(string), codepage_866, string );
+    if ( (stnext = src.Get()).length() == 0 )
+      throw std::runtime_error( "unexpected end of file" );
+
+    if ( stnext == "}" )
+      break;
 
   // Check if the command string
-    try
-    {
-      if ( string[0] == '.' ) cginfo = MapInfo( string + 1, cginfo );
-        else
-      if ( !tablep->Insert( MapLine( string, cginfo ) ) )
-        return source.Message( ENOMEM, "Could not insert the entry to the table!" );
-    }
-    catch ( const _auto_<char>& msg )
-    {  throw _auto_<char>( strduprintf( "line %d, %s", source.FetchId(), msg.ptr() ) );  }
+    if ( stnext.front() == '.' ) cginfo = MapInfo( stnext.c_str() + 1, cginfo );
+      else newtab.Insert( std::move( MapLine( stnext.c_str(), cginfo ) ) );
   }
 
-  if ( tablep->GetLen() == 0 )
-    return source.Message( EINVAL, "Invalid (empty) inflexion table!" );
+  if ( newtab.empty() )
+    throw std::runtime_error( "invalid (empty) inflexion table" );
 
-  if ( (nerror = rflist.Insert( tablep.ptr(), lphead )) != 0 )
-    return source.Message( ENOMEM, "Could not register the table!" );
-
-  return (tablep.detach(), 0);
+  tab.Insert( std::move( newtab ), header.c_str() );
 }
 
-int   Compile( CSource& source, fxlist& rflist )
-{
-  char  string[1024];
-  int   nerror;
-
-// Load all the file lines
-  while ( source.GetLine( string ) )
-  {
-  // Check the codepage switch and recode the string
-    if ( !source1251 )
-      mbcstombcs( codepage_1251,  string, sizeof(string), codepage_866, string );
-
-  // Check the command
-    if ( string[0] != '.' )
-      return source.Message( EINVAL, "invalid source line %s!\n", string );
-
-    if ( strncmp( string + 1, "��������", 8 ) == 0 && isspace( string[9] )
-      || strncmp( string + 1, "include",  7 ) == 0 && isspace( string[8] ) )
-    {
-      CSource infile;
-      char*   ptrtop;
-      char    szpath[256];
-
-      for ( ptrtop = string + 8; *ptrtop != '\0' && !isspace( *ptrtop ); ++ptrtop )
-        (void)NULL;
-
-    // Create the file name
-      source.MapName( szpath, ltrim( ptrtop ) );
-
-    // Try open the nested file
-      if ( !infile.SetFile( szpath ) )
-        return source.Message( ENOENT, "could not open file %s!\n", szpath );
-      else
-        fprintf( stderr, "\t%s\n", szpath );
-
-      try
-      {
-        if ( (nerror = Compile( infile, rflist )) != 0 )
-          return nerror;
-        continue;
-      }
-      catch ( const _auto_<char>& msg )
-      {  throw _auto_<char>( strduprintf( "file: %s,""\n\t%s", szpath, msg.ptr() ) );  }
-    }
-
-  // Unget the line
-    if ( !source1251 )
-      mbcstombcs( codepage_866,  string, sizeof(string), codepage_1251, string );
-    source.PutLine( string );
-
-  // Compile inflexion table
-    if ( (nerror = MakeTab( source, rflist )) != 0 )
-      return nerror;
-  }
-  return 0;
-}
-
-int   Compile( const char*  lppath,
-               fxlist&      rflist )
+void  Compile( Source& source, fxlist& tabset )
 {
   try
   {
-    CSource source;
+    std::string stnext;
 
-    if ( !source.SetFile( lppath ) )
+    while ( (stnext = source.Get()).length() != 0 )
     {
-      fprintf( stderr, "Error: could not open file %s!\n", lppath );
-      return 1;
+      if ( has_command( stnext, s_rus_include ) ) stnext.erase( 0, s_rus_include.length() + 1 );  else
+      if ( has_command( stnext, s_eng_include ) ) stnext.erase( 0, s_eng_include.length() + 1 );  else
+      {
+        MakeTab( source.Put( std::move( stnext ) ), tabset );
+        continue;
+      }
+
+      if ( (stnext = libmorph::trim( stnext )).length() != 0 )  Compile( source.Open( stnext ), tabset );
+        else throw std::runtime_error( "file name expected" );
     }
-    return Compile( source, rflist );
   }
-  catch ( const _auto_<char>& msg )
+  catch ( const std::runtime_error& e )
   {
-    fprintf( stderr, "%s\n", msg.ptr() );
-    return EFAULT;
+    throw std::runtime_error( std::string( e.what() ) + "\n\tfrom " + source.Name() + ", line " + std::to_string( source.Line() ) );
   }
 }
 
@@ -254,10 +217,16 @@ int   main( int argc, char* argv[] )
 
   fprintf( stderr, "Compiling tables...\n""\t%s\n", inname );
 
-  if ( (nerror = Compile( inname, tables )) != 0 )
-    return nerror;
-
-  tables.Relocate();
+  try
+  {
+    Compile( OpenSource( inname, source_encoding ), tables );
+    tables.Relocate();
+  }
+  catch ( const std::exception& x )
+  {
+    fprintf( stderr, "Error: %s\n", toCodepage( console_encoding, x.what() ).c_str() );
+    return -1;
+  }
 
 // create the tables
   if ( (output = fopen( ptrbin, "wb" )) == nullptr )
