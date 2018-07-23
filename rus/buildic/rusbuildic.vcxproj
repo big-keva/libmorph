@@ -70,22 +70,24 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)bin\</OutDir>
-    <IntDir>..\..\..\tmp\$(Platform).$(Configuration)\libmorph\rus\$(ProjectName)\</IntDir>
+    <IntDir>$(SolutionDir)tmp\$(Platform).$(Configuration)\libmorph\rus\$(ProjectName)\</IntDir>
     <TargetName>$(ProjectName)_d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IntDir>..\..\..\tmp\$(Platform).$(Configuration)\libmorph\rus\$(ProjectName)\</IntDir>
+    <IntDir>$(SolutionDir)tmp\$(Platform).$(Configuration)\libmorph\rus\$(ProjectName)\</IntDir>
     <TargetName>$(ProjectName)_d</TargetName>
     <LinkIncremental>true</LinkIncremental>
+    <OutDir>$(SolutionDir)bin\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)bin\</OutDir>
-    <IntDir>..\..\..\tmp\$(Platform).$(Configuration)\libmorph\rus\$(ProjectName)\</IntDir>
+    <IntDir>$(SolutionDir)tmp\$(Platform).$(Configuration)\libmorph\rus\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IntDir>..\..\..\tmp\$(Platform).$(Configuration)\libmorph\rus\$(ProjectName)\</IntDir>
+    <IntDir>$(SolutionDir)tmp\$(Platform).$(Configuration)\libmorph\rus\$(ProjectName)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)bin\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
