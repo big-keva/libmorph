@@ -17,12 +17,17 @@ std::string load( std::string& s )
   const char* p = s.c_str();
   std::string r;
 
-  while ( (unsigned char)*p > 0x20 ) ++p;
+  while ( (unsigned char)*p > 0x20 && *p != ',' ) ++p;
 
   r = s.substr( 0, p - s.c_str() );
-    while ( *p != '\0' && (unsigned char)*p <= 0x20 ) ++p;
+
+  while ( *p != '\0' && (unsigned char)*p <= 0x20 ) ++p;
+  if ( *p == ',' )  ++p;
+  while ( *p != '\0' && (unsigned char)*p <= 0x20 ) ++p;
+
   s.erase( 0, p - s.c_str() );
-    return r;
+
+  return r;
 }
 
 inline  bool  is_space( char ch ) {  return ch != '\0' && (unsigned char)ch <= 0x20;  }
@@ -65,6 +70,11 @@ void  MakeTab( Source&    source,
   if ( (header = trim( header )).length() == 0 )
     throw std::runtime_error( "unexpected end of line, table index expected" );
 
+  if ( strstr( header.c_str(), utf8to1251( "нсв 4a32'" ).c_str() ) != nullptr )
+  {
+    int i = 0;
+  }
+
 // извлечь первую строку
   if ( (stnext = source.Get()).length() == 0 )
     throw std::runtime_error( "unexpected end of file" );
@@ -92,11 +102,19 @@ void  MakeTab( Source&    source,
       || (st_two = load( stnext )).length() == 0 )
         throw std::runtime_error( "interchange table has less than 2 fragments" );
 
+    if ( st_one == "''" ) st_one = "";
+    if ( st_two == "''" ) st_two = "";
+
     ichone.addstep( st_one, 0 );
     ichone.addstep( st_two, 1 );
 
     for ( int step = 2; stnext.length() != 0; ++step )
-      ichone.addstep( load( stnext ), step );
+    {
+      auto  st_add = load( stnext );
+
+      if ( st_add == "''" ) st_add = "";
+      ichone.addstep( st_add, step );
+    }
 
   // зарегистрировать его
     tabset.add_interchange( header.c_str(), scondi.c_str(), std::move( ichone ) );
