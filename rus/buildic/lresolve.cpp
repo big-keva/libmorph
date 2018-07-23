@@ -215,6 +215,8 @@ auto  st_casemark   = utf8to1251( "ШП:" );
 auto  st_casescale  = utf8to1251( "ИРДВТП" );
 
 auto  st_reflex     = utf8to1251( "ся" );
+auto  st_yo         = utf8to1251( "ё" );
+auto  st_ye         = utf8to1251( "е" );
 
 //=====================================================================
 // Method: GetRemark()
@@ -312,6 +314,9 @@ lexemeinfo  ResolveClassInfo(
 
   for ( auto pos = lexeme.ststem.find( '=' ); pos != std::string::npos; pos = lexeme.ststem.find( '=', pos ) )
     lexeme.ststem.erase( pos, 1 );
+
+  for ( auto pos = lexeme.ststem.find( st_yo ); pos != std::string::npos; pos = lexeme.ststem.find( st_yo ) )
+    lexeme.ststem.replace( pos, st_yo.length(), st_ye );
     
 // Отщепить постфикс и извлечь флаги описания лексической базы
   lexeme.stpost = GetPostfix( szcomm );
