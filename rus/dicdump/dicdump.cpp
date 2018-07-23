@@ -1,10 +1,13 @@
 ﻿# include "../include/mlma1049.h"
 # include <string>
 # include <cstdint>
+# include <cassert>
 # include <cstdio>
 # include <sstream>
+# include <algorithm>
 # include <iostream>
 # include <iomanip>
+# include <list>
 # include <map>
 
 template <class C>
@@ -15,24 +18,18 @@ inline  C* next( C* s )
   return s;
 }
 
-class StringQueue
-{
-public:
-  virtual std::string Get() = 0;
-};
-
-class Libmorphrus: public StringQueue
+class Libmorphrus
 {
   IMlmaMb*  mlma;
 
 public:
   Libmorphrus(): nlexid( 0 )
     {
-      mlmaruLoadCpAPI( &mlma, "866" );
+      mlmaruLoadCpAPI( &mlma, "1251" );
     }
 
 public:
-  virtual std::string Get() override final;
+  std::string Get();
 
 protected:
   std::map<formid_t, std::string> Cut( std::map<formid_t, std::string>&& ) const;
@@ -41,6 +38,18 @@ protected:
 
 protected:
   lexeme_t  nlexid;
+};
+
+class DumpedQueue
+{
+  FILE* lpfile;
+
+public:
+  DumpedQueue( FILE* f ): lpfile( f ) {}
+
+public:
+  std::string Get();
+
 };
 
 std::string Libmorphrus::Get()
@@ -119,20 +128,120 @@ std::string Libmorphrus::Map( lexeme_t lex, const std::map<formid_t, std::string
   return std::move( out.str() );
 }
 
-void  DumpDiff( StringQueue& s1, StringQueue& s2 )
+std::string DumpedQueue::Get()
 {
-  std::string str1;
-  std::string str2;
+  std::string output;
+  char        szline[0x400];
 
   for ( ; ; )
   {
-    str1 = s1.Get();
-    str2 = s2.Get();
+    char* pszend;
 
-    if ( str1 != str2 )
+    if ( fgets( szline, sizeof(szline), lpfile ) == nullptr )
+      return output;
+    
+    for ( pszend = szline; *pszend != '\0'; ++pszend )
+      (void)NULL;
+    if ( pszend > szline && pszend[-1] == '\n' )
+      --pszend;
+    output += std::string( szline, pszend - szline );
+
+    if ( *pszend == '\n' )
+      return output;
+  }
+}
+
+template <class Source>
+void  DumpDict( Source& sq )
+{
+  std::string st;
+
+  for ( ; (st = sq.Get()) != ""; )
+    (void)fprintf( stdout, "%s\n", st.c_str() );
+}
+
+template <class Source>
+void  LoadList( std::list<std::string>& vec, Source& src, size_t lim )
+{
+  while ( vec.size() < lim )
+  {
+    auto  str = src.Get();
+
+    if ( str.length() != 0 )  vec.push_back( std::move( str ) );
+      else break;
+  }
+}
+
+template <class Src1, class Src2>
+void  DumpDiff( Src1& src1, Src2& src2 )
+{
+  for ( ; ; )
+  {
+    auto  s1 = src1.Get();
+    auto  s2 = src2.Get();
+
+    if ( s1.length() == 0 && s2.length() == 0 )
+      break;
+
+    if ( strcmp( s1.c_str(), s2.c_str() ) != 0 )
     {
-      return (void)fprintf( stdout, "<< %s\n"
-                                    ">> %s\n", str1.c_str(), str2.c_str() );
+      std::list<std::string>  v1;
+      std::list<std::string>  v2;
+      
+      v1.push_back( std::move( s1 ) );
+      v2.push_back( std::move( s2 ) );
+
+      LoadList( v1, src1, 0x400 );
+      LoadList( v2, src2, 0x400 );
+
+      while ( v1.size() != 0 && v2.size() != 0 )
+      {
+      // skip matching lines
+        while ( v1.size() != 0 && v2.size() != 0 && strcmp( v1.front().c_str(), v2.front().c_str() ) == 0 )
+        {
+          v1.pop_front();
+          v2.pop_front();
+        }
+
+      // dump left diff
+        while ( v1.size() != 0 )
+        {
+          auto  st = v1.front();
+          auto  pf = std::find_if( v2.begin(), v2.end(), [&]( const std::string& sn )
+            {  return strcmp( st.c_str(), sn.c_str() ) == 0;  } );
+            
+          if ( pf != v2.end() )
+            break;
+
+          fprintf( stdout, "<< %s\n", st.c_str() );
+            v1.pop_front();
+        }
+
+      // dump right diff
+        while ( v2.size() != 0 )
+        {
+          auto  st = v2.front();
+          auto  pf = std::find_if( v1.begin(), v1.end(), [&]( const std::string& sn )
+            {  return strcmp( st.c_str(), sn.c_str() ) == 0;  } );
+
+          if ( pf != v1.end() )
+            break;
+
+          fprintf( stdout, ">> %s\n", st.c_str() );
+            v2.pop_front();
+        }
+
+        LoadList( v1, src1, v2.size() );
+        LoadList( v2, src2, v1.size() );
+      }
+
+    // if have something in left list, check match to right file
+      if ( v1.size() == 0 && v2.size() == 0 )
+        continue;
+
+      assert( v1.size() != 0 || v2.size() != 0 );
+
+      return (void)fprintf( stdout, "!!! diff too big !!!\n" );
     }
   }
 }
@@ -140,11 +249,10 @@ void  DumpDiff( StringQueue& s1, StringQueue& s2 )
 int   main( int argc, char* argv[] )
 {
   Libmorphrus morpho;
-  Libmorphrus source;
-  std::string stnext;
+  DumpedQueue dumped( fopen( "rus.dump", "rt" ) );
 
-  while ( (stnext = morpho.Get()).length() != 0 )
-    fprintf( stdout, "%s\n", stnext.c_str() );
+//  DumpDict( morpho );
+  DumpDiff( dumped, morpho );
 
   return 0;
 }
