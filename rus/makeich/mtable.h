@@ -42,9 +42,9 @@ class interchange
 
 public:
   interchange(): offset( 0 ) {}
+  interchange( interchange&& i ): ichset( std::move( i.ichset ) ), offset( i.offset ) {}
   interchange( const interchange& ) = delete;
   interchange& operator = ( const interchange& ) = delete;
-  interchange( interchange&& i ): ichset( std::move( i.ichset ) ), offset( i.offset ) {}
   interchange& operator = ( interchange&& ) = delete;
 
 public:
@@ -150,18 +150,23 @@ inline  uint16_t  interchange::GetBufLen() const
 template <class O>
 O*  interchange::Serialize( O* o ) const
 {
+  auto  upower = 0x00;
+
   if ( (o = ::Serialize( o, (uint8_t)ichset.size() )) == nullptr )
     return nullptr;
 
   for ( const auto& ich: ichset )
+    upower |= (ich.nflags << 4);
+
+  upower = (upower ^ 0x70) & 0x70;
+
+  for ( const auto& ich: ichset )
   {
     uint8_t bflags = (uint8_t)(ich.string.length() | (ich.nflags << 4));
-    size_t  mfinal;
 
   // set the upper powers for base power
-    if ( (bflags & 0x10) != 0 )
-      for ( mfinal = 3; mfinal > ichset.size() && (bflags & (0x10 << (mfinal - 1))) == 0; --mfinal )
-        bflags |= (0x10 << (mfinal - 1));
+    if ( upower != 0 && (bflags & 0x10) != 0 )
+      bflags |= upower;
       
     o = ::Serialize( ::Serialize( o, bflags ), ich.string.c_str(), ich.string.length() );
   }
