@@ -30,7 +30,7 @@ namespace libmorph
     return nerror;
   }
 
-  std::vector<char> LoadSource( const char* szfile )
+  inline  std::vector<char> LoadSource( const char* szfile )
   {
     std::vector<char> output;
     mtc::file         lpfile;
@@ -49,7 +49,7 @@ namespace libmorph
     return std::move( output );
   }
 
-  inline  char* TrimString( char* thestr )
+  inline  char* trim( char* thestr )
   {
     char* endstr;
 
@@ -60,6 +60,15 @@ namespace libmorph
     while ( endstr > thestr && (uint8_t)endstr[-1] <= 0x20 )
       *--endstr = '\0';
     return thestr;
+  }
+
+  inline  std::string trim( std::string s )
+  {
+    while ( s.length() != 0 && (unsigned char)s.back() <= 0x20 )
+      s.pop_back();
+    while ( s.length() != 0 && (unsigned char)s.front() <= 0x20 )
+      s.erase( 0, 1 );
+    return s;
   }
 
 }  // end libmorph namespace
