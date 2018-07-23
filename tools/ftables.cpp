@@ -39,7 +39,7 @@ namespace libmorph {
                                 int           clevel ) const
   {
     const char* pTable = (const char*)tables + (tfoffs << 1); // inflexion table
-    int         nItems = *pTable++ & 0x7F;                    // elements count
+    int         nItems = *pTable++ & 0x7F;                        // elements count
 
   // loop all the table elements
     while ( nItems > 0 )
