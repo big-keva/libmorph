@@ -147,7 +147,7 @@ namespace rus {
       {
       /* ле */
         case 0:
-          if ( ccStem >= 3 && string_le == stem + ccStem - 3 )  return alt.offset;
+          if ( ccStem >= 3 && strncmp( string_le.c_str(), stem + ccStem - 3, string_le.length() ) == 0 )  return alt.offset;
             else break;
 
       /* ге */
