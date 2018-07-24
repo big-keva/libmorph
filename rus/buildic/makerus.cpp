@@ -416,7 +416,18 @@ public:
 /*
 */
 char about[] = "makerus - the dictionary builder;\n"
-               "Usage: makerus ininame\n";
+               "Usage: makerus [@options_pack] [options]\n"
+               "Options pack is a file with all the options listed, and command-line options override it's contents if used.\n"
+               "Options are:\n"
+               "\t" "-flex-table=compiled_inflexion_tables_file_name\n"
+               "\t" "-flex-index=compiled-inflexion_tables_index_file_name\n"
+               "\t" "-intr-table=compiled_interchange_tables_file_name\n"
+               "\t" "-intr-index=compiled-interchange_tables_index_file_name\n"
+               "\t" "-target-dir=directory_to_dump_the_dictionaries\n"
+               "\t" "-unknown=unknown_words_file_path\n"
+               "\t" "-namespace=namespace_name_to_contain_dictionaries, default is __libmorphrus__\n"
+               "\t" "-codepage=codepage_name_for_dictionaries_sources\n"
+               ;
 
 int   main( int argc, char* argv[] )
 {
