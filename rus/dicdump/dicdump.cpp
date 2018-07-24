@@ -3,10 +3,7 @@
 # include <cstdint>
 # include <cassert>
 # include <cstdio>
-# include <sstream>
 # include <algorithm>
-# include <iostream>
-# include <iomanip>
 # include <list>
 # include <map>
 
@@ -29,7 +26,7 @@ public:
     }
 
 public:
-  std::string Get();
+  std::string Get() const;
 
 protected:
   std::map<formid_t, std::string> Cut( std::map<formid_t, std::string>&& ) const;
@@ -37,7 +34,8 @@ protected:
   std::string                     Map( lexeme_t lex, const std::map<formid_t, std::string>& ) const;
 
 protected:
-  lexeme_t  nlexid;
+  mutable lexeme_t  nlexid;
+
 };
 
 class DumpedQueue
@@ -48,11 +46,11 @@ public:
   DumpedQueue( FILE* f ): lpfile( f ) {}
 
 public:
-  std::string Get();
+  std::string Get() const;
 
 };
 
-std::string Libmorphrus::Get()
+std::string Libmorphrus::Get() const
 {
   while ( nlexid <= 0x3ffff )
   {
@@ -112,23 +110,22 @@ std::map<formid_t, std::string> Libmorphrus::Get( lexeme_t nlexid ) const
 
 std::string Libmorphrus::Map( lexeme_t lex, const std::map<formid_t, std::string>& map ) const
 {
-  std::stringstream out;
-  const char*       div = "";
+  std::string out;
+  char        str[0x100];
+  const char* div = "";
 
-  out << std::hex << lex << '\t';
+  sprintf( str, "%x\t", lex );  out = str;
 
   for ( auto beg = map.begin(); beg != map.end(); ++beg, div = "/" )
-    out << div
-        << beg->second
-        << '|'
-        << std::setw( 2 ) << std::setfill( '0' ) << std::hex << (unsigned)beg->first;
+  {
+    sprintf( str, "%s%s|%02x", div, beg->second.c_str(), (unsigned)beg->first );
+    out += str;
+  }
 
-  out << std::ends;
-
-  return std::move( out.str() );
+  return std::move( out );
 }
 
-std::string DumpedQueue::Get()
+std::string DumpedQueue::Get() const
 {
   std::string output;
   char        szline[0x400];
@@ -152,7 +149,7 @@ std::string DumpedQueue::Get()
 }
 
 template <class Source>
-void  DumpDict( Source& sq )
+void  DumpDict( const Source& sq )
 {
   std::string st;
 
@@ -173,7 +170,7 @@ void  LoadList( std::list<std::string>& vec, Source& src, size_t lim )
 }
 
 template <class Src1, class Src2>
-void  DumpDiff( Src1& src1, Src2& src2 )
+void  DumpDiff( const Src1& src1, const Src2& src2 )
 {
   for ( ; ; )
   {
@@ -246,14 +243,32 @@ void  DumpDiff( Src1& src1, Src2& src2 )
   }
 }
 
+const char about[] = "dicdump - check/build dictionary dump\n"
+                    "usage: dicdump mode\n"
+                    "options are:\n"
+                      "\tcheck=dump"  "\t"  "- check current dictionary match to control dump 'dump';\n"
+                      "\tbuild     "  "\t"  "- dump current dictionary\n";
+
 int   main( int argc, char* argv[] )
 {
-  Libmorphrus morpho;
-  DumpedQueue dumped( fopen( "rus.dump", "rt" ) );
+  if ( argc < 2 )
+    return (fprintf( stdout, about ), 0);
 
-//  DumpDict( morpho );
-  DumpDiff( dumped, morpho );
+  if ( strcmp( argv[1], "build" ) == 0 )
+    return (DumpDict( Libmorphrus() ), 0);
 
-  return 0;
+  if ( strncmp( argv[1], "check:", 6 ) == 0 || strncmp( argv[1], "check=", 6 ) == 0 )
+  {
+    FILE* pin = fopen( argv[1] + 6, "rt" );
+
+    if ( pin == nullptr )
+      return (fprintf( stderr, "Could not open file '%s'\n", argv[1] + 6 ), EINVAL);
+
+    DumpDiff( DumpedQueue( pin ), Libmorphrus() );
+
+    fclose( pin );
+  }
+
+  return (fprintf( stderr, "unknown parameter '%s'\n", argv[1] ), EINVAL);
 }
 
