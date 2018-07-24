@@ -170,11 +170,8 @@
     <ClInclude Include="mtables.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\libcodes\libcodes.vcxproj">
+    <ProjectReference Include="..\..\contrib\libcodes\libcodes.vcxproj">
       <Project>{a94fabae-ae15-4b92-8197-4afb28b9bbcc}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\mtc\mtc.vcxproj">
-      <Project>{bf6070ac-cfcb-4e8a-85f4-a9a3ae12cdd1}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
