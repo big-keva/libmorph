@@ -4,8 +4,6 @@
 # include "../tools/utf81251.h"
 # include "../tools/sweets.h"
 # include <libcodes/codes.h>
-# include <mtc/autoptr.h>
-# include <mtc/wcsstr.h>
 # include <errno.h>
 
 using namespace codepages;
@@ -149,8 +147,12 @@ void  Compile( Source& source, fxlist& tabset )
         continue;
       }
 
-      if ( (stnext = libmorph::trim( stnext )).length() != 0 )  Compile( source.Open( stnext ), tabset );
-        else throw std::runtime_error( "file name expected" );
+      if ( (stnext = libmorph::trim( stnext )).length() != 0 )
+      {
+        auto  subsrc = source.Open( stnext );
+
+        Compile( subsrc, tabset );
+      } else throw std::runtime_error( "file name expected" );
     }
   }
   catch ( const std::runtime_error& e )
@@ -172,7 +174,7 @@ int   main( int argc, char* argv[] )
   const char* inname = NULL;
   const char* ptrbin = NULL;
   const char* ptrsym = NULL;
-  mtc::file   output;
+  FILE*       dumper;
 
   InitRus();
 
@@ -219,7 +221,9 @@ int   main( int argc, char* argv[] )
 
   try
   {
-    Compile( OpenSource( inname, source_encoding ), tables );
+    auto  infile = OpenSource( inname, source_encoding );
+
+    Compile( infile, tables );
     tables.Relocate();
   }
   catch ( const std::exception& x )
@@ -229,18 +233,20 @@ int   main( int argc, char* argv[] )
   }
 
 // create the tables
-  if ( (output = fopen( ptrbin, "wb" )) == nullptr )
+  if ( (dumper = fopen( ptrbin, "wb" )) == nullptr )
     return (fprintf( stderr, "Could not create file \'%s\'!\n", ptrbin ), -1);
 
-  if ( tables.StoreTab( (FILE*)output ) == NULL )
+  if ( tables.StoreTab( dumper ) == nullptr )
     return (fprintf( stderr, "Error writing the file \'%s\'!\n", ptrbin ), EACCES);
+  else fclose( dumper );
 
 // Open output file
-  if ( (output = fopen( ptrsym, "wb" )) == NULL )
+  if ( (dumper = fopen( ptrsym, "wb" )) == NULL )
     return (fprintf( stderr, "Could not create file \'%s\'!\n", ptrsym), -1);
 
-  if ( tables.StoreRef( (FILE*)output ) == 0 )
+  if ( tables.StoreRef( dumper ) == nullptr )
     return (fprintf( stderr, "Error writing the file \'%s\'!\n", ptrsym ), EACCES);
+  else fclose( dumper );
 
   return 0;
 }
