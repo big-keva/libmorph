@@ -95,13 +95,17 @@ protected:
   template <class O>
   void  LoadObject( O& o, const std::string& szpath ) const
     {
-      mtc::file   lpfile;
+      FILE* lpfile;
 
       if ( (lpfile = fopen( szpath.c_str(), "rb" )) == nullptr )
         throw std::runtime_error( "could not open file '" + std::string( szpath ) + "'" );
 
       if ( o.Load( (FILE*)lpfile ) == nullptr )
-        throw std::runtime_error( "could not load object from file '" + std::string( szpath ) + "'" );
+        {
+          fclose( lpfile );
+          throw std::runtime_error( "could not load object from file '" + std::string( szpath ) + "'" );
+        }
+      fclose( lpfile );
     }
 
 public:
@@ -326,8 +330,12 @@ public:
       if ( dict_set.size() == 0 )
         throw std::runtime_error( "no dictinaries specified, use --help" );
 
+      SetUnknowns( unknowns ).
+      SetNamespace( name_spc ).
+      SetTargetDir( outp_dir );
+
       rusmorph.InitTables( flex_tab, flex_idx, intr_tab, intr_idx );
-        CreateDict( dict_set, outp_dir, name_spc, unknowns );
+        CreateDict( dict_set );
       rusmorph.SaveTables( outp_dir, name_spc );
 
       return 0;
