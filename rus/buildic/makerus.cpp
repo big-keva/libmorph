@@ -57,34 +57,10 @@ static unsigned char mixTypes[64] =
   0x00, 0x00
 };
 
-static char GPL_header[] =
-  "/******************************************************************************\n"
-  "\n"
-  "    libmorphrus - dictiorary-based morphological analyser for Russian.\n"
-  "    Copyright (C) 1994-2016 Andrew Kovalenko aka Keva\n"
-  "\n"
-  "    This program is free software; you can redistribute it and/or modify\n"
-  "    it under the terms of the GNU General Public License as published by\n"
-  "    the Free Software Foundation; either version 2 of the License, or\n"
-  "    (at your option) any later version.\n"
-  "\n"
-  "    This program is distributed in the hope that it will be useful,\n"
-  "    but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
-  "    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
-  "    GNU General Public License for more details.\n"
-  "\n"
-  "    You should have received a copy of the GNU General Public License along\n"
-  "    with this program; if not, write to the Free Software Foundation, Inc.,\n"
-  "    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.\n"
-  "\n"
-  "    Commercial license is available upon request."
-  "\n"
-  "    Contacts:\n"
-  "      email: keva@meta.ua, keva@rambler.ru\n"
-  "      Skype: big_keva\n"
-  "      Phone: +7(495)648-4058, +7(926)513-2991\n"
-  "\n"
-  "******************************************************************************/\n";
+namespace __libmorphrus__
+{
+  extern  char  GPLlicense[];
+}
 
 class ResolveRus
 {
@@ -144,9 +120,9 @@ public:
     }
   void  SaveTables( const std::string& outdir, const std::string& nspace )
     {
-      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( GPL_header ).Dump( "mxTables", libmorph::serialbuff( mtable.data(), mtable.size() ) );
-      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( GPL_header ).Dump( "flexTree", libmorph::serialbuff( aplain.data(), aplain.size() ) );
-      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( GPL_header ).Dump( "mixTypes", libmorph::serialbuff( mixTypes, sizeof(mixTypes) ) );
+      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( __libmorphrus__::GPLlicense ).Dump( "mxTables", libmorph::serialbuff( mtable.data(), mtable.size() ) );
+      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( __libmorphrus__::GPLlicense ).Dump( "flexTree", libmorph::serialbuff( aplain.data(), aplain.size() ) );
+      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( __libmorphrus__::GPLlicense ).Dump( "mixTypes", libmorph::serialbuff( mixTypes, sizeof(mixTypes) ) );
     }
   /*
     PatchClass( class )
@@ -297,10 +273,11 @@ class BuildRus: public buildmorph<lexemeinfo, rusteminfo, ResolveRus>
   };
 
 public:
-  BuildRus(): buildmorph<lexemeinfo, rusteminfo, ResolveRus>( rusmorph, GPL_header, codepages::codepage_866 ), rusmorph()
+  BuildRus(): buildmorph<lexemeinfo, rusteminfo, ResolveRus>( rusmorph, __libmorphrus__::GPLlicense, codepages::codepage_866 ), rusmorph()
     {
     }
-  void  Run( int argc, char* argv[] )
+  template <class Args>
+  int   Run( Args& args )
     {
       std::string flex_tab;
       std::string flex_idx;
@@ -308,12 +285,13 @@ public:
       std::string intr_idx;
 
       std::string outp_dir;
-      std::string name_spc = "#";
+      std::string name_spc;
+      std::string codepage;
       std::string unknowns;
 
       std::vector<const char*>  dict_set;
 
-      for ( auto arg = argv + 1; arg < argv + argc; ++arg )
+      for ( auto arg = args.begin(); arg != args.end(); ++arg )
       {
         if ( **arg == '-' )
         {
@@ -324,7 +302,8 @@ public:
             && !GetSwitch( outp_dir, 1 + *arg, "target-dir" )
 
             && !GetSwitch( unknowns, 1 + *arg, "unknown" )
-            && !GetSwitch( name_spc, 1 + *arg, "namespace" ) )
+            && !GetSwitch( name_spc, 1 + *arg, "namespace" )
+            && !GetSwitch( codepage, 1 + *arg, "codepage" ) )
           throw std::runtime_error( "invalid switch: " + std::string( *arg ) );
         }
           else
@@ -335,7 +314,7 @@ public:
       if ( outp_dir == "" )
         libmorph::LogMessage( 0, "undefined output directory was set to default '%s'\n", (outp_dir = "./").c_str() );
 
-      if ( name_spc == "#" )
+      if ( name_spc == "" )
         libmorph::LogMessage( 0, "undefined 'namespace' was set to default '%s'\n", (name_spc = "__libmorphrus__").c_str() );
 
       if ( unknowns == "" )
@@ -350,11 +329,88 @@ public:
       rusmorph.InitTables( flex_tab, flex_idx, intr_tab, intr_idx );
         CreateDict( dict_set, outp_dir, name_spc, unknowns );
       rusmorph.SaveTables( outp_dir, name_spc );
+
+      return 0;
     }
 
 protected:
   ResolveRus  rusmorph;
 
+};
+
+class ParamsFile
+{
+  std::vector<char*>  argset;
+  std::vector<char>   argbuf;
+
+public:
+  ParamsFile( int argc, char* argv[] )
+    {
+      for ( auto arg = argv + 1; arg < argv + argc; ++arg )
+        if ( **arg != '@' )
+          argset.push_back( *arg );
+    }
+  void  Set( const char* szpath )
+    {
+      FILE* lpfile = nullptr;
+
+      try
+      {
+      // load source
+        if ( (lpfile = fopen( szpath, "rb" )) == nullptr )
+          throw std::runtime_error( "could not open the responce file '" + std::string( szpath ) + "'" );
+
+        while ( !feof( lpfile ) )
+        {
+          char  chbuff[0x400];
+          auto  cbread = fread( chbuff, 1, sizeof(chbuff), lpfile );
+
+          if ( cbread != 0 )
+            argbuf.insert( argbuf.end(), chbuff, cbread + chbuff );
+        }
+
+        argbuf.push_back( 0 );
+
+        fclose( lpfile );
+
+      // parse strings
+        std::replace_if( argbuf.begin(), argbuf.end(), []( char ch ){  return (unsigned char)ch <= 0x20;  }, '\0' );
+
+        for ( auto top = argbuf.begin(); top != argbuf.end(); )
+          if ( *top != '\0' )
+          {
+            auto  end = top;
+            auto  pos = argset.end();
+
+            if ( *top == '-' )
+              while ( end != argbuf.end() && *end != '\0' && *end != '=' && *end != ':' ) ++end;
+            else
+              while ( end != argbuf.end() && *end != '\0' ) ++end;
+
+          // search key in the list
+            for ( auto p = argset.begin(); p != argset.end() && pos == argset.end(); ++p )
+              if ( strncmp( argbuf.data() + (top - argbuf.begin()), *p, end - top ) == 0 )
+                pos = p;
+
+          // check of overriden in args
+            if ( pos == argset.end() )
+              argset.push_back( argbuf.data() + (top - argbuf.begin()) );
+
+            while ( top != argbuf.end() && *top != '\0' ) ++top;
+            while ( top != argbuf.end() && *top == '\0' ) ++top;
+          }
+      }
+      catch ( ... )
+      {
+        if ( lpfile != nullptr )
+          fclose( lpfile );
+        throw;
+      }
+    }
+
+public:
+  auto  begin() const {  return argset.begin();  }
+  auto  end() const   {  return argset.end();  }
 };
 
 /*
@@ -366,14 +422,16 @@ int   main( int argc, char* argv[] )
 {
   try
   {
-    BuildRus  generate;
+    BuildRus    generate;
+    ParamsFile  responce( argc, argv );
 
     if ( argc < 2 )
       return libmorph::LogMessage( 0, about );
 
-    generate.Run( argc, argv );
+    if ( *argv[1] == '@' )
+      responce.Set( argv[1] + 1 );
 
-    return 0;
+    return generate.Run( responce );
   }
   catch ( const std::runtime_error& x )
   {
