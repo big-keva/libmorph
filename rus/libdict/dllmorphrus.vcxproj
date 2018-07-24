@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\libcodes\libcodes.vcxproj">
+    <ProjectReference Include="..\..\contrib\libcodes\libcodes.vcxproj">
       <Project>{a94fabae-ae15-4b92-8197-4afb28b9bbcc}</Project>
     </ProjectReference>
     <ProjectReference Include="libmorphrus.vcxproj">
