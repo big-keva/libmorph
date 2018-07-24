@@ -1,10 +1,9 @@
 #if !defined( __lresolve_h__ )
 #define __lresolve_h__
 # include "../libdict/mlmadefs.h"
-# include <mtc/zarray.h>
 # include <tools/references.h>
 # include "mtables.h"
-# include <assert.h>
+# include <cassert>
 
 # if defined( _MSC_VER )
 #   pragma warning( disable: 4237 )
