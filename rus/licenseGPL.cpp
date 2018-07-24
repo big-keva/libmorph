@@ -5,7 +5,7 @@ namespace __libmorphrus__
     "/******************************************************************************\n"
     "\n"
     "    libmorphrus - dictiorary-based morphological analyser for Russian.\n"
-    "    Copyright (C) 1994-2016 Andrew Kovalenko aka Keva\n"
+    "    Copyright (C) 1994-2018 Andrew Kovalenko aka Keva\n"
     "\n"
     "    This program is free software; you can redistribute it and/or modify\n"
     "    it under the terms of the GNU General Public License as published by\n"
