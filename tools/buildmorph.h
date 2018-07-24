@@ -4,6 +4,7 @@
 # include "dumppage.h"
 # include "sweets.h"
 # include <libcodes/codes.h>
+# include <stdexcept>
 # include <vector>
 
 template <class theclass>
@@ -87,35 +88,47 @@ class buildmorph
   typedef wordtree<unsigned, unsigned short>              LidsTree;
 
 protected:
-  StemTree                    stemtree;   // the actual tree
-  LidsTree                    lidstree;
-  classtable<theclass>        classset;
-  resolver&                   clparser;
-  const char*                 sLicense;
+  std::string           nspace;
+  std::string           unknwn;
+  std::string           outdir;
+
+protected:
+  StemTree              stemtree;   // the actual tree
+  LidsTree              lidstree;
+  classtable<theclass>  classset;
+  resolver&             clparser;
+  const char*           sLicense;
+  FILE*                 unknowns;
 
 public:     // construction
-  buildmorph( resolver& r, const char* l, unsigned c ): clparser( r ),
-                                                        sLicense( l )
-    {}
+  buildmorph( resolver& r, const char* l, unsigned c ): clparser( r ), sLicense( l ), unknowns( nullptr )
+    {
+    }
+ ~buildmorph()
+    {
+      if ( unknowns != nullptr )
+        fclose( unknowns );
+    }
+
+public:
+  buildmorph& SetTargetDir( const std::string& s )  {  outdir = s;  return *this;  }
+  buildmorph& SetNamespace( const std::string& s )  {  nspace = s;  return *this;  }
+  buildmorph& SetUnknowns ( const std::string& s )  {  unknwn = s;  return *this;  }
 
 public:     // initialization
-  void  CreateDict( const std::vector<const char*>&, const std::string& target, const std::string& nspace, const std::string& unknwn );
+  void  CreateDict( const std::vector<const char*>& );
 
 protected:  // helpers
-  void  DictReader( FILE* source, FILE* unknow );
+  void  DictReader( FILE* );
+  void  PutUnknown( const char* );
 
 };
 
 // buildmorph implementation
 
 template <class theclass, class steminfo, class resolver>
-void  buildmorph<theclass, steminfo, resolver>::CreateDict( const std::vector<const char*>& dicset,
-                                                            const std::string&              target,
-                                                            const std::string&              nspace,
-                                                            const std::string&              unknow )
+void  buildmorph<theclass, steminfo, resolver>::CreateDict( const std::vector<const char*>& dicset )
 {
-  mtc::file lpfile;
-  mtc::file unknwn;
   size_t    length;
   auto      maplid = [&]( const steminfo& s, size_t o )
     {
@@ -128,17 +141,25 @@ void  buildmorph<theclass, steminfo, resolver>::CreateDict( const std::vector<co
         return true;
     };
 
-  if ( unknow != "" && (unknwn = fopen( unknow.c_str(), "wt" )) == nullptr )
-    throw std::runtime_error( "could not create file '" + unknow + "'" );
-
   for ( auto s: dicset )
   {
+    FILE* lpfile;
+
     if ( (lpfile = fopen( s, "rt" )) == nullptr )
       throw std::runtime_error( std::string( "Could not open file \'" ) + s + "\'!" );
 
-    libmorph::LogMessage( 0, "Loading %s...", s );
-      DictReader( lpfile, unknwn );
-    libmorph::LogMessage( 0, " OK\n" );
+    try
+    {
+      libmorph::LogMessage( 0, "Loading %s...", s );
+        DictReader( lpfile );
+        fclose( lpfile );
+      libmorph::LogMessage( 0, " OK\n" );
+    }
+    catch ( ... )
+    {
+      fclose( lpfile );
+      throw;
+    }
   }
 
 // dump word tree
@@ -159,17 +180,17 @@ void  buildmorph<theclass, steminfo, resolver>::CreateDict( const std::vector<co
 
 // dump word tree
   libmorph::BinaryDumper().
-    Namespace( nspace ).OutDir( target ).Header( sLicense ).Dump( "stemtree", stemtree );
+    Namespace( nspace ).OutDir( outdir ).Header( sLicense ).Dump( "stemtree", stemtree );
 
   libmorph::BinaryDumper().
-    Namespace( nspace ).OutDir( target ).Header( sLicense ).Dump( "lidstree", lidstree );
+    Namespace( nspace ).OutDir( outdir ).Header( sLicense ).Dump( "lidstree", lidstree );
 
   libmorph::BinaryDumper().
-    Namespace( nspace ).OutDir( target ).Header( sLicense ).Dump( "classmap", classset );
+    Namespace( nspace ).OutDir( outdir ).Header( sLicense ).Dump( "classmap", classset );
 }
 
 template <class theclass, class steminfo, class resolver>
-void  buildmorph<theclass, steminfo, resolver>::DictReader( FILE* source, FILE* unknow )
+void  buildmorph<theclass, steminfo, resolver>::DictReader( FILE* source )
 {
   char    szline[0x400];
   int     nwords;
@@ -194,8 +215,7 @@ void  buildmorph<theclass, steminfo, resolver>::DictReader( FILE* source, FILE* 
       continue;
     if ( strncmp( strtop, "//", 2 ) == 0 )
     {
-      if ( unknow != nullptr )
-        fprintf( unknow, "%s\n", strtop );
+      PutUnknown( strtop );
       continue;
     }
 
@@ -208,8 +228,7 @@ void  buildmorph<theclass, steminfo, resolver>::DictReader( FILE* source, FILE* 
   // resolve word properties
     if ( (aclass = clparser.BuildStems( strtop )).size() == 0 )
     {
-      if ( unknow != nullptr )
-        fprintf( unknow, "%s\n", strtop );
+      PutUnknown( strtop );
       continue;
     }
 
@@ -229,6 +248,19 @@ void  buildmorph<theclass, steminfo, resolver>::DictReader( FILE* source, FILE* 
       pstems->insert( inspos, lexeme );
     }
   }
+}
+
+template <class theclass, class steminfo, class resolver>
+void  buildmorph<theclass, steminfo, resolver>::PutUnknown( const char* unknown )
+{
+  if ( unknowns == nullptr )
+  {
+    if ( unknwn == "" )
+      return;
+    if ( (unknowns = fopen( unknwn.c_str(), "wt" )) == nullptr )
+      throw std::runtime_error( "could not create file '" + unknwn + "'" );
+  }
+  fprintf( unknowns, "%s\n", unknown );
 }
 
 # endif  // __buildmorph_h__
