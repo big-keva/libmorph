@@ -1,7 +1,7 @@
 # if !defined( __sourcefile_h__ )
 # define __sourcefile_h__
 # include <libcodes/codes.h>
-# include <mtc/file.h>
+# include <cstdio>
 
 class Source
 {
@@ -10,25 +10,39 @@ class Source
   const unsigned  encode;
   std::string     stname;
   std::string     bufstr;
-  mtc::file       lpfile;
+  FILE*           lpfile;
   int             lineid;
 
 public:     // open
-  Source( unsigned cp = codepages::codepage_1251 ): encode( cp ), lineid( 0 )  {}
+  Source( unsigned cp = codepages::codepage_1251 ):
+      encode( cp ),
+      lpfile( nullptr ),
+      lineid( 0 )
+    {
+    }
   Source( const Source& ) = delete;
   Source& operator = ( const Source& ) = delete;
   Source( Source&& s ):
-    encode( s.encode ),
-    stname( std::move( s.stname ) ),
-    bufstr( std::move( s.bufstr ) ),
-    lpfile( std::move( s.lpfile ) ),
-    lineid( s.lineid )  {}
+      encode( s.encode ),
+      stname( std::move( s.stname ) ),
+      bufstr( std::move( s.bufstr ) ),
+      lpfile( std::move( s.lpfile ) ),
+      lineid( s.lineid )
+    {
+      s.lpfile = nullptr;
+    }
   Source& operator = ( Source&& s )
     {
       stname = std::move( s.stname );
       bufstr = std::move( s.bufstr );
-      lpfile = std::move( s.lpfile );
-      lineid = s.lineid;  return *this;
+      lpfile = std::move( s.lpfile );  s.lpfile = nullptr;
+      lineid = s.lineid;
+      return *this;
+    }
+ ~Source()
+    {
+      if ( lpfile != nullptr )
+        fclose( lpfile );
     }
 
 public:
