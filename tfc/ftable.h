@@ -6,6 +6,8 @@
 # include <string>
 # include <map>
 
+class fxlist;
+
 class fxitem
 {
   friend class ftable;
