@@ -1,7 +1,6 @@
 # if !defined( __sweets_h__ )
 # define __sweets_h__
-# include <mtc/file.h>
-# include <mtc/serialize.h>
+# include "serialize.h"
 # include <cstdarg>
 # include <cstdint>
 # include <cstdio>
@@ -33,18 +32,21 @@ namespace libmorph
   inline  std::vector<char> LoadSource( const char* szfile )
   {
     std::vector<char> output;
-    mtc::file         lpfile;
-    long              cbfile;
+    FILE*             lpfile;
 
     if ( (lpfile = fopen( szfile, "rb" )) == nullptr )
       throw std::runtime_error( "file '" + std::string( szfile ) + "' not found" );
 
-    fseek( lpfile, 0, SEEK_END );
-      output.resize( (size_t)(cbfile = ftell( lpfile )) );
-    fseek( lpfile, 0, SEEK_SET );
+    while ( !feof( lpfile ) )
+    {
+      char  chbuff[0x1000];
+      auto  cbread = fread( chbuff, 1, sizeof(chbuff), lpfile );
 
-    if ( fread( output.data(), 1, cbfile, lpfile ) != cbfile )
-      throw std::runtime_error( "could not read " + std::to_string( cbfile ) + " bytes from '" + szfile + "'" );
+      if ( cbread != 0 )
+        output.insert( output.end(), chbuff, cbread + chbuff );
+    }
+
+    fclose( lpfile );
 
     return std::move( output );
   }
