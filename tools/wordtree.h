@@ -1,7 +1,7 @@
 # pragma once
 # if !defined( __libmorph_wordtree_h__ )
 # define  __libmorph_wordtree_h__
-# include <mtc/serialize.h>
+# include <tools/serialize.h>
 # include <cassert>
 # include <memory>
 # include <vector>
