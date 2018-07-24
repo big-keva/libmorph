@@ -1,0 +1,14 @@
+.включить mw/middln.tf
+.включить femw/feminine.tf
+.включить mscw/masculin.tf
+.включить p_ms/p_ms.tf
+.включить adjw/adjects.tf
+.включить prnw/pronadjs.tf
+.включить namw/mannames.tf
+.включить adjnouns/adjnouns.tf
+.включить geograph/geogradj.tf
+.включить geograph/geogrmsc.tf
+.включить geograph/geogrfem.tf
+.включить geograph/geogrmdl.tf
+.включить pronouns/pronouns.tf
+.включить numerics/numerics.tf
