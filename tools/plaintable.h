@@ -18,32 +18,24 @@ namespace libmorph
 
   public:
     bool  operator == ( const graminfo& r ) const {  return grinfo == r.grinfo && bflags == r.bflags;  }
+    bool  operator != ( const graminfo& r ) const {  return !(*this == r);  }
   };
 
-  struct gramlist: public std::vector<graminfo>
-  {
-    void  Insert( const graminfo& g )
-      {
-        if ( std::find( begin(), end(), g ) == end() )
-          push_back( g );
-      }
-  };
+  void  Insert( std::vector<graminfo>& l, const graminfo& g )
+    {
+      if ( std::find( l.begin(), l.end(), g ) == l.end() )
+        l.push_back( g );
+    }
+
 }
 
-inline  size_t  GetBufLen( const libmorph::gramlist& gl )
+constexpr inline
+size_t  GetBufLen( const libmorph::graminfo& ) {  return 3;  }
+
+template <class O> inline
+O*      Serialize( O* o, const libmorph::graminfo& gl )
 {
-  return 1 + gl.size() * 3;
-}
-
-template <class O>
-inline  O*      Serialize( O* o, const libmorph::gramlist& gl )
-{
-  o = ::Serialize( o, (char)gl.size() );
-
-  for ( auto p = gl.begin(); o != nullptr && p != gl.end(); ++p )
-    o = ::Serialize( ::Serialize( o, &p->grinfo, sizeof(p->grinfo) ), &p->bflags, sizeof(p->bflags) );
-
-  return o;
+  return ::Serialize( ::Serialize( o, &gl.grinfo, sizeof(gl.grinfo) ), &gl.bflags, sizeof(gl.bflags) );
 }
 
 # include "wordtree.h"
@@ -53,7 +45,7 @@ namespace libmorph
 
   class FlexTree
   {
-    const uint8_t*  tables;     // global flex tables pointer
+    using gramlist = std::vector<graminfo>;
 
   public:     // construction
     FlexTree( const void* p_tables ): tables( (const uint8_t*)p_tables )  {}
@@ -97,12 +89,16 @@ namespace libmorph
           memcpy( prefix + ccpref, szflex, ccflex );
 
           if ( (bflags & 0x80) == 0 )
-            wotree.Insert( prefix, ccpref + ccflex )->Insert( graminfo( grInfo | grinfo, bFlags & bflags ) );
+            Insert( *wotree.Insert( prefix, ccpref + ccflex ), graminfo( grInfo | grinfo, bFlags & bflags ) );
 
           if ( ofnext != 0 )
             CreateTree( wotree, ofnext, grInfo | grinfo, bFlags & bflags, prefix, ccpref + ccflex );
         }
       }
+
+  protected:
+    const uint8_t*  tables;     // global flex tables pointer
+
   };
 
 }  // libmorph namespace
