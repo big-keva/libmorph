@@ -1,6 +1,7 @@
 # if !defined( __sourcefile_h__ )
 # define __sourcefile_h__
 # include <libcodes/codes.h>
+# include <stdexcept>
 # include <cstdio>
 
 class Source
