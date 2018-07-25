@@ -1,5 +1,6 @@
 # if !defined( __references_h__ )
 # define __references_h__
+# include "serialize.h"
 # include <cstdint>
 # include <map>
 
