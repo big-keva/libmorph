@@ -69,18 +69,6 @@ inline  size_t  lexkeybuf( char* lexbuf, unsigned nlexid )
   return lexbuf - lexorg;
 }
 
-template <class steminfo, class action>
-size_t  Enumerate( std::vector<steminfo>& l, action a, size_t o )
-{
-  o += ::GetBufLen( l.size() );
-
-  for ( auto& s: l )
-    if ( a( s, o ) ) o += ::GetBufLen( s );
-      else return (size_t)-1;
-
-  return o;
-}
-
 template <class theclass, class steminfo, class resolver>
 class buildmorph
 {
@@ -130,16 +118,6 @@ template <class theclass, class steminfo, class resolver>
 void  buildmorph<theclass, steminfo, resolver>::CreateDict( const std::vector<const char*>& dicset )
 {
   size_t    length;
-  auto      maplid = [&]( const steminfo& s, size_t o )
-    {
-      char      lidstr[0x20];
-      unsigned* ptrpos;
-
-      if ( (ptrpos = lidstree.Insert( lidstr, lexkeybuf( lidstr, s.nlexid ) )) == nullptr )
-        return false;
-      *ptrpos = (unsigned)o;
-        return true;
-    };
 
   for ( auto s: dicset )
   {
@@ -168,7 +146,13 @@ void  buildmorph<theclass, steminfo, resolver>::CreateDict( const std::vector<co
   else throw std::runtime_error( "fault to calculate the main dictionary size!" );
 
   // create stem mapping
-  stemtree.Enumerate( maplid );
+  stemtree.Enumerate( [&]( std::vector<steminfo>& astems, size_t offset )
+    {
+      char  lidstr[0x20];
+
+      for ( auto next = astems.begin(); next != astems.end(); offset += ::GetBufLen( *next ), ++next )
+        *lidstree.Insert( lidstr, lexkeybuf( lidstr, next->nlexid ) ) = (unsigned)offset;
+    } );
 
   if ( (length = lidstree.GetBufLen()) != (size_t)-1 )
     libmorph::LogMessage( 0, "info: lids dictionary size is %d bytes.\n", length );

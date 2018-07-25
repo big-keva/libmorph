@@ -51,14 +51,18 @@ namespace wordtree_impl
 }
 
 template <class element, class counter = uint8_t>
-class wordtree: public std::vector<wordtree<element, counter>>
+class wordtree
 {
-  std::unique_ptr<element>  pstems;
+  using treevector = std::vector<wordtree<element, counter>>;
+  using treelister = typename treevector::iterator;
+
+  treevector                nested;
+  std::unique_ptr<element>  p_data;
   uint8_t                   chnode;
   size_t                    length;
 
 public:     // construction
-  wordtree( uint8_t c = 0 ): std::vector<wordtree<element, counter>>(), chnode( c ), length( 0 )
+  wordtree( uint8_t c = 0 ): chnode( c ), length( 0 )
     {}
 
 public:     // expand
@@ -68,13 +72,7 @@ public:     // expand
 public:     // serialization
                       size_t  GetBufLen();
   template <class O>  O*      Serialize( O* ) const;
-
-public:     // enum
-  template <class A>
-  size_t    Enumerate( const A& action, size_t offset = 0 );
-  template <class A>
-  void      EnumItems( const A& action, char* k, size_t l = 0 ) const;
-
+  template <class A>  size_t  Enumerate( A, size_t o = 0 );
 };
 
 // wordtree inline implementation
@@ -84,22 +82,22 @@ element*  wordtree<element, counter>::Insert( const char* pszstr, size_t cchstr 
 {
   if ( cchstr > 0 )
   {
-    auto  ptrtop = this->begin();
-    auto  ptrend = this->end();
+    auto  ptrtop = nested.begin();
+    auto  ptrend = nested.end();
 
     while ( ptrtop != ptrend && ptrtop->chnode > (uint8_t)*pszstr )
       ++ptrtop;
 
     if ( ptrtop == ptrend || ptrtop->chnode != (uint8_t)*pszstr )
-      ptrtop = this->insert( ptrtop, wordtree( (uint8_t)*pszstr ) );
+      ptrtop = nested.insert( ptrtop, wordtree( (uint8_t)*pszstr ) );
 
     return ptrtop->Insert( pszstr + 1, cchstr - 1 );
   }
 
-  if ( pstems == nullptr )
-    pstems = std::unique_ptr<element>( new element() );
+  if ( p_data == nullptr )
+    p_data = std::unique_ptr<element>( new element() );
 
-  return pstems.get();
+  return p_data.get();
 }
 
 template <class element, class counter>
@@ -107,8 +105,8 @@ const element*  wordtree<element, counter>::Search( const char* pszstr, size_t c
 {
   if ( cchstr > 0 )
   {
-    auto  ptrtop = this->begin();
-    auto  ptrend = this->end();
+    auto  ptrtop = nested.begin();
+    auto  ptrend = nested.end();
 
     while ( ptrtop != ptrend && ptrtop->chnode > (uint8_t)*pszstr )
       ++ptrtop;
@@ -116,12 +114,12 @@ const element*  wordtree<element, counter>::Search( const char* pszstr, size_t c
     if ( ptrtop != ptrend || ptrtop->chnode != (uint8_t)*pszstr )
       return nullptr;
 
-    return ptrtop->SearchStr( pszstr + 1, cchstr - 1 );
+    return ptrtop->Search( pszstr + 1, cchstr - 1 );
   }
 
   assert( cchstr == 0 );
 
-  return pstems.get();
+  return p_data.get();
 }
 
 template <class element, class counter>
@@ -129,15 +127,15 @@ size_t  wordtree<element, counter>::GetBufLen()
 {
   size_t  buflen = wordtree_impl::storecount<counter>::GetBufLen();
 
-  for ( auto p = this->begin(); p != this->end(); ++p )
+  for ( auto& wt: nested )
   {
-    size_t  sublen = p->GetBufLen();
+    size_t  sublen = wt.GetBufLen();
 
     buflen += ::GetBufLen( sublen ) + sublen + 1;
   }
 
-  if ( pstems != nullptr )
-    buflen += ::GetBufLen( *pstems.get() );
+  if ( p_data != nullptr )
+    buflen += ::GetBufLen( *p_data.get() );
 
   return length = buflen;
 }
@@ -145,46 +143,34 @@ size_t  wordtree<element, counter>::GetBufLen()
 template <class element, class counter> template <class O>
 inline  O*  wordtree<element, counter>::Serialize( O* o ) const
 {
-  if ( (o = wordtree_impl::storecount<counter>( size(), pstems != nullptr ).Serialize( o )) == nullptr )
+  if ( (o = wordtree_impl::storecount<counter>( nested.size(), p_data != nullptr ).Serialize( o )) == nullptr )
     return nullptr;
 
-  for ( auto& n: *this )
+  for ( auto& n: nested )
     o = n.Serialize( ::Serialize( ::Serialize( o, n.chnode ), n.length ) );
 
-  if ( pstems != nullptr )
-    o = ::Serialize( o, *pstems.get() );
+  if ( p_data != nullptr )
+    o = ::Serialize( o, *p_data.get() );
 
   return o;
 }
 
 template <class element, class counter>
 template <class A>
-size_t  wordtree<element, counter>::Enumerate( const A& action, size_t offset )
+size_t  wordtree<element, counter>::Enumerate( A action, size_t offset )
 {
   offset += wordtree_impl::storecount<counter>::GetBufLen();
 
-  for ( auto& n: *this )
+  for ( auto& n: nested )
     if ( (offset = n.Enumerate( action, offset + ::GetBufLen( n.chnode ) + ::GetBufLen( n.length ) )) == (size_t)-1 )
       return offset;
 
-  if ( pstems != nullptr )
-    offset = ::Enumerate( *pstems.get(), action, offset );
+  if ( p_data == nullptr )
+    return offset;
 
-  return offset;
-}
+  action( *p_data.get(), offset );
 
-template <class element, class counter> template <class A>
-void    wordtree<element, counter>::EnumItems( const A& action, char* k, size_t  l ) const
-{
-  for ( auto& n: *this )
-  {
-    k[l] = p->chnode;
-
-    n.EnumItems( action, k, l + 1 );
-  }
-
-  if ( pstems != nullptr )
-    action( *pstems.ptr(), k, l );
+  return offset + ::GetBufLen( *p_data.get() );
 }
 
 # endif  // __libmorph_wordtree_h__
