@@ -1,5 +1,5 @@
-# include <tools/buildmorph.h>
 # include <tools/plaintable.h>
+# include <tools/buildmorph.h>
 # include <tools/ftables.h>
 # include <tools/dumppage.h>
 # include "mtables.h"
