@@ -143,9 +143,9 @@ public:
 
         if ( it == iplain.end() )
         {
-          wordtree<libmorph::gramlist>  atable = libmorph::FlexTree( ftable.data() )( rclass.tfoffs );
-          size_t                        ltable = atable.GetBufLen();
-          size_t                        theofs = aplain.size();
+          auto    atable = libmorph::FlexTree( ftable.data() )( rclass.tfoffs );
+          size_t  ltable = atable.GetBufLen();
+          size_t  theofs = aplain.size();
 
           assert( (theofs & 0x0f) == 0 );
 
