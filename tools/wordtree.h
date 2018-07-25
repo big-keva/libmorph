@@ -2,6 +2,7 @@
 # if !defined( __libmorph_wordtree_h__ )
 # define  __libmorph_wordtree_h__
 # include <tools/serialize.h>
+# include <climits>
 # include <cassert>
 # include <memory>
 # include <vector>

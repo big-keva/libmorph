@@ -5,6 +5,7 @@
 # include "sweets.h"
 # include <libcodes/codes.h>
 # include <stdexcept>
+# include <algorithm>
 # include <vector>
 
 template <class theclass>

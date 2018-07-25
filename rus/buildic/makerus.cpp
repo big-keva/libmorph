@@ -14,7 +14,7 @@
 #   pragma warning( disable: 4237 )
 # endif // _MSC_VER
 
-static unsigned char mixTypes[64] =
+unsigned char mixTypes[64] =
 {
   0x00,                                 /* Несуществующий тип слова     */
   0x01, 0x01, 0x01, 0x01, 0x01, 0x01,   /* 1..6: глаголы                */
