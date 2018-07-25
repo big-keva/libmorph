@@ -1,7 +1,8 @@
 # if !defined( __plaintable_h__ )
-#	define	__plaintable_h__
-# include "wordtree.h"
+# define __plaintable_h__
+# include "serialize.h"
 # include <algorithm>
+# include <cstdint>
 # include <vector>
 
 namespace libmorph
@@ -44,6 +45,8 @@ inline  O*      Serialize( O* o, const libmorph::gramlist& gl )
 
   return o;
 }
+
+# include "wordtree.h"
 
 namespace libmorph
 {
