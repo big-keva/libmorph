@@ -346,80 +346,80 @@ protected:
 
 };
 
-class ParamsFile
+std::vector<char>         LoadCommandFile( const char* szpath )
 {
-  std::vector<char*>  argset;
-  std::vector<char>   argbuf;
+  std::vector<char> output;
+  FILE*             lpfile = nullptr;
 
-public:
-  ParamsFile( int argc, char* argv[] )
+  try
+  {
+    if ( (lpfile = fopen( szpath, "rb" )) == nullptr )
+      throw std::runtime_error( "could not open the responce file '" + std::string( szpath ) + "'" );
+
+    while ( !feof( lpfile ) )
     {
-      for ( auto arg = argv + 1; arg < argv + argc; ++arg )
-        if ( **arg != '@' )
-          argset.push_back( *arg );
-    }
-  void  Set( const char* szpath )
-    {
-      FILE* lpfile = nullptr;
+      char  chbuff[0x400];
+      auto  cbread = fread( chbuff, 1, sizeof(chbuff), lpfile );
 
-      try
-      {
-      // load source
-        if ( (lpfile = fopen( szpath, "rb" )) == nullptr )
-          throw std::runtime_error( "could not open the responce file '" + std::string( szpath ) + "'" );
-
-        while ( !feof( lpfile ) )
-        {
-          char  chbuff[0x400];
-          auto  cbread = fread( chbuff, 1, sizeof(chbuff), lpfile );
-
-          if ( cbread != 0 )
-            argbuf.insert( argbuf.end(), chbuff, cbread + chbuff );
-        }
-
-        argbuf.push_back( 0 );
-
-        fclose( lpfile );
-
-      // parse strings
-        std::replace_if( argbuf.begin(), argbuf.end(), []( char ch ){  return (unsigned char)ch <= 0x20;  }, '\0' );
-
-        for ( auto top = argbuf.begin(); top != argbuf.end(); )
-          if ( *top != '\0' )
-          {
-            auto  end = top;
-            auto  pos = argset.end();
-
-            if ( *top == '-' )
-              while ( end != argbuf.end() && *end != '\0' && *end != '=' && *end != ':' ) ++end;
-            else
-              while ( end != argbuf.end() && *end != '\0' ) ++end;
-
-          // search key in the list
-            for ( auto p = argset.begin(); p != argset.end() && pos == argset.end(); ++p )
-              if ( strncmp( argbuf.data() + (top - argbuf.begin()), *p, end - top ) == 0 )
-                pos = p;
-
-          // check of overriden in args
-            if ( pos == argset.end() )
-              argset.push_back( argbuf.data() + (top - argbuf.begin()) );
-
-            while ( top != argbuf.end() && *top != '\0' ) ++top;
-            while ( top != argbuf.end() && *top == '\0' ) ++top;
-          }
-      }
-      catch ( ... )
-      {
-        if ( lpfile != nullptr )
-          fclose( lpfile );
-        throw;
-      }
+      if ( cbread != 0 )
+        output.insert( output.end(), chbuff, cbread + chbuff );
     }
 
-public:
-  auto  begin() const {  return argset.begin();  }
-  auto  end() const   {  return argset.end();  }
-};
+    output.push_back( 0 );
+
+    fclose( lpfile );
+
+    return std::move( output );
+  }
+  catch ( ... )
+  {
+    if ( lpfile != nullptr )
+      fclose( lpfile );
+    throw;
+  }
+}
+
+std::vector<const char*>  ReadCommandLine( int argc, char* argv[] )
+{
+  std::vector<const char*>  out;
+
+  for ( auto arg = argv + 1; arg < argv + argc; ++arg )
+    if ( **arg != '@' )
+      out.push_back( *arg );
+
+  return std::move( out );
+}
+
+std::vector<const char*>  ReadCommandFile( std::vector<const char*>&& cmd, std::vector<char>& buf )
+{
+  std::replace_if( buf.begin(), buf.end(), []( char ch ){  return (unsigned char)ch <= 0x20;  }, '\0' );
+
+  for ( auto top = buf.begin(); top != buf.end(); )
+    if ( *top != '\0' )
+    {
+      auto  end = top;
+      auto  pos = cmd.end();
+
+      if ( *top == '-' )
+        while ( end != buf.end() && *end != '\0' && *end != '=' && *end != ':' ) ++end;
+      else
+        while ( end != buf.end() && *end != '\0' ) ++end;
+
+    // search key in the list
+      for ( auto p = cmd.begin(); p != cmd.end() && pos == cmd.end(); ++p )
+        if ( strncmp( buf.data() + (top - buf.begin()), *p, end - top ) == 0 )
+          pos = p;
+
+    // check of overriden in args
+      if ( pos == cmd.end() )
+        cmd.push_back( buf.data() + (top - buf.begin()) );
+
+      while ( top != buf.end() && *top != '\0' ) ++top;
+      while ( top != buf.end() && *top == '\0' ) ++top;
+    }
+
+  return std::move( cmd );
+}
 
 /*
 */
@@ -441,16 +441,20 @@ int   main( int argc, char* argv[] )
 {
   try
   {
-    BuildRus    generate;
-    ParamsFile  responce( argc, argv );
+    BuildRus          generate;
+    auto              commands = ReadCommandLine( argc, argv );
+    std::vector<char> respfile;
 
     if ( argc < 2 )
       return libmorph::LogMessage( 0, about );
 
     if ( *argv[1] == '@' )
-      responce.Set( argv[1] + 1 );
+    {
+      respfile = LoadCommandFile( argv[1] + 1 );
+      commands = ReadCommandFile( std::move( commands ), respfile );
+    }
 
-    return generate.Run( responce );
+    return generate.Run( commands );
   }
   catch ( const std::runtime_error& x )
   {
