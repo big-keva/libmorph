@@ -143,14 +143,14 @@ public:
 
         if ( it == iplain.end() )
         {
-          auto    atable = libmorph::FlexTree( ftable.data() )( rclass.tfoffs );
-          size_t  ltable = atable.GetBufLen();
+          auto    atable = libmorph::CreatePlainTable( ftable.data(), rclass.tfoffs );
+          size_t  ltable = atable.size();
           size_t  theofs = aplain.size();
 
           assert( (theofs & 0x0f) == 0 );
 
-          aplain.resize( (theofs + ltable + 0x0f) & ~0x0f );
-          atable.Serialize( theofs + aplain.data() );
+          aplain.insert( aplain.end(), atable.begin(), atable.end() );
+          aplain.resize( (aplain.size() + 0x0f) & ~0x0f );
 
           iplain.insert( { rclass.tfoffs, theofs } );
           rclass.tfoffs = static_cast<uint16_t>(theofs >> 4);
