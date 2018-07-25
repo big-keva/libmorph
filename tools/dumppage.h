@@ -1,6 +1,7 @@
 # pragma once
 # if !defined( __dumppage_h__ )
 # define __dumppage_h__
+# include <stdexcept>
 # include <cstdarg>
 # include <cstdio>
 # include <string>
