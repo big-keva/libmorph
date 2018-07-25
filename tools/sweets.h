@@ -1,6 +1,7 @@
 # if !defined( __sweets_h__ )
 # define __sweets_h__
 # include "serialize.h"
+# include <stdexcept>
 # include <cstdarg>
 # include <cstdint>
 # include <cstdio>
