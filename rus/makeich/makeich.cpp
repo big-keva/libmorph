@@ -136,8 +136,12 @@ void  Compile( Source& source, collector& tabset )
         continue;
       }
 
-      if ( (stnext = trim( stnext )).length() != 0 )  Compile( source.Open( stnext ), tabset );
-        else throw std::runtime_error( "file name expected" );
+      if ( (stnext = trim( stnext )).length() != 0 )
+      {
+        auto  intext = source.Open( stnext );
+
+        Compile( intext, tabset );
+      } else throw std::runtime_error( "file name expected" );
     }
   }
   catch ( const std::runtime_error& e )
@@ -193,7 +197,9 @@ int   main( int argc, char* argv[] )
 
   try
   {
-    Compile( OpenSource( inname, source_encoding ), tables );
+    auto  intext = OpenSource( inname, source_encoding );
+
+    Compile( intext, tables );
   }
   catch ( const std::exception& x )
   {
