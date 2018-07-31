@@ -102,24 +102,9 @@ protected:
 
 public:
   void  InitTables( const std::string&  flex_table, const std::string& flex_index,
-                    const std::string&  intr_table, const std::string& intr_index )
-    {
-      static const char amagic[] = "*inflex by Keva*";
+                    const std::string&  intr_table, const std::string& intr_index );
+  void  SaveTables( const std::string&  output_dir, const std::string& name_space );
 
-      aplain.insert( aplain.end(), amagic, amagic + 16 );
-
-    // load flex ad mix tables
-      ftable = libmorph::LoadSource( flex_table.c_str() );
-        LoadObject( findex, flex_index );
-      mtable = libmorph::LoadSource( intr_table.c_str() );
-        LoadObject( mindex, intr_index );
-    }
-  void  SaveTables( const std::string& outdir, const std::string& nspace )
-    {
-      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph::rus::GPLlicense ).Dump( "mxTables", libmorph::serialbuff( mtable.data(), mtable.size() ) );
-      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph::rus::GPLlicense ).Dump( "flexTree", libmorph::serialbuff( aplain.data(), aplain.size() ) );
-      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph::rus::GPLlicense ).Dump( "mixTypes", libmorph::serialbuff( mixTypes, sizeof(mixTypes) ) );
-    }
   /*
     PatchClass( class )
 
@@ -230,6 +215,8 @@ protected:  // helpers
     }
 };
 
+# include <tools/buildmorph.h>
+
 size_t  GetBufLen( const rusteminfo& s )
 {
   return 2 + ::GetBufLen( s.nlexid ) + sizeof(word16_t) + (s.szpost[0] != 0 ? strlen( s.szpost ) + 1 : 0);
@@ -247,7 +234,29 @@ O*      Serialize( O* o, const rusteminfo& s )
     return (wstore & 0x8000) != 0 ? ::Serialize( o, s.szpost ) : o;
   }
 
-# include <tools/buildmorph.h>
+
+// ResolveRus implementation
+
+void  ResolveRus::InitTables( const std::string&  flex_table, const std::string& flex_index,
+                              const std::string&  intr_table, const std::string& intr_index )
+{
+  static const char amagic[] = "*inflex by Keva*";
+
+  aplain.insert( aplain.end(), amagic, amagic + 16 );
+
+// load flex ad mix tables
+  ftable = libmorph::LoadSource( flex_table.c_str() );
+    LoadObject( findex, flex_index );
+  mtable = libmorph::LoadSource( intr_table.c_str() );
+    LoadObject( mindex, intr_index );
+}
+
+void  ResolveRus::SaveTables( const std::string& outdir, const std::string& nspace )
+{
+  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph::rus::GPLlicense ).Dump( "mxTables", mtc::serialbuf( mtable.data(), mtable.size() ) );
+  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph::rus::GPLlicense ).Dump( "flexTree", mtc::serialbuf( aplain.data(), aplain.size() ) );
+  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph::rus::GPLlicense ).Dump( "mixTypes", mtc::serialbuf( mixTypes, sizeof(mixTypes) ) );
+}
 
 class BuildRus: public buildmorph<lexemeinfo, rusteminfo, ResolveRus>
 {
