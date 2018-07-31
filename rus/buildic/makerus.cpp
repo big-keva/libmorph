@@ -3,6 +3,7 @@
 # include <tools/ftables.h>
 # include <tools/dumppage.h>
 # include <tools/sweets.h>
+# include <tools/serialize.decl.h>
 # include "mtables.h"
 # include <map>
 
