@@ -1,6 +1,7 @@
 # if !defined( __ftables_h__ )
 # define __ftables_h__
 # include <cstdint>
+# include <cstring>
 # include <string>
 # include <tuple>
 
