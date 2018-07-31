@@ -5,9 +5,7 @@
 # include "mtables.h"
 # include <cassert>
 
-# if defined( _MSC_VER )
-#   pragma warning( disable: 4237 )
-# endif
+template <class O>  O*  Serialize( O*, const void*, size_t );
 
 struct  morphclass
 {
