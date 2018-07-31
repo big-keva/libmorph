@@ -1,6 +1,5 @@
 # if !defined( __sweets_h__ )
 # define __sweets_h__
-# include "serialize.h"
 # include <stdexcept>
 # include <cstdarg>
 # include <cstdint>
@@ -8,18 +7,6 @@
 
 namespace libmorph
 {
-
-  class serialbuff
-  {
-    const void* buffer;
-    size_t      length;
-
-  public:
-    serialbuff( const void* p, size_t l ): buffer( p ), length( l )
-      {}
-    template <class O> O*  Serialize( O* o ) const
-      {  return ::Serialize( o, buffer, length );  }
-  };
 
   inline  int   LogMessage( int nerror, const char* format, ... )
   {
