@@ -58,7 +58,7 @@ SOFTWARE.
 # include <vector>
 # include <string>
 
-namespace libmorph
+namespace mtc
 {
 
   class sourcebuf
@@ -84,9 +84,23 @@ namespace libmorph
     sourcebuf*  FetchFrom( void* o, size_t l )  {  return p + l <= e ? (memcpy( o, p, l ), p += l, this) : nullptr;  }
   };
 
+  class serialbuf
+  {
+    const void* data;
+    size_t      size;
+
+  public:
+    serialbuf( const void* p, size_t l ): data( p ), size( l ) {}
+    serialbuf( const serialbuf& s ): data( s.data ), size( s.size ) {}
+
+  public:
+    template <class O>
+    O*  Serialize( O* o ) const {  return ::Serialize( o, data, size );  }
+  };
+
 }
 
-inline  libmorph::sourcebuf*  FetchFrom( libmorph::sourcebuf* s, void* p, size_t l )
+inline  mtc::sourcebuf*  FetchFrom( mtc::sourcebuf* s, void* p, size_t l )
   {  return s != nullptr ? s->FetchFrom( p, l ) : nullptr;  }
 
 //[]=========================================================================[]
