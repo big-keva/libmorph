@@ -1,18 +1,10 @@
+# include "lresolve.h"
 # include <tools/plaintable.h>
-# include <tools/buildmorph.h>
 # include <tools/ftables.h>
 # include <tools/dumppage.h>
+# include <tools/sweets.h>
 # include "mtables.h"
-# include "lresolve.h"
 # include <map>
-
-#if defined( _MSC_VER ) && defined( _DEBUG )
-  #include <crtdbg.h>
-#endif
-
-# if defined( _MSC_VER )
-#   pragma warning( disable: 4237 )
-# endif // _MSC_VER
 
 unsigned char mixTypes[64] =
 {
@@ -57,10 +49,10 @@ unsigned char mixTypes[64] =
   0x00, 0x00
 };
 
-namespace __libmorphrus__
-{
+namespace libmorph {
+namespace rus {
   extern  char  GPLlicense[];
-}
+}}
 
 class ResolveRus
 {
@@ -124,9 +116,9 @@ public:
     }
   void  SaveTables( const std::string& outdir, const std::string& nspace )
     {
-      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( __libmorphrus__::GPLlicense ).Dump( "mxTables", libmorph::serialbuff( mtable.data(), mtable.size() ) );
-      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( __libmorphrus__::GPLlicense ).Dump( "flexTree", libmorph::serialbuff( aplain.data(), aplain.size() ) );
-      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( __libmorphrus__::GPLlicense ).Dump( "mixTypes", libmorph::serialbuff( mixTypes, sizeof(mixTypes) ) );
+      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph::rus::GPLlicense ).Dump( "mxTables", libmorph::serialbuff( mtable.data(), mtable.size() ) );
+      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph::rus::GPLlicense ).Dump( "flexTree", libmorph::serialbuff( aplain.data(), aplain.size() ) );
+      libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph::rus::GPLlicense ).Dump( "mixTypes", libmorph::serialbuff( mixTypes, sizeof(mixTypes) ) );
     }
   /*
     PatchClass( class )
@@ -255,6 +247,8 @@ O*      Serialize( O* o, const rusteminfo& s )
     return (wstore & 0x8000) != 0 ? ::Serialize( o, s.szpost ) : o;
   }
 
+# include <tools/buildmorph.h>
+
 class BuildRus: public buildmorph<lexemeinfo, rusteminfo, ResolveRus>
 {
   using inherited = buildmorph<lexemeinfo, rusteminfo, ResolveRus>;
@@ -277,7 +271,7 @@ class BuildRus: public buildmorph<lexemeinfo, rusteminfo, ResolveRus>
   };
 
 public:
-  BuildRus(): buildmorph<lexemeinfo, rusteminfo, ResolveRus>( rusmorph, __libmorphrus__::GPLlicense, codepages::codepage_866 ), rusmorph()
+  BuildRus(): buildmorph<lexemeinfo, rusteminfo, ResolveRus>( rusmorph, libmorph::rus::GPLlicense, codepages::codepage_866 ), rusmorph()
     {
     }
   template <class Args>
