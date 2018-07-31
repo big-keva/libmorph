@@ -1,8 +1,8 @@
+# include <tools/dumppage.h>
 # include "lresolve.h"
 # include "../licenseGPL.h"
 # include <tools/plaintable.h>
 # include <tools/ftables.h>
-# include <tools/dumppage.h>
 # include <tools/sweets.h>
 # include <tools/serialize.decl.h>
 # include "mtables.h"
@@ -50,11 +50,6 @@ unsigned char mixTypes[64] =
   0x00, 0x00, 0x00, 0x00,
   0x00, 0x00
 };
-
-namespace libmorph {
-namespace rus {
-  extern  char  GPLlicense[];
-}}
 
 class ResolveRus
 {
