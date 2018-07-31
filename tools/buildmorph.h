@@ -11,34 +11,32 @@
 template <class theclass>
 class classtable
 {
-  struct  classofs: public theclass
-  {
-    unsigned  offset;
+  using classrefer = std::pair<theclass, uint16_t>;
 
-    classofs( const theclass& r, unsigned o ): theclass( r ), offset( o ) {}
-    classofs( const classofs& c ): theclass( c ), offset( c.offset ) {}
-    bool  operator == ( const theclass& r ) const {  return theclass::operator == ( r );  }
-  };
-
-  std::vector<classofs> clsset;
-  unsigned              length;
+  std::vector<classrefer> clsset;
+  size_t                  length;
 
 public:     // construction
   classtable(): length( 0 ) {}
   classtable( const classtable& ) = delete;
+  classtable& operator = ( const classtable& ) = delete;
 
 public:     // API
-  unsigned  AddClass( const theclass& rclass )
+  uint16_t  AddClass( const theclass& rclass )
     {
-      auto  pfound = std::find( clsset.begin(), clsset.end(), rclass );
+      auto  pfound = std::find_if( clsset.begin(), clsset.end(),
+        [&]( const classrefer& r ){  return r.first == rclass;  } );
 
       if ( pfound != clsset.end() )
-        return pfound->offset;
+        return pfound->second;
 
-      clsset.push_back( classofs( rclass, length ) );
+      clsset.push_back( std::make_pair( rclass, (uint16_t)length ) );
         length += rclass.GetBufLen();
 
-      return clsset.back().offset;
+      if ( length > (uint16_t)-1 )
+        throw std::range_error( "class offset is too big" );
+
+      return clsset.back().second;
     }
 
 public:     // serialization
@@ -50,7 +48,7 @@ public:     // serialization
   O*      Serialize( O* o ) const
     {
       for ( auto p = clsset.begin(); o != nullptr && p < clsset.end(); ++p )
-        o = p->Serialize( o );
+        o = p->first.Serialize( o );
       return o;
     }
 };
@@ -223,7 +221,7 @@ void  buildmorph<theclass, steminfo, resolver>::DictReader( FILE* source )
         lexeme.chrmin = lex.chrmin;
         lexeme.chrmax = lex.chrmax;
 
-      lexeme.oclass = classset.AddClass( lex );
+      lexeme.oclass = (uint16_t)classset.AddClass( lex );
 
       auto  pstems = stemtree.Insert( lex.ststem.c_str(), lex.ststem.length() );
       auto  inspos = pstems->begin();
