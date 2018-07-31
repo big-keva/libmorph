@@ -215,7 +215,9 @@ protected:  // helpers
     }
 };
 
-# include <tools/buildmorph.h>
+template <class T>          size_t  GetBufLen( T );
+template <class O, class T> O*      Serialize( O*, T );
+template <class O>          O*      Serialize( O*, const void*, size_t );
 
 size_t  GetBufLen( const rusteminfo& s )
 {
@@ -234,6 +236,7 @@ O*      Serialize( O* o, const rusteminfo& s )
     return (wstore & 0x8000) != 0 ? ::Serialize( o, s.szpost ) : o;
   }
 
+# include <tools/buildmorph.h>
 
 // ResolveRus implementation
 
