@@ -54,13 +54,10 @@ namespace wordtree_impl
 template <class element, class counter = uint8_t>
 class wordtree
 {
-  using treevector = std::vector<wordtree<element, counter>>;
-  using treelister = typename treevector::iterator;
-
-  treevector                nested;
-  std::unique_ptr<element>  p_data;
-  uint8_t                   chnode;
-  size_t                    length;
+  std::vector<wordtree<element, counter>> nested;
+  std::unique_ptr<element>                p_data;
+  uint8_t                                 chnode;
+  size_t                                  length;
 
 public:     // construction
   wordtree( uint8_t c = 0 ): chnode( c ), length( 0 )
