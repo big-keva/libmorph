@@ -49,59 +49,17 @@ SOFTWARE.
 С ПРОГРАММНЫМ ОБЕСПЕЧЕНИЕМ.
 
 */
-# if !defined( __libmorph_serialize__ )
-# define  __libmorph_serialize__
-# include <stdlib.h>
-# include <string.h>
-# include <stdio.h>
-# include <errno.h>
-# include <vector>
-# include <string>
+# if !defined( __mtc_serialize__ )
+# define  __mtc_serialize__
+# include "serialize.decl.h"
 
 namespace mtc
 {
 
-  class sourcebuf
-  {
-    const char* p;
-    const char* e;
-
-  public:     // construction
-    sourcebuf( const void* t = nullptr, size_t l = 0 ) noexcept: p( (char*)t ), e( l + (char*)t ) {}
-    sourcebuf( const sourcebuf& s ): p( s.p ), e( s.e ) {}
-    sourcebuf&  operator = ( const sourcebuf& s )
-      {
-        p = s.p;
-        e = s.e;
-        return *this;
-      }
-    sourcebuf* ptr() const {  return (sourcebuf*)this;  }
-    operator sourcebuf* () const    {  return ptr();  }
-    const char* getptr() const      {  return p < e ? p : nullptr;  }
-    sourcebuf*  skipto( size_t l )  {  return (p = l + p) <= e ? this : nullptr;  }
-
-  public:     // fetch
-    sourcebuf*  FetchFrom( void* o, size_t l )  {  return p + l <= e ? (memcpy( o, p, l ), p += l, this) : nullptr;  }
-  };
-
-  class serialbuf
-  {
-    const void* data;
-    size_t      size;
-
-  public:
-    serialbuf( const void* p, size_t l ): data( p ), size( l ) {}
-    serialbuf( const serialbuf& s ): data( s.data ), size( s.size ) {}
-
-  public:
-    template <class O>
-    O*  Serialize( O* o ) const {  return ::Serialize( o, data, size );  }
-  };
+  template <class O>
+  O*  serialbuf::Serialize( O* o ) const {  return ::Serialize( o, data, size );  }
 
 }
-
-inline  mtc::sourcebuf*  FetchFrom( mtc::sourcebuf* s, void* p, size_t l )
-  {  return s != nullptr ? s->FetchFrom( p, l ) : nullptr;  }
 
 //[]=========================================================================[]
 
@@ -119,30 +77,11 @@ inline  size_t  GetBufLen( T dwdata )
     return ncount;
   }
 
-inline  size_t  GetBufLen(  char  )
-  {
-    return 1;
-  }
-
-inline  size_t  GetBufLen( unsigned char )
-  {
-    return 1;
-  }
-
-inline  size_t  GetBufLen(  bool  )
-  {
-    return 1;
-  }
-
-inline  size_t  GetBufLen( float )
-  {
-    return sizeof(float);
-  }
-
-inline  size_t  GetBufLen( double )
-  {
-    return sizeof(double);
-  }
+constexpr inline  size_t  GetBufLen( char )           {  return 1;  }
+constexpr inline  size_t  GetBufLen( unsigned char )  {  return 1;  }
+constexpr inline  size_t  GetBufLen( bool )           {  return 1;  }
+constexpr inline  size_t  GetBufLen( float )          {  return sizeof(float);  }
+constexpr inline  size_t  GetBufLen( double )         {  return sizeof(double);  }
 
 inline  size_t  GetBufLen( const char*  string )
   {
@@ -151,33 +90,63 @@ inline  size_t  GetBufLen( const char*  string )
     return sizeof(*string) * length + GetBufLen( length );
   }
 
-inline  size_t  GetBufLen( char*        string )
+inline  size_t  GetBufLen( char* string )
   {
     return GetBufLen( (const char*)string );
   }
 
+template <class T>
+inline  size_t  GetBufLen( const std::vector<T>& a )
+  {
+    size_t  cc = ::GetBufLen( a.size() );
+
+    for ( auto& t: a )
+      cc += ::GetBufLen( t );
+
+    return cc;
+  }
+
+template <class C>
+inline  size_t  GetBufLen( const std::basic_string<C>& s )
+  {
+    return ::GetBufLen( s.length() ) + sizeof(C) * s.length();
+  }
+
 //[]=========================================================================[]
 
-inline  char*       Serialize( char* o, const void* p, size_t l )
+inline  char*           Serialize( char* o, const void* p, size_t l )
   {
     return o != nullptr ? l + (char*)memcpy( o, p, l ) : nullptr;
   }
+
+inline  unsigned char*  Serialize( unsigned char* o, const void* p, size_t l )
+  {
+    return o != nullptr ? l + (unsigned char*)memcpy( o, p, l ) : nullptr;
+  }
+
+inline  FILE*           Serialize( FILE* o, const void* p, size_t l )
+  {
+    return o != nullptr && fwrite( p, sizeof(char), l, o ) == l ? o : nullptr;
+  }
+
+//[]=========================================================================[]
+
 inline  const char* FetchFrom( const char* s, void* p, size_t l )
   {
     return s != nullptr ? (memcpy( p, s, l ), l + s) : nullptr;
   }
+
 inline  const unsigned char* FetchFrom( const unsigned char* s, void* p, size_t l )
   {
     return s != nullptr ? (memcpy( p, s, l ), l + s) : nullptr;
   }
-inline  FILE*       Serialize( FILE* o, const void* p, size_t l )
-  {
-    return o != nullptr && fwrite( p, sizeof(char), l, o ) == l ? o : NULL;
-  }
+
 inline  FILE*       FetchFrom( FILE* s, void* p, size_t l )
   {
     return s != nullptr && fread( p, sizeof(char), l, s ) == l ? s : nullptr;
   }
+
+//[]=========================================================================[]
 
 template <class O>  O*  Serialize( O* o, char c )                         {  return Serialize( o, &c, sizeof(c) );  }
 template <class O>  O*  Serialize( O* o, unsigned char c )                {  return Serialize( o, &c, sizeof(c) );  }
@@ -185,8 +154,8 @@ template <class O>  O*  Serialize( O* o, float  f )                       {  ret
 template <class O>  O*  Serialize( O* o, double d )                       {  return Serialize( o, &d, sizeof(d) );  }
 template <class O>  O*  Serialize( O* o, bool b )                         {  return Serialize( o, (char)(b ? 1 : 0) );  }
 
-template <class O, class T>
-O*  Serialize( O*  o, T t )
+template <class O,
+          class T>  O*  Serialize( O*  o, T t )
   {
     int   nshift = 0;
     char  bstore;
@@ -205,16 +174,34 @@ O*  Serialize( O*  o, T t )
     return o;
   }
 
-template <class O>
-O*  Serialize( O* o, const char* s )
+template <class O>  O*  Serialize( O* o, const char* s )
   {
     auto  length = strlen( s );
 
     return Serialize( Serialize( o, length ), (const void*)s, sizeof(*s) * length );
   }
 
-template <class O>
-O*  Serialize( O* o, char* s )      {  return Serialize( o, (const char*)s );  }
+template <class O>  O*  Serialize( O* o, char* s )
+  {
+    return Serialize( o, (const char*)s );
+  }
+
+template <class O,
+          class T>  O*  Serialize( O* o, const std::vector<T>& a )
+  {
+    o = ::Serialize( o, a.size() );
+
+    for ( auto p = a.begin(); p != a.end() && o != nullptr; ++p )
+      o = ::Serialize( o, *p );
+
+    return o;
+  }
+
+template <class O,
+          class C>  O*  Serialize( O* o, const std::basic_string<C>& s )
+  {
+    return ::Serialize( ::Serialize( o, s.length() ), s.c_str(), sizeof(C) * s.length() );
+  }
 
 //[]=========================================================================[]
 
@@ -231,8 +218,8 @@ template <class S>  S*  FetchFrom( S* s, bool& b )
     return s;
   }
 
-template <class S, class T>
-S*  FetchFrom( S* s, T& t )
+template <class S,
+          class T>  S*  FetchFrom( S* s, T& t )
   {
     int   nshift = 0;
     char  bfetch;
@@ -246,8 +233,7 @@ S*  FetchFrom( S* s, T& t )
     return s;
   }
 
-template <class S>
-S*  FetchFrom( S* s, char*&  r )
+template <class S>  S*  FetchFrom( S* s, char*&  r )
   {
     unsigned  length;
 
@@ -260,40 +246,13 @@ S*  FetchFrom( S* s, char*&  r )
     return s;
   }
 
-template <class S>
-S*  FetchFrom( S* s, const char*& r )
+template <class S>  S*  FetchFrom( S* s, const char*& r )
   {
     return FetchFrom( s, (char*&)r );
   }
 
-/*
-  vectors serialization/deserialization
-*/
-
-template <class T>
-size_t  GetBufLen( const std::vector<T>& a )
-  {
-    size_t  cc = ::GetBufLen( a.size() );
-
-    for ( auto& t: a )
-      cc += ::GetBufLen( t );
-
-    return cc;
-  }
-
-template <class O, class T>
-O*  Serialize( O* o, const std::vector<T>& a )
-  {
-    o = ::Serialize( o, a.size() );
-
-    for ( auto p = a.begin(); p != a.end() && o != nullptr; ++p )
-      o = ::Serialize( o, *p );
-
-    return o;
-  }
-
-template <class S, class T>
-inline  S*  FetchFrom( S* s, std::vector<T>& a )
+template <class S,
+          class T>  S*  FetchFrom( S* s, std::vector<T>& a )
   {
     int   length;
 
@@ -311,18 +270,8 @@ inline  S*  FetchFrom( S* s, std::vector<T>& a )
     return s;
   }
 
-/*
-  strings serialization/deserialization
-*/
-
-template <class O, class C>
-O*  Serialize( O* o, const std::basic_string<C>& s )
-  {
-    return ::Serialize( ::Serialize( o, s.length() ), s.c_str(), sizeof(C) * s.length() );
-  }
-
-template <class S, class C>
-S*  FetchFrom( S* s, std::basic_string<C>& o )
+template <class S,
+          class C>  S*  FetchFrom( S* s, std::basic_string<C>& o )
   {
     int   l;
 
@@ -341,4 +290,4 @@ S*  FetchFrom( S* s, std::basic_string<C>& o )
     return s;
   }
 
-# endif  // __libmorph_serialize__
+# endif  // __mtc_serialize__
