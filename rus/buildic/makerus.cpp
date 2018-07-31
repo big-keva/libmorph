@@ -216,10 +216,6 @@ protected:  // helpers
     }
 };
 
-template <class T>          size_t  GetBufLen( T );
-template <class O, class T> O*      Serialize( O*, T );
-template <class O>          O*      Serialize( O*, const void*, size_t );
-
 size_t  GetBufLen( const rusteminfo& s )
 {
   return 2 + ::GetBufLen( s.nlexid ) + sizeof(word16_t) + (s.szpost[0] != 0 ? strlen( s.szpost ) + 1 : 0);
