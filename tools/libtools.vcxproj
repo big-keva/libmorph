@@ -20,6 +20,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="plaintable.cpp" />
+    <ClCompile Include="references.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="references.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
