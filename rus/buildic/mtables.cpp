@@ -1,9 +1,76 @@
 # include "mtables.h"
+# include <tools/serialize.h>
 # include <tools/utf81251.h>
 # include <cassert>
 
 namespace libmorph {
 namespace rus {
+
+  template <class S>
+  S*  Alternator::Load( alt& a, S* s )
+  {
+    size_t  cchstr;
+
+    if ( (s = ::FetchFrom( ::FetchFrom( s, a.offset ), cchstr )) == nullptr )
+      return nullptr;
+    if ( cchstr >= sizeof(a.szcond) )
+      return nullptr;
+    if ( (s = ::FetchFrom( s, a.szcond, cchstr )) == nullptr )
+      return nullptr;
+    a.szcond[cchstr] = '\0';
+      return s;
+  }
+
+  template <class S>
+  S*  Alternator::Load( tab& t, S* s )
+  {
+    alt     newalt;
+    size_t  toload;
+
+    if ( (s = ::FetchFrom( s, toload )) != nullptr ) t.reserve( toload );
+      else return nullptr;
+
+    while ( toload-- > 0 && (s = Load( newalt, s )) != nullptr )
+      t.push_back( newalt );
+
+    return s;
+  }
+
+  template <class S>
+  S*  Alternator::Load( std::string& name, size_t& offs, S* s )
+  {
+    size_t  ccname;
+
+    if ( (s = ::FetchFrom( ::FetchFrom( s, offs ), ccname )) != nullptr )
+    {
+      name.assign( ccname, ' ' );
+
+      s = ::FetchFrom( s, (char*)name.c_str(), ccname );
+    }
+    return s;
+  }
+
+  FILE* Alternator::Load( FILE* s )
+  {
+    tab         newtab;
+    size_t      toload;
+    std::string refstr;
+    size_t      refofs;
+
+    if ( (s = ::FetchFrom( s, toload )) != nullptr )  {  tabset.clear();  tabset.reserve( toload );  }
+      else return nullptr;
+
+    while ( toload-- > 0 && (s = Load( newtab, s )) != nullptr )
+      tabset.push_back( std::move( newtab ) );
+
+    if ( (s = ::FetchFrom( s, toload )) == nullptr )
+      return nullptr;
+
+    while ( toload-- > 0 && (s = Load( refstr, refofs, s )) != nullptr )
+      mapper.insert( { std::move( refstr ), tabset.data() + refofs } );
+
+    return s;
+  }
 
   // Поддерживаемые типы чередований в данной реализации
   //{ ле            - перед последней согласной стоит "ле"          }
