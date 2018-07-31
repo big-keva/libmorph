@@ -3,6 +3,7 @@
 # define __dumppage_h__
 # include <stdexcept>
 # include <cstdarg>
+# include <cstring>
 # include <cstdio>
 # include <string>
 
