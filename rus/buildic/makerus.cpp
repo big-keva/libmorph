@@ -1,4 +1,5 @@
 # include "lresolve.h"
+# include "../licenseGPL.h"
 # include <tools/plaintable.h>
 # include <tools/ftables.h>
 # include <tools/dumppage.h>
@@ -253,9 +254,9 @@ void  ResolveRus::InitTables( const std::string&  flex_table, const std::string&
 
 void  ResolveRus::SaveTables( const std::string& outdir, const std::string& nspace )
 {
-  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph::rus::GPLlicense ).Dump( "mxTables", mtc::serialbuf( mtable.data(), mtable.size() ) );
-  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph::rus::GPLlicense ).Dump( "flexTree", mtc::serialbuf( aplain.data(), aplain.size() ) );
-  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph::rus::GPLlicense ).Dump( "mixTypes", mtc::serialbuf( mixTypes, sizeof(mixTypes) ) );
+  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license ).Dump( "mxTables", mtc::serialbuf( mtable.data(), mtable.size() ) );
+  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license ).Dump( "flexTree", mtc::serialbuf( aplain.data(), aplain.size() ) );
+  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license ).Dump( "mixTypes", mtc::serialbuf( mixTypes, sizeof(mixTypes) ) );
 }
 
 class BuildRus: public buildmorph<lexemeinfo, rusteminfo, ResolveRus>
@@ -280,7 +281,7 @@ class BuildRus: public buildmorph<lexemeinfo, rusteminfo, ResolveRus>
   };
 
 public:
-  BuildRus(): buildmorph<lexemeinfo, rusteminfo, ResolveRus>( rusmorph, libmorph::rus::GPLlicense, codepages::codepage_866 ), rusmorph()
+  BuildRus(): buildmorph<lexemeinfo, rusteminfo, ResolveRus>( rusmorph, libmorph_rus_license, codepages::codepage_866 ), rusmorph()
     {
     }
   template <class Args>
