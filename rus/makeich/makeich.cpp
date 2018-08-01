@@ -140,6 +140,7 @@ void  Compile( Source& source, collector& tabset )
       {
         auto  intext = source.Open( stnext );
 
+        fprintf( stderr, "\t%s\n", stnext.c_str() );
         Compile( intext, tabset );
       } else throw std::runtime_error( "file name expected" );
     }
@@ -193,12 +194,13 @@ int   main( int argc, char* argv[] )
     return -1;
   }
 
-  fprintf( stderr, "Compiling tables...\n""\t%s\n", inname );
+  fprintf( stderr, "Compiling tables...\n" );
 
   try
   {
     auto  intext = OpenSource( inname, source_encoding );
 
+    fprintf( stderr, "\t%s\n", inname );
     Compile( intext, tables );
   }
   catch ( const std::exception& x )
