@@ -112,6 +112,18 @@ inline  size_t  GetBufLen( const std::basic_string<C>& s )
     return ::GetBufLen( s.length() ) + sizeof(C) * s.length();
   }
 
+template <class K,
+          class V>
+inline  size_t  GetBufLen( const std::map<K, V>& m )
+  {
+    size_t  cch = ::GetBufLen( m.size() );
+
+    for ( auto ptr = m.begin(); ptr != m.end(); ++ptr )
+      cch += ::GetBufLen( ptr->first ) + ::GetBufLen( ptr->second );
+
+    return cch;
+  }
+
 //[]=========================================================================[]
 
 inline  char*           Serialize( char* o, const void* p, size_t l )
@@ -203,6 +215,18 @@ template <class O,
     return ::Serialize( ::Serialize( o, s.length() ), s.c_str(), sizeof(C) * s.length() );
   }
 
+template <class O,
+          class K,
+          class V>  O*  Serialize( O* o, const std::map<K, V>& m )
+  {
+    o = ::Serialize( o, m.size() );
+
+    for ( auto ptr = m.begin(); o != nullptr && ptr != m.end(); ++ptr )
+      o = ::Serialize( ::Serialize( o, ptr->first ), ptr->second );
+
+    return o;
+  }
+
 //[]=========================================================================[]
 
 template <class S>  S*  FetchFrom( S* s, char& c )                        {  return FetchFrom( s, &c, sizeof(c) );  }
@@ -286,6 +310,25 @@ template <class S,
 
     if ( (s = ::FetchFrom( s, (C*)o.c_str(), l * sizeof(C) )) == nullptr )
       o.clear();
+
+    return s;
+  }
+
+template <class S,
+          class K,
+          class V>  S*  FetchFrom( S* s, std::map<K, V>& m )
+  {
+    size_t  len;
+
+    s = ::FetchFrom( s, len );
+
+    for ( m.clear(); s != nullptr && len-- > 0; )
+    {
+      std::pair<K, V> pair;
+
+      if ( (s = ::FetchFrom( ::FetchFrom( s, pair.first ), pair.second )) != nullptr )
+        m.insert( m.end(), std::move( pair ) );
+    }
 
     return s;
   }
