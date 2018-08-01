@@ -5,8 +5,6 @@
 # include "mtables.h"
 # include <cassert>
 
-template <class O>  O*  Serialize( O*, const void*, size_t );
-
 struct  morphclass
 {
   uint16_t  wdinfo = 0;
@@ -48,34 +46,36 @@ public:     // serialization
 
 constexpr morphclass nullclass;
 
-struct  lexemeinfo: public morphclass
+struct  lexemeinfo
 {
   std::string ststem;
-  std::string stpost;
 
+  morphclass  mclass;
   byte_t      chrmin = 0;
   byte_t      chrmax = 0;
+
+  std::string stpost;
 
 public:
   lexemeinfo()
     {}
-  lexemeinfo( const lexemeinfo& li ): morphclass( li ),
+  lexemeinfo( const lexemeinfo& li ): mclass( li.mclass ),
     ststem( li.ststem ),
-    stpost( li.stpost ),
     chrmin( li.chrmin ),
-    chrmax( li.chrmax ) {}
-  lexemeinfo( lexemeinfo&& li ): morphclass( std::move( li ) ),
+    chrmax( li.chrmax ),
+    stpost( li.stpost ) {}
+  lexemeinfo( lexemeinfo&& li ): mclass( std::move( li.mclass ) ),
     ststem( std::move( li.ststem ) ),
-    stpost( std::move( li.stpost ) ),
     chrmin( li.chrmin ),
-    chrmax( li.chrmax ) {}
+    chrmax( li.chrmax ),
+    stpost( std::move( li.stpost ) ) {}
   lexemeinfo& operator = ( lexemeinfo&& li )
     {
-      morphclass::operator = ( std::move( li ) );
       ststem = std::move( li.ststem );
-      stpost = std::move( li.stpost );
+      mclass = std::move( li.mclass );
       chrmin = li.chrmin;
       chrmax = li.chrmax;
+      stpost = std::move( li.stpost );
       return *this;
     }
 };
