@@ -9,10 +9,8 @@
 namespace libmorph
 {
 
-  class TableIndex: protected std::map<std::string, uint32_t>
+  struct TableIndex: protected std::map<std::string, uint32_t>
   {
-
-  public:     // API
     uint32_t  Find( const char* thekey ) const
       {
         auto  it = find( thekey );
@@ -23,15 +21,7 @@ namespace libmorph
     template <class S>
     S*        Load( S* s )
       {
-        size_t      toload;
-        std::string newkey;
-        uint32_t    newofs;
-
-        for ( s = ::FetchFrom( s, toload ); toload-- > 0
-          && (s = ::FetchFrom( ::FetchFrom( s, newofs ), newkey )) != nullptr; )
-            this->insert( { newkey, newofs } );
-        
-        return s;
+        return ::FetchFrom( s, *(std::map<std::string, uint32_t>*)this );
       }
 
   };

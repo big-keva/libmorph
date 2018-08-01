@@ -8,51 +8,6 @@
 # include <algorithm>
 # include <vector>
 
-template <class theclass>
-class classtable
-{
-  using classrefer = std::pair<theclass, uint16_t>;
-
-  std::vector<classrefer> clsset;
-  size_t                  length;
-
-public:     // construction
-  classtable(): length( 0 ) {}
-  classtable( const classtable& ) = delete;
-  classtable& operator = ( const classtable& ) = delete;
-
-public:     // API
-  uint16_t  AddClass( const theclass& rclass )
-    {
-      auto  pfound = std::find_if( clsset.begin(), clsset.end(),
-        [&]( const classrefer& r ){  return r.first == rclass;  } );
-
-      if ( pfound != clsset.end() )
-        return pfound->second;
-
-      clsset.push_back( std::make_pair( rclass, (uint16_t)length ) );
-        length += rclass.GetBufLen();
-
-      if ( length > (uint16_t)-1 )
-        throw std::range_error( "class offset is too big" );
-
-      return clsset.back().second;
-    }
-
-public:     // serialization
-  size_t  GetBufLen() const
-    {
-      return length;
-    }
-  template <class O>
-  O*      Serialize( O* o ) const
-    {
-      for ( auto p = clsset.begin(); o != nullptr && p < clsset.end(); ++p )
-        o = p->first.Serialize( o );
-      return o;
-    }
-};
-
 inline  size_t  lexkeybuf( char* lexbuf, unsigned nlexid )
 {
   char*   lexorg = lexbuf;
@@ -68,11 +23,13 @@ inline  size_t  lexkeybuf( char* lexbuf, unsigned nlexid )
   return lexbuf - lexorg;
 }
 
-template <class theclass, class steminfo, class resolver>
+template <class steminfo, class resolver>
 class buildmorph
 {
   typedef wordtree<std::vector<steminfo>, unsigned char>  StemTree;   // the actual tree
   typedef wordtree<unsigned, unsigned short>              LidsTree;
+
+  using   stemdata = std::pair<std::string, steminfo>;
 
 protected:
   std::string           nspace;
@@ -82,7 +39,6 @@ protected:
 protected:
   StemTree              stemtree;   // the actual tree
   LidsTree              lidstree;
-  classtable<theclass>  classset;
   resolver&             clparser;
   const char*           sLicense;
   FILE*                 unknowns;
@@ -113,8 +69,8 @@ protected:  // helpers
 
 // buildmorph implementation
 
-template <class theclass, class steminfo, class resolver>
-void  buildmorph<theclass, steminfo, resolver>::CreateDict( const std::vector<const char*>& dicset )
+template <class steminfo, class resolver>
+void  buildmorph<steminfo, resolver>::CreateDict( const std::vector<const char*>& dicset )
 {
   size_t    length;
 
@@ -149,17 +105,18 @@ void  buildmorph<theclass, steminfo, resolver>::CreateDict( const std::vector<co
     {
       char  lidstr[0x20];
 
-      for ( auto next = astems.begin(); next != astems.end(); offset += ::GetBufLen( *next ), ++next )
-        *lidstree.Insert( lidstr, lexkeybuf( lidstr, next->nlexid ) ) = (unsigned)offset;
+      offset += ::GetBufLen( astems.size() );
+
+      for ( auto& next: astems )
+      {
+        *lidstree.Insert( lidstr, lexkeybuf( lidstr, next.nlexid ) ) = (unsigned)offset;
+          offset += ::GetBufLen( next );
+      }
     } );
 
   if ( (length = lidstree.GetBufLen()) != (size_t)-1 )
     libmorph::LogMessage( 0, "info: lids dictionary size is %d bytes.\n", length );
   else throw std::runtime_error( "fault to calculate the main dictionary size!" );
-
-  if ( (length = classset.GetBufLen()) != (size_t)-1 )
-    libmorph::LogMessage( 0, "info: type dictionary size is %d bytes.\n", length );
-  else throw std::runtime_error( "fault to calculate the type dictionary size!" );
 
 // dump word tree
   libmorph::BinaryDumper().
@@ -167,13 +124,10 @@ void  buildmorph<theclass, steminfo, resolver>::CreateDict( const std::vector<co
 
   libmorph::BinaryDumper().
     Namespace( nspace ).OutDir( outdir ).Header( sLicense ).Dump( "lidstree", lidstree );
-
-  libmorph::BinaryDumper().
-    Namespace( nspace ).OutDir( outdir ).Header( sLicense ).Dump( "classmap", classset );
 }
 
-template <class theclass, class steminfo, class resolver>
-void  buildmorph<theclass, steminfo, resolver>::DictReader( FILE* source )
+template <class steminfo, class resolver>
+void  buildmorph<steminfo, resolver>::DictReader( FILE* source )
 {
   char    szline[0x400];
   int     nwords;
@@ -183,8 +137,8 @@ void  buildmorph<theclass, steminfo, resolver>::DictReader( FILE* source )
     char*                 strtop;
     char*                 strend;
     char*                 pszlid;
-    steminfo              lexeme;
-    std::vector<theclass> aclass;
+    lexeme_t              nlexid;
+    std::vector<stemdata> astems;
 
   // change codepage
     codepages::mbcstombcs( codepages::codepage_1251, szline, sizeof(szline), codepages::codepage_866, szline );
@@ -203,38 +157,35 @@ void  buildmorph<theclass, steminfo, resolver>::DictReader( FILE* source )
     }
 
   // resolve lexeme identifier
-    if ( (pszlid = strstr( strtop, " LID:" )) == NULL ) continue;
-      lexeme.nlexid = strtoul( pszlid + 5, &strend, 0 );
-    if ( lexeme.nlexid == 0 )
+    if ( (pszlid = strstr( strtop, " LID:" )) == nullptr )
+      continue;
+      
+    if ( (nlexid = strtoul( pszlid + 5, &strend, 0 )) == 0 )
       continue;
 
   // resolve word properties
-    if ( (aclass = clparser.BuildStems( strtop )).size() == 0 )
+    if ( (astems = clparser.BuildStems( strtop )).size() == 0 )
     {
       PutUnknown( strtop );
       continue;
     }
 
-    for ( auto& lex: aclass )
+    for ( auto& stdata: astems )
     {
-      strcpy( lexeme.szpost, lex.stpost.c_str() );
-        lexeme.chrmin = lex.chrmin;
-        lexeme.chrmax = lex.chrmax;
-
-      lexeme.oclass = (uint16_t)classset.AddClass( lex );
-
-      auto  pstems = stemtree.Insert( lex.ststem.c_str(), lex.ststem.length() );
+      auto  pstems = stemtree.Insert( stdata.first.c_str(), stdata.first.length() );
       auto  inspos = pstems->begin();
 
-      while ( inspos != pstems->end() && *inspos < lexeme )
+      stdata.second.nlexid = nlexid;
+
+      while ( inspos != pstems->end() && *inspos < stdata.second )
         ++inspos;
-      pstems->insert( inspos, lexeme );
+      pstems->insert( inspos, stdata.second );
     }
   }
 }
 
-template <class theclass, class steminfo, class resolver>
-void  buildmorph<theclass, steminfo, resolver>::PutUnknown( const char* unknown )
+template <class steminfo, class resolver>
+void  buildmorph<steminfo, resolver>::PutUnknown( const char* unknown )
 {
   if ( unknowns == nullptr )
   {
