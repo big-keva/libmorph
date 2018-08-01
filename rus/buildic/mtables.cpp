@@ -36,20 +36,6 @@ namespace rus {
     return s;
   }
 
-  template <class S>
-  S*  Alternator::Load( std::string& name, size_t& offs, S* s )
-  {
-    size_t  ccname;
-
-    if ( (s = ::FetchFrom( ::FetchFrom( s, offs ), ccname )) != nullptr )
-    {
-      name.assign( ccname, ' ' );
-
-      s = ::FetchFrom( s, (char*)name.c_str(), ccname );
-    }
-    return s;
-  }
-
   FILE* Alternator::Load( FILE* s )
   {
     tab         newtab;
@@ -66,7 +52,7 @@ namespace rus {
     if ( (s = ::FetchFrom( s, toload )) == nullptr )
       return nullptr;
 
-    while ( toload-- > 0 && (s = Load( refstr, refofs, s )) != nullptr )
+    while ( toload-- > 0 && (s = ::FetchFrom( ::FetchFrom( s, refstr ), refofs )) != nullptr )
       mapper.insert( { std::move( refstr ), tabset.data() + refofs } );
 
     return s;

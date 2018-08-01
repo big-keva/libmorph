@@ -32,7 +32,6 @@ namespace rus{
 
     template <class S>  S*  Load( alt& a, S* s );
     template <class S>  S*  Load( tab& t, S* s );
-    template <class S>  S*  Load( std::string&, size_t&, S* s );
 
   public:     // static helpers
     static  const char*                   GetDefaultStr( const char* tables, unsigned tbOffs );
