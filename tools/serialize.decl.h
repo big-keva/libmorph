@@ -54,8 +54,9 @@ SOFTWARE.
 # include <stdlib.h>
 # include <string.h>
 # include <stdio.h>
-# include <vector>
 # include <string>
+# include <vector>
+# include <map>
 
 namespace mtc
 {
@@ -130,6 +131,9 @@ inline  size_t  GetBufLen( const std::vector<T>& );
 template <class C>
 inline  size_t  GetBufLen( const std::basic_string<C>& );
 
+template <class K, class V>
+inline  size_t  GetBufLen( const std::map<K, V>& );
+
 //[]=========================================================================[]
 
 template <class O>  O*  Serialize( O*, char );
@@ -150,6 +154,10 @@ template <class O,
 template <class O,
           class C>  O*  Serialize( O*, const std::basic_string<C>& );
 
+template <class O,
+          class K,
+          class V>  O*  Serialize( O*, const std::map<K, V>& );
+
 //[]=========================================================================[]
 
 template <class S>  S*  FetchFrom( S*, char& );
@@ -169,5 +177,9 @@ template <class S,
 
 template <class S,
           class C>  S*  FetchFrom( S*, std::basic_string<C>& );
+
+template <class S,
+          class K,
+          class V>  S*  FetchFrom( S*, std::map<K, V>& );
 
 # endif  // __mtc_serialize_decl_h__
