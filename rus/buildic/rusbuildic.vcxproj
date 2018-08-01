@@ -159,7 +159,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\tools\ftables.cpp" />
-    <ClCompile Include="..\licenseGPL.cpp" />
     <ClCompile Include="lresolve.cpp" />
     <ClCompile Include="makerus.cpp" />
     <ClCompile Include="mtables.cpp" />
