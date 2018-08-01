@@ -294,20 +294,20 @@ lexemeinfo  ResolveClassInfo(
   std::string stOrig = std::string( sztype ) + ' ' + zapart;
   int         mixIndex = 0;
 
-  if ( (lexeme.wdinfo = (word16_t)(int32_t)typesMap[stType]) == 0 )
+  if ( (lexeme.mclass.wdinfo = (word16_t)(int32_t)typesMap[stType]) == 0 )
     return lexemeinfo();
 
 // Далее делается проверка типа слова, чтобы включить в обработку
 // неизменяемые части речи, типы которых перечислены ниже. В этих
 // случаях несмотря на нулевую ссылку на таблицы окончаний основа
 // считается вполне легальной и поступает в список словооснов.
-  if ( (lexeme.wdinfo & 0x3F) < 48 )
+  if ( (lexeme.mclass.wdinfo & 0x3F) < 48 )
   {
-    if ( (lexeme.tfoffs = findex.Find( stOrig.c_str() )) == 0 && strcmp( zapart, "0" ) != 0 )
+    if ( (lexeme.mclass.tfoffs = findex.Find( stOrig.c_str() )) == 0 && strcmp( zapart, "0" ) != 0 )
       return lexemeinfo();
   }
     else
-  lexeme.tfoffs = 0;
+  lexeme.mclass.tfoffs = 0;
 
 // Скопировать основную форму слова и отщепить постфикс, если он есть
   lexeme.ststem = std::string( sznorm );
@@ -321,14 +321,14 @@ lexemeinfo  ResolveClassInfo(
 // Отщепить постфикс и извлечь флаги описания лексической базы
   lexeme.stpost = GetPostfix( szcomm );
   lexeme.ststem.resize( lexeme.ststem.length() - lexeme.stpost.length() );
-  lexeme.wdinfo |= LexFlags( szcomm );
+  lexeme.mclass.wdinfo |= LexFlags( szcomm );
 
 // Закончить обработку нефлективных слов
-  if ( lexeme.tfoffs == 0 )
+  if ( lexeme.mclass.tfoffs == 0 )
   {
   // Если слово - предлог, извлечь падежную шкалу
-    if ( (lexeme.wdinfo & 0x3F) == 51 )
-      lexeme.tfoffs = CaseScale( zapart );
+    if ( (lexeme.mclass.wdinfo & 0x3F) == 51 )
+      lexeme.mclass.tfoffs = CaseScale( zapart );
     lexeme.chrmin = lexeme.chrmax = '\0';
       return std::move( lexeme );
   }
@@ -357,7 +357,7 @@ lexemeinfo  ResolveClassInfo(
     const uint16_t* lpLevels;
     uint16_t        normInfo;
 
-    switch ( lexeme.wdinfo & 0x3F )
+    switch ( lexeme.mclass.wdinfo & 0x3F )
     {
       case 1:
       case 2:
@@ -385,30 +385,30 @@ lexemeinfo  ResolveClassInfo(
         break;
     }
   // Обозначить множественное число, если оно есть
-    if ( lexeme.wdinfo & wfMultiple )
+    if ( lexeme.mclass.wdinfo & wfMultiple )
       normInfo |= gfMultiple;
 
   // Отщепить окончание нормальной формы
-    if ( !libmorph::FlexStripper( lpLevels, ftable ).StripStr( lexeme.ststem, normInfo, lexeme.tfoffs ) && strchr( zapart, ':' ) == nullptr )
+    if ( !libmorph::FlexStripper( lpLevels, ftable ).StripStr( lexeme.ststem, normInfo, lexeme.mclass.tfoffs ) && strchr( zapart, ':' ) == nullptr )
       return lexemeinfo();
   }
 
 // инициализировать минимальный и максимальный символы по таблице окончаний
-  std::tie(lexeme.chrmin, lexeme.chrmax) = libmorph::FlexStripper::GetMinMaxChar( ftable, lexeme.tfoffs );
+  std::tie(lexeme.chrmin, lexeme.chrmax) = libmorph::FlexStripper::GetMinMaxChar( ftable, lexeme.mclass.tfoffs );
 
 // После отщепления окончания нормальной формы словооснова проверяется на наличие чередований.
-  lexeme.mtoffs = mindex.Find( mtable, stOrig.c_str(),
-                               lexeme.wdinfo, lexeme.ststem.c_str(), GetRemark( szcomm ).c_str() );
+  lexeme.mclass.mtoffs = mindex.Find( mtable, stOrig.c_str(),
+                               lexeme.mclass.wdinfo, lexeme.ststem.c_str(), GetRemark( szcomm ).c_str() );
 
 // Если чередования присутствуют, то отщепляется первая ступень
 // чередования в основе, т. к. она соответствует нормальной форме.
-  if ( lexeme.mtoffs != 0 )
+  if ( lexeme.mclass.mtoffs != 0 )
   {
-    std::tie(lexeme.chrmin, lexeme.chrmax) = libmorph::rus::Alternator::GetMinMaxChar( mtable, lexeme.mtoffs, lexeme.chrmin, lexeme.chrmax );
+    std::tie(lexeme.chrmin, lexeme.chrmax) = libmorph::rus::Alternator::GetMinMaxChar( mtable, lexeme.mclass.mtoffs, lexeme.chrmin, lexeme.chrmax );
 
   // Проверить, нет ли явного указания типа чередования
   // Отщепить чередование первой ступени
-    if ( (lexeme.wdinfo & 0x3F) <= 6 )
+    if ( (lexeme.mclass.wdinfo & 0x3F) <= 6 )
     {
       switch ( zapart[0] )
       {
@@ -434,11 +434,11 @@ lexemeinfo  ResolveClassInfo(
           break;
       }
     }
-    lexeme.ststem.resize( lexeme.ststem.length() - (0x0f & *libmorph::rus::Alternator::GetDefaultStr( mtable, lexeme.mtoffs )) );
+    lexeme.ststem.resize( lexeme.ststem.length() - (0x0f & *libmorph::rus::Alternator::GetDefaultStr( mtable, lexeme.mclass.mtoffs )) );
   }
 
   if ( mixIndex != 0 )
-    lexeme.wdinfo |= (mixIndex << 8);
+    lexeme.mclass.wdinfo |= (mixIndex << 8);
 
   return std::move( lexeme );
 }
