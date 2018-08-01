@@ -5,6 +5,7 @@
 # include <tools/ftables.h>
 # include <tools/sweets.h>
 # include <tools/serialize.decl.h>
+# include "classtable.hpp"
 # include "mtables.h"
 # include <map>
 
@@ -51,8 +52,52 @@ unsigned char mixTypes[64] =
   0x00, 0x00
 };
 
+struct  lexemedump
+{
+  byte_t      chrmin;
+  byte_t      chrmax;
+  lexeme_t    nlexid;
+  word16_t    oclass;
+  std::string stpost;
+
+public:     // comparison
+  bool  operator <  ( const lexemedump& r ) const {  return compare( r ) < 0;   }
+  bool  operator == ( const lexemedump& r ) const {  return compare( r ) == 0;  }
+
+protected:  // helpers
+  int   compare( const lexemedump& r ) const
+    {
+      int   rescmp;
+
+      if ( (rescmp = r.chrmax - chrmax) == 0 )
+      if ( (rescmp = chrmin - r.chrmin) == 0 )
+      if ( (rescmp = strcmp( stpost.c_str(), r.stpost.c_str() )) == 0 )
+            rescmp = nlexid - r.nlexid;
+      return rescmp;
+    }
+};
+
+size_t  GetBufLen( const lexemedump& s )
+{
+  return 2 + ::GetBufLen( s.nlexid ) + sizeof(word16_t) + (s.stpost.length() != 0 ? s.stpost.length() + 1 : 0);
+}
+
+template <class O>
+O*      Serialize( O* o, const lexemedump& s )
+  {
+    word16_t  wstore = s.oclass | (s.stpost.length() != 0 ? 0x8000 : 0);
+
+    o = ::Serialize( ::Serialize( ::Serialize( ::Serialize( o,
+      &s.chrmin, sizeof(s.chrmin) ),
+      &s.chrmax, sizeof(s.chrmax) ), s.nlexid ), &wstore, sizeof(wstore) );
+
+    return (wstore & 0x8000) != 0 ? ::Serialize( o, s.stpost ) : o;
+  }
+
 class ResolveRus
 {
+  using stemdata = std::pair<std::string, lexemedump>;
+
   std::vector<char>         ftable;
   libmorph::TableIndex      findex;
 
@@ -61,6 +106,8 @@ class ResolveRus
 
   std::vector<char>         aplain;
   std::map<size_t, size_t>  iplain;
+
+  classtable                clsset;
 
 protected:
   template <size_t N>
@@ -103,17 +150,19 @@ public:
   void  SaveTables( const std::string&  output_dir, const std::string& name_space );
 
   /*
-    PatchClass( class )
+    MapTables( class )
 
     Ищет уже отображённые таблицы в patricia-представление таблицы окончаний; если не существует
     такого - добавляет отображение, и меняет ссылку на компактные таблицы окончаний ссылкой на
     развёрнутые
   */
-  void  PatchClass( morphclass& rclass )
+  morphclass  MapTables( const morphclass& rclass )
     {
-      if ( rclass.tfoffs != 0 && rclass.wdinfo != 51 )
+      morphclass  mclass( rclass );
+
+      if ( mclass.tfoffs != 0 && mclass.wdinfo != 51 )
       {
-        auto  it = iplain.find( rclass.tfoffs );
+        auto  it = iplain.find( mclass.tfoffs );
 
         if ( it == iplain.end() )
         {
@@ -126,16 +175,28 @@ public:
           aplain.insert( aplain.end(), atable.begin(), atable.end() );
           aplain.resize( (aplain.size() + 0x0f) & ~0x0f );
 
-          iplain.insert( { rclass.tfoffs, theofs } );
-          rclass.tfoffs = static_cast<uint16_t>(theofs >> 4);
+          iplain.insert( { mclass.tfoffs, theofs } );
+          mclass.tfoffs = static_cast<uint16_t>(theofs >> 4);
         }
           else
-        rclass.tfoffs = static_cast<uint16_t>(it->second >> 4);
+        mclass.tfoffs = static_cast<uint16_t>(it->second >> 4);
       }
+      return mclass;
     }
-  std::vector<lexemeinfo> BuildStems( const char* string )
+  stemdata  MapLexStem( const lexemeinfo& li )
     {
-      std::vector<lexemeinfo> lexset;
+      lexemedump  stinfo;
+
+      stinfo.chrmin = li.chrmin;
+      stinfo.chrmax = li.chrmax;
+      stinfo.oclass = clsset.AddClass( MapTables( li.mclass ) );
+      stinfo.stpost = li.stpost;
+
+      return std::make_pair( li.ststem, stinfo );
+    }
+  std::vector<stemdata> BuildStems( const char* string )
+    {
+      std::vector<stemdata>   keyset;
       lexemeinfo              lexinf;
       char                    sznorm[0x100];
       char                    szdies[0x20];
@@ -156,11 +217,10 @@ public:
     // try recolve class
       if ( (lexinf = ResolveClassInfo( sznorm, szdies, sztype, zindex, string,
         ftable.data(), findex,
-        mtable.data(), mindex )) != nullclass )
+        mtable.data(), mindex )).mclass != nullclass )
       {
-        PatchClass( lexinf );
-        lexset.push_back( std::move( lexinf ) );
-        return std::move( lexset );
+        keyset.push_back( std::move( MapLexStem( lexinf ) ) );
+        return std::move( keyset );
       }
 
     // sheck if no alter forms
@@ -170,93 +230,22 @@ public:
 
         strncpy( zapart, zindex, strptr - zindex )[strptr - zindex] = '\0';
 
-        if ( (lexinf = ResolveClassInfo( sznorm, szdies, sztype, zapart, string, ftable.data(), findex, mtable.data(), mindex )) != nullclass )
-        {
-          PatchClass( lexinf );
-          lexset.push_back( std::move( lexinf ) );
-        }
+        if ( (lexinf = ResolveClassInfo( sznorm, szdies, sztype, zapart, string, ftable.data(), findex, mtable.data(), mindex )).mclass != nullclass )
+          keyset.push_back( std::move( MapLexStem( lexinf ) ) );
 
-        if ( (lexinf = ResolveClassInfo( sznorm, szdies, sztype, strptr + 2, string, ftable.data(), findex, mtable.data(), mindex )) != nullclass )
-        {
-          PatchClass( lexinf );
-          lexset.push_back( std::move( lexinf ) );
-        }
+        if ( (lexinf = ResolveClassInfo( sznorm, szdies, sztype, strptr + 2, string, ftable.data(), findex, mtable.data(), mindex )).mclass != nullclass )
+          keyset.push_back( std::move( MapLexStem( lexinf ) ) );
       }
 
-      return std::move( lexset );
+      return std::move( keyset );
     }
 };
-
-struct  rusteminfo
-{
-  byte_t    chrmin;
-  byte_t    chrmax;
-  unsigned  nlexid;
-  word16_t  oclass;
-  char      szpost[0x10];
-
-public:     // comparison
-  bool  operator <  ( const rusteminfo& r ) const {  return compare( r ) < 0;   }
-  bool  operator == ( const rusteminfo& r ) const {  return compare( r ) == 0;  }
-
-protected:  // helpers
-  int   compare( const rusteminfo& r ) const
-    {
-      int   rescmp;
-
-      if ( (rescmp = r.chrmax - chrmax) == 0 )
-      if ( (rescmp = chrmin - r.chrmin) == 0 )
-      if ( (rescmp = strcmp( szpost, r.szpost )) == 0 )
-            rescmp = nlexid - r.nlexid;
-      return rescmp;
-    }
-};
-
-size_t  GetBufLen( const rusteminfo& s )
-{
-  return 2 + ::GetBufLen( s.nlexid ) + sizeof(word16_t) + (s.szpost[0] != 0 ? strlen( s.szpost ) + 1 : 0);
-}
-
-template <class O>
-O*      Serialize( O* o, const rusteminfo& s )
-  {
-    word16_t  wstore = s.oclass | (s.szpost[0] != 0 ? 0x8000 : 0);
-
-    o = ::Serialize( ::Serialize( ::Serialize( ::Serialize( o,
-      &s.chrmin, sizeof(s.chrmin) ),
-      &s.chrmax, sizeof(s.chrmax) ), s.nlexid ), &wstore, sizeof(wstore) );
-
-    return (wstore & 0x8000) != 0 ? ::Serialize( o, s.szpost ) : o;
-  }
 
 # include <tools/buildmorph.h>
 
-// ResolveRus implementation
-
-void  ResolveRus::InitTables( const std::string&  flex_table, const std::string& flex_index,
-                              const std::string&  intr_table, const std::string& intr_index )
+class BuildRus: public buildmorph<lexemedump, ResolveRus>
 {
-  static const char amagic[] = "*inflex by Keva*";
-
-  aplain.insert( aplain.end(), amagic, amagic + 16 );
-
-// load flex ad mix tables
-  ftable = libmorph::LoadSource( flex_table.c_str() );
-    LoadObject( findex, flex_index );
-  mtable = libmorph::LoadSource( intr_table.c_str() );
-    LoadObject( mindex, intr_index );
-}
-
-void  ResolveRus::SaveTables( const std::string& outdir, const std::string& nspace )
-{
-  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license ).Dump( "mxTables", mtc::serialbuf( mtable.data(), mtable.size() ) );
-  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license ).Dump( "flexTree", mtc::serialbuf( aplain.data(), aplain.size() ) );
-  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license ).Dump( "mixTypes", mtc::serialbuf( mixTypes, sizeof(mixTypes) ) );
-}
-
-class BuildRus: public buildmorph<lexemeinfo, rusteminfo, ResolveRus>
-{
-  using inherited = buildmorph<lexemeinfo, rusteminfo, ResolveRus>;
+  using inherited = buildmorph<lexemedump, ResolveRus>;
 
   bool  GetSwitch( std::string& out, const char* arg, const char* key ) const
   {
@@ -276,7 +265,7 @@ class BuildRus: public buildmorph<lexemeinfo, rusteminfo, ResolveRus>
   };
 
 public:
-  BuildRus(): buildmorph<lexemeinfo, rusteminfo, ResolveRus>( rusmorph, libmorph_rus_license, codepages::codepage_866 ), rusmorph()
+  BuildRus(): buildmorph<lexemedump, ResolveRus>( rusmorph, libmorph_rus_license, codepages::codepage_866 ), rusmorph()
     {
     }
   template <class Args>
@@ -344,6 +333,40 @@ protected:
   ResolveRus  rusmorph;
 
 };
+
+// ResolveRus implementation
+
+void  ResolveRus::InitTables( const std::string&  flex_table, const std::string& flex_index,
+                              const std::string&  intr_table, const std::string& intr_index )
+{
+  static const char amagic[] = "*inflex by Keva*";
+
+  aplain.insert( aplain.end(), amagic, amagic + 16 );
+
+// load flex ad mix tables
+  ftable = libmorph::LoadSource( flex_table.c_str() );
+    LoadObject( findex, flex_index );
+  mtable = libmorph::LoadSource( intr_table.c_str() );
+    LoadObject( mindex, intr_index );
+}
+
+void  ResolveRus::SaveTables( const std::string& outdir, const std::string& nspace )
+{
+  size_t  length;
+
+  if ( (length = clsset.GetBufLen()) != (size_t)-1 )
+    libmorph::LogMessage( 0, "info: type dictionary size is %d bytes.\n", length );
+  else throw std::runtime_error( "fault to calculate the type dictionary size!" );
+
+  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license ).
+    Dump( "mxTables", mtc::serialbuf( mtable.data(), mtable.size() ) );
+  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license ).
+    Dump( "flexTree", mtc::serialbuf( aplain.data(), aplain.size() ) );
+  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license ).
+    Dump( "mixTypes", mtc::serialbuf( mixTypes, sizeof(mixTypes) ) );
+  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license ).
+    Dump( "classmap", clsset );
+}
 
 std::vector<char>         LoadCommandFile( const char* szpath )
 {
