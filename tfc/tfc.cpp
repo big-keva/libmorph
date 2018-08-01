@@ -151,6 +151,7 @@ void  Compile( Source& source, fxlist& tabset )
       {
         auto  subsrc = source.Open( stnext );
 
+        fprintf( stderr, "\t%s\n", stnext.c_str() );
         Compile( subsrc, tabset );
       } else throw std::runtime_error( "file name expected" );
     }
@@ -217,12 +218,13 @@ int   main( int argc, char* argv[] )
   if ( ptrsym == nullptr )
     return (fprintf( stderr, about ), -1);
 
-  fprintf( stderr, "Compiling tables...\n""\t%s\n", inname );
+  fprintf( stderr, "Compiling tables...\n" );
 
   try
   {
     auto  infile = OpenSource( inname, source_encoding );
 
+    fprintf( stderr, "\t%s\n", inname );
     Compile( infile, tables );
     tables.Relocate();
   }
