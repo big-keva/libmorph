@@ -125,7 +125,7 @@ public:     // API
 
 public:     // serialization
   template <class O>  O*  StoreTab( O* );
-  template <class O>  O*  StoreRef( O* );
+  template <class O>  O*  StoreRef( O* o )  {  return ::Serialize( o, tabmap );  }
 };
 
 // fxitem serialization
@@ -173,17 +173,6 @@ O*  fxlist::StoreTab( O* o )
 
   for ( auto tab = tables.begin(); o != nullptr && tab != tables.end(); ++tab )
     o = tab->Serialize( o );
-
-  return o;
-}
-
-template <class O>
-O*  fxlist::StoreRef( O* o )
-{
-  o = ::Serialize( o, tabmap.size() );
-
-  for ( auto next = tabmap.begin(); o != nullptr && next != tabmap.end(); ++next )
-    o = ::Serialize( ::Serialize( o, tables[next->second].offset ), next->first.c_str() );
 
   return o;
 }
