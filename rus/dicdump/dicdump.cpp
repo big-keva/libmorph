@@ -267,6 +267,7 @@ int   main( int argc, char* argv[] )
     DumpDiff( DumpedQueue( pin ), Libmorphrus() );
 
     fclose( pin );
+    return 0;
   }
 
   return (fprintf( stderr, "unknown parameter '%s'\n", argv[1] ), EINVAL);
