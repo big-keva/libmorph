@@ -107,8 +107,8 @@ public:     // serialization
   O*    Serialize( O* ) const;
 
 protected:  // helpers
-  void        RelocateReferences( fxlist&  );
-  unsigned    RelocateOffsetSize( size_t );
+  void    RelocateReferences( fxlist&  );
+  size_t  RelocateOffsetSize( size_t );
 
 };
 
@@ -125,7 +125,7 @@ public:     // API
 
 public:     // serialization
   template <class O>  O*  StoreTab( O* );
-  template <class O>  O*  StoreRef( O* o )  {  return ::Serialize( o, tabmap );  }
+  template <class O>  O*  StoreRef( O* );
 };
 
 // fxitem serialization
@@ -177,4 +177,14 @@ O*  fxlist::StoreTab( O* o )
   return o;
 }
 
+template <class O>
+O*  fxlist::StoreRef( O* o )
+{
+  o = ::Serialize( o, tabmap.size() );
+
+  for ( auto next = tabmap.begin(); o != nullptr && next != tabmap.end(); ++next )
+    o = ::Serialize( ::Serialize( o, next->first ), tables[next->second].offset );
+
+  return o;
+}
 # endif  // __ftable_h__

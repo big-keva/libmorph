@@ -20,7 +20,7 @@ void  ftable::RelocateReferences( fxlist& rflist )
     }
 }
 
-unsigned  ftable::RelocateOffsetSize( size_t dwoffs )
+size_t  ftable::RelocateOffsetSize( size_t dwoffs )
 {
   if ( dwoffs >= 0x1ffff || (dwoffs & 0x01) != 0 )
     throw std::runtime_error( "invalid (not aligned) offset passed to relocation" );
