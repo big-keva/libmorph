@@ -293,14 +293,7 @@ O*  collector::StoreRef( O* o ) const
   for ( auto beg = condiSet.begin(), end = condiSet.end(); beg != end && o != nullptr; ++beg )
     o = beg->Serialize( o, interSet );
 
-// store the references
-  if ( (o = ::Serialize( o, tabIndex.size() )) == nullptr )
-    return nullptr;
-
-  for ( auto beg = tabIndex.begin(), end = tabIndex.end(); beg != end; ++beg )
-    o = ::Serialize( ::Serialize( o, beg->second ), beg->first.c_str() );
-
-  return o;
+  return ::Serialize( o, tabIndex );
 }
 
 # endif  // __conditions_h__
