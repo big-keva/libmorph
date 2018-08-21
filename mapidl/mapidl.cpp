@@ -1,7 +1,9 @@
+# include <cstring>
 # include <cstdlib>
-# include <cstdint>
 # include <cstdio>
-# include <limits>
+# include <cstdint>
+# include <climits>
+# include <cerrno>
 # include <vector>
 
 using element_t = unsigned;
