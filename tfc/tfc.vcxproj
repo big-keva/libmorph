@@ -19,9 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <None Include=".gitignore" />
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="ftable.cpp" />
     <ClCompile Include="gramap.cpp" />
     <ClCompile Include="tfc.cpp" />
