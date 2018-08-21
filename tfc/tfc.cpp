@@ -1,5 +1,5 @@
 # include "ftable.h"
-# include "grammap.h"
+# include "gramap.h"
 # include "../tools/sourcefile.h"
 # include "../tools/utf81251.h"
 # include "../tools/sweets.h"
