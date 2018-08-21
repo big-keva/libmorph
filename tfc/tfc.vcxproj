@@ -23,12 +23,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ftable.cpp" />
-    <ClCompile Include="grammap.cpp" />
+    <ClCompile Include="gramap.cpp" />
     <ClCompile Include="tfc.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ftable.h" />
-    <ClInclude Include="grammap.h" />
+    <ClInclude Include="gramap.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\contrib\libcodes\libcodes.vcxproj">
