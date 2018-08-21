@@ -1,5 +1,5 @@
-# if !defined( __grammap_h__ )
-# define  __grammap_h__
+# if !defined( __gramap_h__ )
+# define  __gramap_h__
 # include "../rus/include/mlma1049.h"
 # include "../ukr/include/mlma1058.h"
 
@@ -13,4 +13,4 @@ void      InitRus();
 void      InitUkr();
 graminfo  MapInfo( const char*, graminfo );   // throws std::exception
 
-# endif  // __grammap_h__
+# endif  // __gramap_h__

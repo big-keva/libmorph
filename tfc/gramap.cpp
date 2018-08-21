@@ -1,4 +1,4 @@
-# include "grammap.h"
+# include "gramap.h"
 # include <tools/utf81251.h>
 # include <stdexcept>
 # include <cassert>
