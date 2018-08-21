@@ -3,7 +3,7 @@
 # include "wordtree.h"
 # include "dumppage.h"
 # include "sweets.h"
-# include <libcodes/codes.h>
+# include <moonycode/codes.h>
 # include <stdexcept>
 # include <algorithm>
 # include <vector>
