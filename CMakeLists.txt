@@ -1,36 +1,28 @@
 cmake_minimum_required(VERSION 3.5)
-project(morphrus)
+project(libmorph)
 
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 14)
-if(MSVC)
-  add_compile_options(-MP)
-else()
-  add_compile_options(-W -Wall -Wextra)
-endif()
+set(CMAKE_CXX_STANDARD 11)
 
 include_directories(
   .
-  rus/libdict
-)
+  contrib
+  rus/libdict)
 
-add_library(morphrus STATIC
-  rus/dictree/classmap.cpp
-  rus/dictree/flexTree.cpp
-  rus/dictree/lidstree.cpp
-  rus/dictree/mixTypes.cpp
-  rus/dictree/mxTables.cpp
-  rus/dictree/stemtree.cpp
-  rus/libdict/chartype.cpp
-  rus/libdict/mlmamain.cpp
-  xmorph/capsheme.cpp
-  xmorph/lemmatiz.cpp
-  xmorph/wildscan.cpp
-)
+add_subdirectory(
+  contrib/moonycode)
 
-install(TARGETS morphrus DESTINATION lib)
-install(
-  FILES
-    rus/include/mlma1049.h
-  DESTINATION include/libmorph/rus/include
-)
+add_subdirectory(
+  rus)
+
+add_executable(mapidl
+  mapidl/mapidl.cpp)
+
+add_executable(tfc
+  tfc/ftable.cpp
+  tfc/gramap.cpp
+  tfc/tfc.cpp)
+
+target_link_libraries(tfc
+  moonycode)
+
