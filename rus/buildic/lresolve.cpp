@@ -354,8 +354,10 @@ lexemeinfo  ResolveClassInfo(
   // инфинитив (с возможной возвратной частицей). В случае прила-
   // гательных и других слов, склоняющихся по родам, выставляется
   // признак мужского рода в дополнение к именительному падежу.
-    const uint16_t* lpLevels;
-    uint16_t        normInfo;
+    libmorph::NounLevels        nlevel;
+    libmorph::VerbLevels        vlevel;
+    const libmorph::GramLevels* levels = &nlevel;
+    uint16_t                    nfinfo = 0;
 
     switch ( lexeme.mclass.wdinfo & 0x3F )
     {
@@ -365,8 +367,8 @@ lexemeinfo  ResolveClassInfo(
       case 4:
       case 5:
       case 6:
-        normInfo = vtInfinitiv|gfRetForms;
-        lpLevels = libmorph::verbLevels;
+        nfinfo = vtInfinitiv|gfRetForms;
+        levels = &vlevel;
         break;
       case 25:
       case 26:
@@ -376,20 +378,20 @@ lexemeinfo  ResolveClassInfo(
       case 36:
       case 42:
       case 52:
-        normInfo = (1 << 9) + (Reflexive( lexeme.ststem ) ? gfRetForms : 0);    // Мужской род для прилагательных
-        lpLevels = libmorph::nounLevels;
+        nfinfo = (1 << 9) + (Reflexive( lexeme.ststem ) ? gfRetForms : 0);    // Мужской род для прилагательных
+        levels = &nlevel;
         break;
       default:
-        normInfo = 0;
-        lpLevels = libmorph::nounLevels;
+        nfinfo = 0;
+        levels = &nlevel;
         break;
     }
   // Обозначить множественное число, если оно есть
     if ( lexeme.mclass.wdinfo & wfMultiple )
-      normInfo |= gfMultiple;
+      nfinfo |= gfMultiple;
 
   // Отщепить окончание нормальной формы
-    if ( !libmorph::FlexStripper( lpLevels, ftable ).StripStr( lexeme.ststem, normInfo, lexeme.mclass.tfoffs ) && strchr( zapart, ':' ) == nullptr )
+    if ( !libmorph::FlexStripper( *levels, ftable ).StripStr( lexeme.ststem, nfinfo, lexeme.mclass.tfoffs ) && strchr( zapart, ':' ) == nullptr )
       return lexemeinfo();
   }
 
