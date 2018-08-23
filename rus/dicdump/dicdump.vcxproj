@@ -73,24 +73,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)bin\</OutDir>
-    <TargetName>$(ProjectName)_d</TargetName>
+    <TargetName>$(ProjectName)-$(Platform)-$(Configuration)</TargetName>
     <IntDir>$(SolutionDir)tmp\$(Platform).$(Configuration)\libmorph\rus\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)bin\</OutDir>
     <IntDir>$(SolutionDir)tmp\$(Platform).$(Configuration)\libmorph\rus\$(ProjectName)\</IntDir>
-    <TargetName>$(ProjectName)_d</TargetName>
+    <TargetName>$(ProjectName)-$(Platform)-$(Configuration)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)bin\</OutDir>
     <IntDir>$(SolutionDir)tmp\$(Platform).$(Configuration)\libmorph\rus\$(ProjectName)\</IntDir>
+    <TargetName>$(ProjectName)-$(Platform)-$(Configuration)</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)bin\</OutDir>
     <IntDir>$(SolutionDir)tmp\$(Platform).$(Configuration)\libmorph\rus\$(ProjectName)\</IntDir>
+    <TargetName>$(ProjectName)-$(Platform)-$(Configuration)</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -164,9 +166,6 @@
     <ClCompile Include="dicdump.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\contrib\libcodes\libcodes.vcxproj">
-      <Project>{a94fabae-ae15-4b92-8197-4afb28b9bbcc}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\libdict\libmorphrus.vcxproj">
       <Project>{2bafa88c-7418-4067-b946-8c72cd0e4737}</Project>
     </ProjectReference>

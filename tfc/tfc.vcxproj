@@ -27,11 +27,6 @@
     <ClInclude Include="ftable.h" />
     <ClInclude Include="gramap.h" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\contrib\libcodes\libcodes.vcxproj">
-      <Project>{a94fabae-ae15-4b92-8197-4afb28b9bbcc}</Project>
-    </ProjectReference>
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{44FA11A0-66D9-415E-9B7B-F10B80B70B98}</ProjectGuid>

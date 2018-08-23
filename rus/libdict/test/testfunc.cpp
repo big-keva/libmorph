@@ -24,11 +24,15 @@
 
 ******************************************************************************/
 # include "../../include/mlma1049.h"
-# include <string.h>
-# include <assert.h>
+# include <stdexcept>
+# include <string>
+# include <cassert>
+# include <vector>
+# include <cstdio>
+# include <chrono>
+# include <iostream>
 
-# include "../../../../mtc/hiResTimer.h"
-# include <stdio.h>
+using hires_clock = std::chrono::high_resolution_clock;
 
 extern "C"    // C API
 {
@@ -47,12 +51,10 @@ void  CheckTemplate( const char* stempl, int nchars, const char* answer )
   assert( memcmp( szhelp, answer, nchars ) == 0 );
 }
 
-# include <mtc/hiResTimer.h>
-
 class LexemesPrinter: public IMlmaEnum
 {
-  int     nwords;
-  double  tstart;
+  hires_clock::time_point tstart;
+  int                     nwords;
 
 public:
   LexemesPrinter(): nwords( 0 )
@@ -60,9 +62,10 @@ public:
     }
   void  Report()
     {
-      double  tprint = mtc::GetMilliTime();
+      auto  tprint = hires_clock::now();
 
-      printf( "%u lexemes, %6.2f milliseconds\n", nwords, (tprint - tstart) * 1000 );
+      printf( "%u lexemes, %6.2f milliseconds\n", nwords,
+        1.0 * std::chrono::duration_cast<std::chrono::milliseconds>(tprint - tstart).count() );
     }
 
   virtual int   MLMAPROC Attach()  override  {  return 1;  }
@@ -70,28 +73,170 @@ public:
   virtual int   MLMAPROC RegisterLexeme( lexeme_t nlexid, int, const formid_t* ) override
     {
       if ( nwords++ == 0 )
-        tstart = mtc::GetMilliTime();
-//      printf( "%u\n", nlexid );
+        tstart = hires_clock::now();
       return 0;
+    }
+};
+
+class TestMlmaMb
+{
+  IMlmaMb*  mlma;
+
+  template <class T, size_t N>
+  constexpr static  size_t  array_size( T (&)[N] )  {  return N;  }
+
+public:
+  TestMlmaMb() {  mlmaruLoadMbAPI( &mlma );  }
+
+public:
+  uint8_t               GetWdInfo( lexeme_t nlexid ) const
+    {
+      unsigned char wdinfo;
+
+      return mlma->GetWdInfo( &wdinfo, nlexid ) != 0 ? wdinfo : 0;
+    }
+  template <size_t N>
+  int                   BuildForm( char (&sforms)[N], lexeme_t nlexid, uint8_t idform ) const
+    {
+      return mlma->BuildForm( sforms, N, nlexid, idform );
+    }
+  std::vector<lexeme_t> GetLexIds( const char* pszstr, size_t cchstr = (size_t)-1 ) const
+    {
+      SLemmInfoA            lemmas[0x100];
+      int                   nlemma = mlma->Lemmatize( pszstr, cchstr, lemmas, array_size(lemmas), nullptr, 0, nullptr, 0, 0 );
+      std::vector<lexeme_t> lexset;
+
+      lexset.reserve( nlemma );
+
+      for ( auto p = lemmas; p != lemmas + nlemma; ++p )
+        lexset.push_back( p->nlexid );
+
+      return std::move( lexset );
+    }
+  std::vector<std::string>  BuildForm( lexeme_t nlexid, uint8_t idform ) const
+    {
+      char                      szform[0x100];
+      auto                      nforms = BuildForm( szform, nlexid, idform );
+      std::vector<std::string>  strset;
+
+      for ( auto p = szform; nforms-- > 0; p += strlen( p ) + 1 )
+        strset.push_back( p );
+
+      return std::move( strset );
+    }
+};
+
+/*
+  Проверяет прозрачность построения форм и лемматизации "туда" и "обратно".
+*/
+class TestReversibility: public TestMlmaMb
+{
+public:
+  class fault: public std::runtime_error
+  {  using std::runtime_error::runtime_error;  };
+
+public:
+  void  operator ()( lexeme_t nstart = 0, lexeme_t nfinal = 512000 ) const
+    {
+      for ( lexeme_t nlexid = nstart; nlexid < nfinal; ++nlexid )
+        if ( GetWdInfo( nlexid ) != 0 )
+        {
+          for ( auto form = 0; form != 0x100; ++form )
+          {
+            auto  strset = BuildForm( nlexid, form );
+
+            for ( auto& s: strset )
+            {
+              auto  lexset = GetLexIds( s.c_str() );
+
+              if ( std::find( lexset.begin(), lexset.end(), nlexid ) == lexset.end() )
+                throw fault( std::string( "inreversable form '" ) + s + "' of lexeme " + std::to_string( nlexid ) );
+            }
+          }
+        }
+    }
+
+};
+
+class TestLemmatization: public TestMlmaMb
+{
+public:
+  class fault: public std::runtime_error
+  {  using std::runtime_error::runtime_error;  };
+
+public:
+  template <class... LIST>
+  void  operator ()( const char* s, LIST... list ) const
+    {
+      TestList( GetLexIds( s ), 0, list... );
+    }
+
+protected:
+  template <class... LIST>
+  void  TestList( const std::vector<lexeme_t>& set, size_t pos, lexeme_t first, LIST... list ) const
+    {
+      if ( pos >= set.size() )
+        throw fault( std::to_string( pos ) + " lexemes, " + std::to_string( pos + CountArgs( list... ) ) + " expected" );
+      if ( set[pos] != first )
+        throw fault( std::to_string( first ) + " lexeme expected, " + std::to_string( set[pos] ) + " instead" );
+      TestList( set, pos + 1, list... );
+    }
+  void  TestList( const std::vector<lexeme_t>& set, size_t pos ) const
+    {
+      if ( set.size() > pos )
+        throw fault( std::to_string( set.size() ) + " lexemes built, " + std::to_string( pos ) + " expected" );
+    }
+  size_t  CountArgs() const
+    {
+      return 0;
+    }
+  template <class... LIST>
+  size_t  CountArgs( lexeme_t, LIST... list ) const
+    {
+      return 1 + CountArgs( list... );
     }
 };
 
 int   main( int argc, char* argv[] )
 {
-  FILE*       lpfile;
-  char*       buffer;
-  int         length;
-  char*       buftop;
-  char*       bufend;
-  int         cycles;
-  int         nvalid;
-  double      tstart;
-  IMlmaMb*    pmorph;
-  int         nforms;
-  int         nlemma;
-  SLemmInfoA  lemmas[0x10];
-  char        aforms[0x100];
-  SGramInfo   agrams[0x40];
+  try
+  {
+//    TestReversibility()( 188017 );
+
+    TestLemmatization()( "простой", 45384, 16500, 136174 );
+
+    return 0;
+  }
+  catch ( const TestReversibility::fault& x )
+  {
+    std::cout << "TestReversibility: " << x.what() << std::endl;
+    return -1;
+  }
+  catch ( const TestLemmatization::fault& x )
+  {
+    std::cout << "TestLemmatization: " << x.what() << std::endl;
+    return -1;
+  }
+  catch ( const std::runtime_error& x )
+  {
+    std::cout << "some unspecified exception: " << x.what() << std::endl;
+    return -1;
+  }
+
+  FILE*                   lpfile;
+  char*                   buffer;
+  int                     length;
+  char*                   buftop;
+  char*                   bufend;
+  int                     cycles;
+  int                     nvalid;
+  hires_clock::time_point tstart;
+  IMlmaMb*                pmorph;
+  int                     nforms;
+  int                     nlemma;
+  SLemmInfoA              lemmas[0x10];
+  char                    aforms[0x100];
+  SGramInfo               agrams[0x40];
 
 // test C API
   TestLemmatize( "предлагается", 0, 1, 1913, "предлагать" );
@@ -216,7 +361,7 @@ int   main( int argc, char* argv[] )
   if ( fread( buffer, 1, length, lpfile ) == length ) fclose( lpfile );
     else  return -3;
 
-  tstart = mtc::GetMilliTime();
+  tstart = hires_clock::now();
   cycles = nvalid = 0;
 
   for ( int i = 0; i < 2; ++i )
@@ -254,7 +399,7 @@ int   main( int argc, char* argv[] )
     ++cycles;
   }
 
-  printf( "%d WPS\n", (unsigned)(cycles / (mtc::GetMilliTime() - tstart)) );
+  printf( "%d WPS\n", (unsigned)(1.0 * cycles / std::chrono::duration_cast<std::chrono::seconds>(hires_clock::now() - tstart).count()) );
 
 	return 0;
 }
