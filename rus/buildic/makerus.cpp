@@ -7,7 +7,6 @@
 # include <tools/serialize.decl.h>
 # include "classtable.hpp"
 # include "mtables.h"
-# include <tools/serialize.h>
 # include <map>
 
 unsigned char mixTypes[64] =
@@ -459,6 +458,8 @@ char about[] = "makerus - the dictionary builder;\n"
                "\t" "-namespace=namespace_name_to_contain_dictionaries, default is __libmorphrus__\n"
                "\t" "-codepage=codepage_name_for_dictionaries_sources\n"
                ;
+
+# include <tools/serialize.h>
 
 int   main( int argc, char* argv[] )
 {
