@@ -9,8 +9,9 @@ include_directories(
   contrib
   rus/libdict)
 
-add_subdirectory(
-  contrib/moonycode)
+if (NOT TARGET moonycode)
+  add_subdirectory(contrib/moonycode)
+endif()
 
 add_subdirectory(
   rus)
