@@ -7,6 +7,7 @@
 # include <tools/serialize.decl.h>
 # include "classtable.hpp"
 # include "mtables.h"
+# include <tools/serialize.h>
 # include <map>
 
 unsigned char mixTypes[64] =
