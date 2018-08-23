@@ -23,6 +23,9 @@
     <ClCompile Include="testcapi.c" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\contrib\moonycode\moonycode.vcxproj">
+      <Project>{a94fabae-ae15-4b92-8197-4afb28b9bbcc}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\libmorphrus.vcxproj">
       <Project>{2bafa88c-7418-4067-b946-8c72cd0e4737}</Project>
     </ProjectReference>

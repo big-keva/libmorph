@@ -160,7 +160,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\tools\ftables.cpp" />
     <ClCompile Include="lresolve.cpp" />
     <ClCompile Include="makerus.cpp" />
     <ClCompile Include="mtables.cpp" />
@@ -173,9 +172,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\contrib\moonycode\moonycode.vcxproj">
       <Project>{a94fabae-ae15-4b92-8197-4afb28b9bbcc}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\tools\libtools.vcxproj">
-      <Project>{9c364f1d-b7c6-4c3b-865e-c9d7993d178b}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
