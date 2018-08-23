@@ -33,7 +33,7 @@
 # include <xmorph/scanlist.h>
 # include <xmorph/wildscan.h>
 # include <xmorph/lemmatiz.h>
-# include <libcodes/codes.h>
+# include <moonycode/codes.h>
 # include <stdlib.h>
 # include <string.h>
 # include <errno.h>
