@@ -4,6 +4,9 @@ project(libmorph)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
 
+add_compile_options(-W -Wall -Wextra)
+add_compile_options(-O3)
+
 include_directories(
   .
   contrib
