@@ -44,9 +44,11 @@ protected:
   FILE*                 unknowns;
 
 public:     // construction
-  buildmorph( resolver& r, const char* l, unsigned c ): clparser( r ), sLicense( l ), unknowns( nullptr )
-    {
-    }
+  buildmorph( resolver& cparser, const char* license, unsigned codepage ):
+      clparser( cparser ),
+      sLicense( license ),
+      unknowns( nullptr )
+    {  (void)codepage;  }
  ~buildmorph()
     {
       if ( unknowns != nullptr )

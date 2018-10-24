@@ -66,7 +66,6 @@ namespace LIBMORPH_NAMESPACE
           const byte_t* szpost;
           size_t        ccflex = cchstr;
           stemcheck     stinfo;
-          int           rescmp;
           int           nforms;
           int           nerror;
 
@@ -76,6 +75,7 @@ namespace LIBMORPH_NAMESPACE
             const byte_t* flestr;
             const byte_t* matstr;
             size_t        ccpost;
+            int           rescmp = 0;
 
             ccpost = *(szpost = pstems);
               pstems += 1 + ccpost;
@@ -83,8 +83,8 @@ namespace LIBMORPH_NAMESPACE
             if ( ccpost > ccflex )
               continue;
 
-            for ( flestr = thestr + ccflex - ccpost, ccflex -= ccpost, matstr = szpost + 1; ccpost-- > 0 && (rescmp = *flestr++ - *matstr++) == 0; )
-              (void)0;
+            for ( flestr = thestr + ccflex - ccpost, ccflex -= ccpost, matstr = szpost + 1;
+                  ccpost-- > 0 && (rescmp = *flestr++ - *matstr++) == 0; ) (void)0;
 
             if ( rescmp != 0 )
               continue;

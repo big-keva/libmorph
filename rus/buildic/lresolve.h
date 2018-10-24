@@ -59,13 +59,15 @@ struct  lexemeinfo
 public:
   lexemeinfo()
     {}
-  lexemeinfo( const lexemeinfo& li ): mclass( li.mclass ),
+  lexemeinfo( const lexemeinfo& li ):
     ststem( li.ststem ),
+    mclass( li.mclass ),
     chrmin( li.chrmin ),
     chrmax( li.chrmax ),
     stpost( li.stpost ) {}
-  lexemeinfo( lexemeinfo&& li ): mclass( std::move( li.mclass ) ),
+  lexemeinfo( lexemeinfo&& li ):
     ststem( std::move( li.ststem ) ),
+    mclass( std::move( li.mclass ) ),
     chrmin( li.chrmin ),
     chrmax( li.chrmax ),
     stpost( std::move( li.stpost ) ) {}

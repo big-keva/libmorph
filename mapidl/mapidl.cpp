@@ -82,7 +82,7 @@ auto  GetNextHole( const lexid_map& map, unsigned lex ) -> unsigned
   }
 
   for ( auto itnext = map.begin() + uindex + 1; itnext != map.end(); ++itnext )
-    if ( *itnext != -1 )
+    if ( *itnext != (element_t)-1 )
     {
       auto uvalue = *itnext;
 
@@ -91,7 +91,7 @@ auto  GetNextHole( const lexid_map& map, unsigned lex ) -> unsigned
           return ushift + (itnext - map.begin()) * element_bits;
     }
 
-  return -1;
+  return (unsigned)-1;
 }
 
 void  PrintLexMap( FILE* out, const lexid_map& map )
@@ -100,7 +100,7 @@ void  PrintLexMap( FILE* out, const lexid_map& map )
   auto  maxlex = GetMaxLexId( map );
 
 // check for lexemes
-  if ( minlex == -1 || maxlex == -1 )
+  if ( minlex == (unsigned)-1 || maxlex == (unsigned)-1 )
     return (void)fprintf( out, "No lexemes present, no lines with LEXID:nnn string found\n" );
 
 // type the minimal and the maximal lexeme
@@ -113,7 +113,7 @@ void  PrintLexMap( FILE* out, const lexid_map& map )
     auto  l_hole = GetNextHole( map, minlex + 1 );
     auto  h_hole = l_hole + 1;
 
-    if ( l_hole == -1 )
+    if ( l_hole == (unsigned)-1 )
       break;
 
     while ( h_hole < maxlex && !TestIfLexId( map, h_hole ) )

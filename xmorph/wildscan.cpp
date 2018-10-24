@@ -124,7 +124,7 @@ namespace LIBMORPH_NAMESPACE
           unsigned      powers = *curmix++ >> 4;
           const byte_t* flextr = thestr;
           size_t        flexcc = cchstr;
-          int           rescmp;
+          int           rescmp = 0;
 
         // scan top match
           while ( flexcc > 0 && mixlen > 0 && (rescmp = *flextr - *curmix) == 0 )

@@ -167,7 +167,6 @@ public:
         if ( it == iplain.end() )
         {
           auto    atable = libmorph::CreatePlainTable( ftable.data(), rclass.tfoffs );
-          size_t  ltable = atable.size();
           size_t  theofs = aplain.size();
 
           assert( (theofs & 0x0f) == 0 );
