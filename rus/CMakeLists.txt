@@ -68,6 +68,15 @@ target_link_libraries(makerus
 target_link_libraries(makeich
 	moonycode)
 
+if (ENABLE_SHARED)
+  set(SYMBOLS_FILE ${morphrus_SOURCE_DIR}/libdict/morphrus.unix.def)
+
+  set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Wl,-retain-symbols-file -Wl,${SYMBOLS_FILE}")
+
+  target_link_libraries(morphrus
+	moonycode)
+endif()
+
 # directories in build tree for custom built files:
 #   * inflextion tables;
 #   * dictionary sources.
