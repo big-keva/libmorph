@@ -21,13 +21,25 @@ set (IntrTab tmp/interchg.bmx)
 set (IntrIdx tmp/interchg.sym)
 set (IntrSrc ${morphrus_SOURCE_DIR}/tables/mtables.mx)
 
-add_library(morphrus STATIC
-	libdict/chartype.cpp
-	libdict/mlmamain.cpp
-	${libmorph_SOURCE_DIR}/xmorph/capsheme.cpp
-	${libmorph_SOURCE_DIR}/xmorph/lemmatiz.cpp
-	${libmorph_SOURCE_DIR}/xmorph/wildscan.cpp
-	${DicCPP})
+if (ENABLE_SHARED)
+  add_library(morphrus SHARED
+    libdict/chartype.cpp
+    libdict/mlmamain.cpp
+    ${libmorph_SOURCE_DIR}/xmorph/capsheme.cpp
+    ${libmorph_SOURCE_DIR}/xmorph/lemmatiz.cpp
+    ${libmorph_SOURCE_DIR}/xmorph/wildscan.cpp
+    ${DicCPP}
+  )
+else ()
+  add_library(morphrus STATIC
+    libdict/chartype.cpp
+    libdict/mlmamain.cpp
+    ${libmorph_SOURCE_DIR}/xmorph/capsheme.cpp
+    ${libmorph_SOURCE_DIR}/xmorph/lemmatiz.cpp
+    ${libmorph_SOURCE_DIR}/xmorph/wildscan.cpp
+    ${DicCPP}
+  )
+endif ()
 
 add_custom_command(OUTPUT ${DicCPP}
 	COMMAND makerus -flex-table=${FlexTab} -flex-index=${FlexIdx}
