@@ -1,0 +1,3 @@
+[submodule "contrib/moonycode"]
+	path = contrib/moonycode
+	url = https://github.com/big-keva/moonycode
