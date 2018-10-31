@@ -100,11 +100,6 @@ void  MakeTab( Source& src, fxlist& tab )
   if ( (header = libmorph::trim( header )).length() == 0 )
     throw std::runtime_error( "unexpected end of line, table index expected" );
 
-  if ( strstr( header.c_str(), utf8to1251( "нсв 4a32'" ).c_str() ) != nullptr )
-  {
-    int i = 0;
-  }
-
 // извлечь первую строку
   if ( (stnext = src.Get()).length() == 0 )
     throw std::runtime_error( "unexpected end of file" );
