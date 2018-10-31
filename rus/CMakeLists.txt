@@ -86,5 +86,5 @@ add_custom_target(tmp ALL
 install(TARGETS morphrus DESTINATION lib)
 install(
   FILES
-    rus/include/mlma1049.h
+    include/mlma1049.h
   DESTINATION include/libmorph/rus/include)
