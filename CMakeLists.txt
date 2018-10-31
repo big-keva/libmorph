@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(libmorph)
 
+OPTION(ENABLE_SHARED "build shared library" OFF)
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
 
