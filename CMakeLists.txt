@@ -32,3 +32,5 @@ add_executable(tfc
 target_link_libraries(tfc
   moonycode)
 
+target_link_libraries(linktest
+  morphrus)
