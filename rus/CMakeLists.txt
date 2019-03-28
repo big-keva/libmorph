@@ -21,20 +21,65 @@ set (IntrTab tmp/interchg.bmx)
 set (IntrIdx tmp/interchg.sym)
 set (IntrSrc ${morphrus_SOURCE_DIR}/tables/mtables.mx)
 
-set (LibType STATIC)
-
-if (ENABLE_SHARED)
-  set (LibType SHARED)
+if (build-static)
+  add_library(morphrus STATIC
+      libdict/chartype.cpp
+      libdict/mlmamain.cpp
+      ${libmorph_SOURCE_DIR}/xmorph/capsheme.cpp
+      ${libmorph_SOURCE_DIR}/xmorph/lemmatiz.cpp
+      ${libmorph_SOURCE_DIR}/xmorph/wildscan.cpp
+      ${DicCPP}
+  )
 endif ()
 
-add_library(morphrus ${LibType}
-    libdict/chartype.cpp
-    libdict/mlmamain.cpp
-    ${libmorph_SOURCE_DIR}/xmorph/capsheme.cpp
-    ${libmorph_SOURCE_DIR}/xmorph/lemmatiz.cpp
-    ${libmorph_SOURCE_DIR}/xmorph/wildscan.cpp
-    ${DicCPP}
-)
+if (build-shared)
+  set(SYMBOLS_FILE ${morphrus_SOURCE_DIR}/libdict/morphrus.unix.def)
+
+  add_library(morphrus-sh SHARED
+      libdict/chartype.cpp
+      libdict/mlmamain.cpp
+      ${libmorph_SOURCE_DIR}/xmorph/capsheme.cpp
+      ${libmorph_SOURCE_DIR}/xmorph/lemmatiz.cpp
+      ${libmorph_SOURCE_DIR}/xmorph/wildscan.cpp
+      ${DicCPP}
+  )
+
+  set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Wl,-retain-symbols-file -Wl,${SYMBOLS_FILE}")
+
+  target_link_libraries(morphrus-sh
+	moonycode)
+endif()
+
+if (build-php)
+  include(../cmake/FindPHP.cmake)
+
+  if (NOT PHP_FOUND)
+    message( SEND_ERROR "No PHP-devel found" )
+    return()
+  endif()
+
+  include_directories( ${PHP_INCLUDE_DIRS} )
+
+  set(CMAKE_CXX_FLAGS "-Wno-unused-parameter")
+  set(CMAKE_CXX_FLAGS "-DZEND_DEBUG=0")
+  set(CMAKE_CXX_FLAGS "-DCOMPILE_DL_PHPMORPHRUS=1")
+
+#  add_library(morphrus-php SHARED
+  add_executable(morphrus-php
+      php/phpapi.cpp
+
+      libdict/chartype.cpp
+      libdict/mlmamain.cpp
+      ${libmorph_SOURCE_DIR}/xmorph/capsheme.cpp
+      ${libmorph_SOURCE_DIR}/xmorph/lemmatiz.cpp
+      ${libmorph_SOURCE_DIR}/xmorph/wildscan.cpp
+      ${DicCPP}
+  )
+
+  target_link_libraries(morphrus-php
+    moonycode
+  )
+endif()
 
 add_custom_command(OUTPUT ${DicCPP}
 	COMMAND makerus -flex-table=${FlexTab} -flex-index=${FlexIdx}
@@ -68,15 +113,6 @@ target_link_libraries(makerus
 target_link_libraries(makeich
 	moonycode)
 
-if (ENABLE_SHARED)
-  set(SYMBOLS_FILE ${morphrus_SOURCE_DIR}/libdict/morphrus.unix.def)
-
-  set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Wl,-retain-symbols-file -Wl,${SYMBOLS_FILE}")
-
-  target_link_libraries(morphrus
-	moonycode)
-endif()
-
 # directories in build tree for custom built files:
 #   * inflextion tables;
 #   * dictionary sources.
@@ -87,7 +123,14 @@ add_custom_target(tmp ALL
 	COMMAND ${CMAKE_COMMAND} -E make_directory tmp)
 
 # install
-install(TARGETS morphrus DESTINATION lib)
+if (build-static)
+	install(TARGETS morphrus DESTINATION lib)
+endif()
+
+if (build-shared)
+	install(TARGETS morphrus-sh DESTINATION lib)
+endif()
+
 install(
   FILES
     include/mlma1049.h
