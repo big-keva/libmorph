@@ -96,27 +96,26 @@ PHP_METHOD(Rus, SetLoCase )
   auto  zendId = getThis();
   auto  morpho = Z_GETOBJ_P( zendId );
   auto  argcnt = ZEND_NUM_ARGS();
-  zval  argset[2];
   char* in_str;
   long  cc_str;
 
-  if ( argcnt < 1 || argcnt > 2 || zend_get_parameters_array_ex( argcnt TSRMLS_CC, argset ) == FAILURE )
-    WRONG_PARAM_COUNT;
-
-  convert_to_string_ex( argset + 0 );
-
-  if ( Z_STRLEN_P( argset + 0 ) <= 0 )
-    RETURN_FALSE;
-
-  in_str = Z_STRVAL_P( argset + 0 );
-  cc_str = Z_STRLEN_P( argset + 0 );
-
-  if ( argcnt > 1 )
+  if ( argcnt == 2 )
   {
-    convert_to_long_ex  ( argset + 1 );
+    long  length;
 
-    if ( Z_LVAL_P( argset + 1 ) < cc_str )
-      cc_str = Z_LVAL_P( argset + 1 );
+    if ( zend_parse_parameters( argcnt TSRMLS_CC, "sl", &in_str, &cc_str, &length ) != SUCCESS )
+      RETURN_FALSE;
+    cc_str = cc_str <= length ? cc_str : length;
+  }
+    else
+  if ( argcnt == 1 )
+  {
+    if ( zend_parse_parameters( argcnt TSRMLS_CC, "s", &in_str, &cc_str ) != SUCCESS )
+      RETURN_FALSE;
+  }
+    else
+  {
+    WRONG_PARAM_COUNT;
   }
 
   ZVAL_STRINGL( return_value, in_str, cc_str );
@@ -129,27 +128,26 @@ PHP_METHOD( Rus, SetUpCase )
   auto  zendId = getThis();
   auto  morpho = Z_GETOBJ_P( zendId );
   auto  argcnt = ZEND_NUM_ARGS();
-  zval  argset[2];
   char* in_str;
   long  cc_str;
 
-  if ( argcnt < 1 || argcnt > 2 || zend_get_parameters_array_ex( argcnt TSRMLS_CC, argset ) == FAILURE )
-    WRONG_PARAM_COUNT;
-
-  convert_to_string_ex( argset + 0 );
-
-  if ( Z_STRLEN_P( argset + 0 ) <= 0 )
-    RETURN_FALSE;
-
-  in_str = Z_STRVAL_P( argset + 0 );
-  cc_str = Z_STRLEN_P( argset + 0 );
-
-  if ( argcnt > 1 )
+  if ( argcnt == 2 )
   {
-    convert_to_long_ex  ( argset + 1 );
+    long  length;
 
-    if ( Z_LVAL_P( argset + 1 ) < cc_str )
-      cc_str = Z_LVAL_P( argset + 1 );
+    if ( zend_parse_parameters( argcnt TSRMLS_CC, "sl", &in_str, &cc_str, &length ) != SUCCESS )
+      RETURN_FALSE;
+    cc_str = cc_str <= length ? cc_str : length;
+  }
+    else
+  if ( argcnt == 1 )
+  {
+    if ( zend_parse_parameters( argcnt TSRMLS_CC, "s", &in_str, &cc_str ) != SUCCESS )
+      RETURN_FALSE;
+  }
+    else
+  {
+    WRONG_PARAM_COUNT;
   }
 
   ZVAL_STRINGL( return_value, in_str, cc_str );
