@@ -89,8 +89,9 @@ namespace LIBMORPH_NAMESPACE
       // '*' - любая последовательность символов длиной от 0 до ...; для каждого поддерева вызвать
       //       два варианта к каждому возможному поддереву:
         case '*':
-          if ( (nerror = GetDictMatch( thestr + 1, cchstr - 1, dicorg, _do_it )) != 0 ) // zero chars match
-            return nerror;
+          if ( cchstr > 1 )
+            if ( (nerror = GetDictMatch( thestr + 1, cchstr - 1, dicorg, _do_it )) != 0 ) // zero chars match
+              return nerror;
           while ( ncount-- > 0 )
             if ( (nerror = GetDictMatch( thestr, cchstr, getsubdic( thedic ), _do_it )) != 0 ) // more than one char match
               return nerror;
