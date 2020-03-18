@@ -64,7 +64,7 @@ inline  Source  OpenSource( const std::string& s, unsigned encode = codepages::c
   if ( (source.lpfile = fopen( (source.stname = s).c_str(), "rb" )) == nullptr )
     throw std::runtime_error( "could not open file '" + s + "'" );
 
-  return std::move( source );
+  return source;
 }
 
 inline  Source  OpenSource( const char* s, unsigned encode = codepages::codepage_1251 )

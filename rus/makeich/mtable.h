@@ -269,7 +269,7 @@ inline  std::vector<std::string>  collector::parse_tabindex( const char* names )
       ++names;
   }
 
-  return std::move( idxlist );
+  return idxlist;
 }
 
 template <class O>

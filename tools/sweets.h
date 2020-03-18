@@ -36,7 +36,7 @@ namespace libmorph
 
     fclose( lpfile );
 
-    return std::move( output );
+    return output;
   }
 
   inline  char* trim( char* thestr )

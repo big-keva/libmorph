@@ -219,7 +219,7 @@ public:
         mtable.data(), mindex )).mclass != nullclass )
       {
         keyset.push_back( std::move( MapLexStem( lexinf ) ) );
-        return std::move( keyset );
+        return keyset;
       }
 
     // sheck if no alter forms
@@ -236,7 +236,7 @@ public:
           keyset.push_back( std::move( MapLexStem( lexinf ) ) );
       }
 
-      return std::move( keyset );
+      return keyset;
     }
 };
 
@@ -390,7 +390,7 @@ std::vector<char>         LoadCommandFile( const char* szpath )
 
     fclose( lpfile );
 
-    return std::move( output );
+    return output;
   }
   catch ( ... )
   {
@@ -408,7 +408,7 @@ std::vector<const char*>  ReadCommandLine( int argc, char* argv[] )
     if ( **arg != '@' )
       out.push_back( *arg );
 
-  return std::move( out );
+  return out;
 }
 
 std::vector<const char*>  ReadCommandFile( std::vector<const char*>&& cmd, std::vector<char>& buf )

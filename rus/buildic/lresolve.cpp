@@ -330,7 +330,7 @@ lexemeinfo  ResolveClassInfo(
     if ( (lexeme.mclass.wdinfo & 0x3F) == 51 )
       lexeme.mclass.tfoffs = CaseScale( zapart );
     lexeme.chrmin = lexeme.chrmax = '\0';
-      return std::move( lexeme );
+      return lexeme;
   }
 
 // В случае, если ссылка на таблицу окончаний ненулевая, отбросить
@@ -442,7 +442,7 @@ lexemeinfo  ResolveClassInfo(
   if ( mixIndex != 0 )
     lexeme.mclass.wdinfo |= (mixIndex << 8);
 
-  return std::move( lexeme );
+  return lexeme;
 }
 
 #if defined( _MSC_VER )

@@ -73,7 +73,7 @@ namespace plaintab  {
         serial.resize( inflex.GetBufLen() );
         inflex.Serialize( serial.data() );
 
-        return std::move( serial );
+        return serial;
       }
 
   protected:
