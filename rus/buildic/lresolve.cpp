@@ -2,7 +2,6 @@
 # include <tools/utf81251.h>
 # include <tools/ftables.h>
 # include <cstdint>
-# include <cassert>
 # include <map>
 
 class TypeMatrix
@@ -224,18 +223,20 @@ auto  st_ye         = utf8to1251( "е" );
 // формату -nx-, где nx - некоторое количество символов, и возвращает
 // строку - помету.
 //=====================================================================
-std::string GetRemark( const char* string )
+std::string GetRemark( const char* comment )
 {
-  const char* strTop;
-  const char* strEnd;
-  
-  if ( (strEnd = strTop = strchr( string, '-' )) == nullptr )
-    return "";
+  for ( auto next = comment; (next = strchr( next, '-' )) != nullptr; ++next )
+  {
+    auto  end = next + 1;
 
-  do ++strEnd;
-    while ( *strEnd != '\0' && *strEnd != '-' && (unsigned char)*strEnd > 0x20 );
+    while ( *end != '\0' && *end != '-' && (unsigned char)*end > 0x20 )
+      ++end;
 
-  return *strEnd == '-' ? std::string( strTop + 1, strEnd - strTop - 1 ) : "";
+    if ( *end == '-' )
+      return std::string( next + 1, end - next - 1 );
+  }
+
+  return "";
 }
 
 bool        Reflexive( const std::string& s )
@@ -400,7 +401,7 @@ lexemeinfo  ResolveClassInfo(
 
 // После отщепления окончания нормальной формы словооснова проверяется на наличие чередований.
   lexeme.mclass.mtoffs = mindex.Find( mtable, stOrig.c_str(),
-                               lexeme.mclass.wdinfo, lexeme.ststem.c_str(), GetRemark( szcomm ).c_str() );
+    lexeme.mclass.wdinfo, lexeme.ststem.c_str(), GetRemark( szcomm ).c_str() );
 
 // Если чередования присутствуют, то отщепляется первая ступень
 // чередования в основе, т. к. она соответствует нормальной форме.
