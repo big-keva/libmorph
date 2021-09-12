@@ -51,286 +51,510 @@ SOFTWARE.
 */
 # if !defined( __mtc_serialize__ )
 # define  __mtc_serialize__
-# include "serialize.decl.h"
+# include <cstdlib>
+# include <cstring>
+# include <string>
+# include <vector>
+# include <map>
+
+/*
+ * values serialization/deserialization
+ */
+
+template <class T>
+size_t  GetBufLen( const T& );
+template <class O, class T>
+O*      Serialize( O*, const T& );
+template <class S, class T>
+S*      FetchFrom( S*, T& );
+template <class S, class T>
+S*      SkipToEnd( S*, const T* );
+
+/*
+ * common serialization templates declaration for base get/put operations   []
+ */
+
+template <class O>  O*  Serialize( O*, const void*, size_t );
+template <class S>  S*  FetchFrom( S*,       void*, size_t );
+template <class S>  S*  SkipBytes( S*, size_t );
 
 namespace mtc
 {
+  class sourcebuf
+  {
+    const char* p;
+    const char* e;
 
-  template <class O>
-  O*  serialbuf::Serialize( O* o ) const {  return ::Serialize( o, data, size );  }
+  public:     // construction
+    sourcebuf( const void* t = nullptr, size_t l = 0 ) noexcept: p( (char*)t ), e( l + (char*)t ) {}
+    sourcebuf( const sourcebuf& s ): p( s.p ), e( s.e ) {}
+    sourcebuf&  operator = ( const sourcebuf& s )
+    {
+      p = s.p;
+      e = s.e;
+      return *this;
+    }
+    sourcebuf* ptr() const {  return (sourcebuf*)this;  }
+    operator sourcebuf* () const    {  return ptr();  }
+    const char* getptr() const      {  return p < e ? p : nullptr;  }
+    sourcebuf*  skipto( size_t l )  {  return (p = l + p) <= e ? this : nullptr;  }
+
+  public:     // fetch
+    sourcebuf*  FetchFrom( void* o, size_t l )  {  return p + l <= e ? (memcpy( o, p, l ), p += l, this) : (p = e, nullptr);  }
+  };
+
+  class serialbuf
+  {
+    const void* data;
+    size_t      size;
+
+  public:
+    serialbuf( const void* p, size_t l ): data( p ), size( l ) {}
+    serialbuf( const serialbuf& s ): data( s.data ), size( s.size ) {}
+
+  public:
+    template <class O> O*  Serialize( O* o ) const;
+  };
+
+  template <class T>
+  struct class_is_string
+  {
+    static const bool value = false;
+  };
+
+  template <class T>
+  struct class_is_string<std::basic_string<T>>
+  {
+    static const bool value = true;
+  };
+
+  struct value_as_scalar
+  {
+    template <class T> constexpr
+    static  size_t  GetBufLen( const T& t )  {  return ::GetBufLen( t );  }
+    template <class O, class T>
+    static  O*      Serialize( O* o, const T& t )  {  return ::Serialize( o, t );  }
+    template <class S, class T>
+    static  S*      FetchFrom( S* s, T& t )  {  return ::FetchFrom( s, t );  }
+    template <class S, class T>
+    static  S*      SkipToEnd( S* s, const T* ) {  return ::SkipToEnd( s, (const T*)nullptr );  }
+  };
+
+  struct value_as_struct
+  {
+    template <class T> constexpr
+    static  size_t  GetBufLen( const T& t )  {  return t.GetBufLen();  }
+    template <class O, class T>
+    static  O*      Serialize( O* o, const T& t )  {  return t.Serialize( o );  }
+    template <class S, class T>
+    static  S*      FetchFrom( S* s, T& t )  {  return t.FetchFrom( s );  }
+    template <class S, class T>
+    static  S*      SkipToEnd( S* s, const T* )  {  return T::SkipToEnd( s );  }
+  };
+
+  /*
+   * integer values serialization
+   */
+  struct integers final
+  {
+    template <class T>
+    static  inline  size_t  len( T dwdata )
+    {
+      T       bitest = 0x007f;
+      size_t  ncount = 1;
+
+      while ( (dwdata & ~bitest) != 0 )
+      {
+        bitest = (T)((bitest << 7) | 0x7f);
+        ++ncount;
+      }
+      return ncount;
+    }
+    template <class O, class T>
+    static  inline O*  put( O*  o, T t )
+    {
+      int   nshift = 0;
+      char  bstore;
+
+      do
+      {
+        unsigned  ushift = nshift++ * 7;
+
+        bstore = (char)(((t & (((T)0x7f) << ushift)) >> ushift) & 0x7f);
+          t &= ~(((T)0x7f) << ushift);
+        if ( t != 0 )
+          bstore |= 0x80;
+        o = Serialize( o, &bstore, sizeof(bstore) );
+      } while ( o != NULL && (bstore & 0x80) != 0 );
+
+      return o;
+    }
+    template <class S, class T>
+    static inline S*  get( S* s, T& t )
+    {
+      int   nshift = 0;
+      char  bfetch;
+
+      t = 0;
+      do  {
+        if ( (s = FetchFrom( s, &bfetch, sizeof(bfetch) )) == nullptr ) return nullptr;
+        else  t |= (((T)bfetch & 0x7f)) << (nshift++ * 7);
+      } while ( bfetch & 0x80 );
+
+      return s;
+    }
+    template <class S, class T>
+    static inline S*  end( S* s, const T* )
+    {
+      char  bfetch;
+      while ( (s = FetchFrom( s, &bfetch, sizeof(bfetch) )) != nullptr && (bfetch & 0x80) != 0 )
+        (void)NULL;
+      return s;
+    }
+  };
 
 }
 
-//[]=========================================================================[]
+/*
+ * base i/o specializations declarations
+ */
+
+template <> inline  auto  Serialize( char* o, const void* p, size_t l ) -> char*
+  {  return o != nullptr ? l + (char*)memcpy( o, p, l ) : nullptr;  }
+template <> inline  auto  Serialize( unsigned char* o, const void* p, size_t l ) -> unsigned char*
+  {  return o != nullptr ? l + (unsigned char*)memcpy( o, p, l ) : nullptr;  }
+template <> inline  auto  Serialize( FILE* o, const void* p, size_t l ) -> FILE*
+  {  return o != nullptr && fwrite( p, sizeof(char), l, o ) == l ? o : nullptr;  }
+
+template <> inline  auto  FetchFrom( const char* s, void* p, size_t l ) -> const char*
+  {  return s != nullptr ? (memcpy( p, s, l ), l + s) : nullptr;  }
+template <> inline  auto  FetchFrom( const unsigned char* s, void* p, size_t l ) -> const unsigned char*
+  {  return s != nullptr ? (memcpy( p, s, l ), l + s) : nullptr;  }
+template <> inline  auto  FetchFrom( FILE* s, void* p, size_t l ) -> FILE*
+  {  return s != nullptr && fread( p, sizeof(char), l, s ) == l ? s : nullptr;  }
+
+template <> inline  auto  SkipBytes( const char* s, size_t l ) -> const char*
+  {  return s != nullptr ? s + l : s;  }
+template <> inline  auto  SkipBytes( const unsigned char* s, size_t l ) -> const unsigned char*
+  {  return s != nullptr ? s + l : s;  }
+template <> inline  auto  SkipBytes( FILE* s, size_t l ) -> FILE*
+  {  return s != nullptr && fseek( s, l, SEEK_CUR ) == 0 ? s : nullptr;  }
+
+/*
+ * structures serialization/deserialization prototypes
+ */
 
 template <class T>
-inline  size_t  GetBufLen( T dwdata )
+size_t  GetBufLen( const T& t )
+{
+  using value_type = typename std::conditional<std::is_fundamental<T>::value || mtc::class_is_string<T>::value,
+    mtc::value_as_scalar,
+    mtc::value_as_struct>::type;
+  return value_type::GetBufLen( t );
+}
+
+template <class O, class T>
+O*  Serialize( O* o, const T& t )
+{
+  using value_type = typename std::conditional<std::is_fundamental<T>::value || mtc::class_is_string<T>::value,
+    mtc::value_as_scalar,
+    mtc::value_as_struct>::type;
+  return value_type::Serialize( o, t );
+}
+
+template <class S, class T>
+S*  FetchFrom( S* s, T& t )
+{
+  using value_type = typename std::conditional<std::is_fundamental<T>::value || mtc::class_is_string<T>::value,
+    mtc::value_as_scalar,
+    mtc::value_as_struct>::type;
+  return value_type::FetchFrom( s, t );
+}
+
+template <class S, class T>
+S*  SkipToEnd( S* s, const T* )
+{
+  using value_type = typename std::conditional<std::is_fundamental<T>::value || mtc::class_is_string<T>::value,
+    mtc::value_as_scalar,
+    mtc::value_as_struct>::type;
+  return value_type::SkipToEnd( s, (const T*)nullptr );
+}
+
+/*
+ * values serialization/deserialization for standard types
+ */
+template <>  constexpr inline  size_t GetBufLen( const char& )          {  return 1;  }
+template <>  constexpr inline  size_t GetBufLen( const unsigned char& ) {  return 1;  }
+template <>  constexpr inline  size_t GetBufLen( const float&  )        {  return sizeof(float);  }
+template <>  constexpr inline  size_t GetBufLen( const double& )        {  return sizeof(double);  }
+template <>  constexpr inline  size_t GetBufLen( const bool& )          {  return 1;  }
+
+template <>  inline  size_t GetBufLen( const int16_t& i )   {  return mtc::integers::len( i );  }
+template <>  inline  size_t GetBufLen( const int32_t& i )   {  return mtc::integers::len( i );  }
+template <>  inline  size_t GetBufLen( const int64_t& i )   {  return mtc::integers::len( i );  }
+
+template <>  inline  size_t GetBufLen( const uint16_t& i )  {  return mtc::integers::len( i );  }
+template <>  inline  size_t GetBufLen( const uint32_t& i )  {  return mtc::integers::len( i );  }
+template <>  inline  size_t GetBufLen( const uint64_t& i )  {  return mtc::integers::len( i );  }
+
+template <class O>  inline  O*  Serialize( O* o, const char& c )          {  return Serialize( o, &c, sizeof(c) );  }
+template <class O>  inline  O*  Serialize( O* o, const unsigned char& c ) {  return Serialize( o, &c, sizeof(c) );  }
+template <class O>  inline  O*  Serialize( O* o, const float&  f )        {  return Serialize( o, &f, sizeof(f) );  }
+template <class O>  inline  O*  Serialize( O* o, const double& d )        {  return Serialize( o, &d, sizeof(d) );  }
+template <class O>  inline  O*  Serialize( O* o, const bool& b )          {  return Serialize( o, (char)(b ? 1 : 0) );  }
+
+template <class O>  inline  O*  Serialize( O* o, const int16_t& i )   {  return mtc::integers::put( o, i );  }
+template <class O>  inline  O*  Serialize( O* o, const int32_t& i )   {  return mtc::integers::put( o, i );  }
+template <class O>  inline  O*  Serialize( O* o, const int64_t& i )   {  return mtc::integers::put( o, i );  }
+
+template <class O>  inline  O*  Serialize( O* o, const uint16_t& i )  {  return mtc::integers::put( o, i );  }
+template <class O>  inline  O*  Serialize( O* o, const uint32_t& i )  {  return mtc::integers::put( o, i );  }
+template <class O>  inline  O*  Serialize( O* o, const uint64_t& i )  {  return mtc::integers::put( o, i );  }
+
+template <class S>  inline  S*  FetchFrom( S* s, char& c )          {  return FetchFrom( s, &c, sizeof(c) );  }
+template <class S>  inline  S*  FetchFrom( S* s, unsigned char& c ) {  return FetchFrom( s, &c, sizeof(c) );  }
+template <class S>  inline  S*  FetchFrom( S* s, float&  f )        {  return FetchFrom( s, &f, sizeof(f) );  }
+template <class S>  inline  S*  FetchFrom( S* s, double& d )        {  return FetchFrom( s, &d, sizeof(d) );  }
+template <class S>  inline  S*  FetchFrom( S* s, bool& b )
+{
+  char  c;
+
+  return b = (s = FetchFrom( s, c )) != nullptr && c != 0, s;
+}
+
+template <class S>  inline  S*  FetchFrom( S* s, int16_t& i )   {  return mtc::integers::get( s, i );  }
+template <class S>  inline  S*  FetchFrom( S* s, int32_t& i )   {  return mtc::integers::get( s, i );  }
+template <class S>  inline  S*  FetchFrom( S* s, int64_t& i )   {  return mtc::integers::get( s, i );  }
+
+template <class S>  inline  S*  FetchFrom( S* s, uint16_t& i )  {  return mtc::integers::get( s, i );  }
+template <class S>  inline  S*  FetchFrom( S* s, uint32_t& i )  {  return mtc::integers::get( s, i );  }
+template <class S>  inline  S*  FetchFrom( S* s, uint64_t& i )  {  return mtc::integers::get( s, i );  }
+
+template <class S>  inline  S*  SkipToEnd( S* o, const char* )          {  return SkipBytes( o, sizeof(char) );  }
+template <class S>  inline  S*  SkipToEnd( S* o, const unsigned char* ) {  return SkipBytes( o, sizeof(char) );  }
+template <class S>  inline  S*  SkipToEnd( S* o, const float* )         {  return SkipBytes( o, sizeof(float) );  }
+template <class S>  inline  S*  SkipToEnd( S* o, const double* )        {  return SkipBytes( o, sizeof(double) );  }
+template <class S>  inline  S*  SkipToEnd( S* o, const bool* )          {  return SkipBytes( o, sizeof(char) );  }
+
+template <class S>  inline  S*  SkipToEnd( S* s, const int16_t* )   {  return mtc::integers::end( s, (const int16_t*)nullptr );  }
+template <class S>  inline  S*  SkipToEnd( S* s, const int32_t* )   {  return mtc::integers::end( s, (const int32_t*)nullptr );  }
+template <class S>  inline  S*  SkipToEnd( S* s, const int64_t* )   {  return mtc::integers::end( s, (const int64_t*)nullptr );  }
+
+template <class S>  inline  S*  SkipToEnd( S* s, const uint16_t* )   {  return mtc::integers::end( s, (const uint16_t*)nullptr );  }
+template <class S>  inline  S*  SkipToEnd( S* s, const uint32_t* )   {  return mtc::integers::end( s, (const uint32_t*)nullptr );  }
+template <class S>  inline  S*  SkipToEnd( S* s, const uint64_t* )   {  return mtc::integers::end( s, (const uint64_t*)nullptr );  }
+
+/*
+ * C strings serialization/deserialization specializations
+ */
+template <>
+inline  size_t  GetBufLen( const char* const& string )
+{
+  auto length = strlen( string );
+
+  return sizeof(*string) * length + GetBufLen( length );
+}
+
+template <> inline
+size_t  GetBufLen( char* const& string )
+  {  return GetBufLen( (char * const&)string );  }
+
+template <class O>  inline  O*  Serialize( O* o, const char* const& s )
+{
+  auto  length = strlen( s );
+
+  return Serialize( Serialize( o, length ), (const void*)s, sizeof(*s) * length );
+}
+
+template <class S>  inline  S*  FetchFrom( S* s, char*&  r )
+{
+  unsigned  length;
+
+  if ( (s = FetchFrom( s, length )) != nullptr )
   {
-    T       bitest = 0x007f;
-    size_t  ncount = 1;
-
-    while ( (dwdata & ~bitest) != 0 )
-    {
-      bitest = (T)((bitest << 7) | 0x7f);
-        ++ncount;
-    }
-    return ncount;
-  }
-
-constexpr inline  size_t  GetBufLen( char )           {  return 1;  }
-constexpr inline  size_t  GetBufLen( unsigned char )  {  return 1;  }
-constexpr inline  size_t  GetBufLen( bool )           {  return 1;  }
-constexpr inline  size_t  GetBufLen( float )          {  return sizeof(float);  }
-constexpr inline  size_t  GetBufLen( double )         {  return sizeof(double);  }
-
-inline  size_t  GetBufLen( const char*  string )
-  {
-    auto length = strlen( string );
-
-    return sizeof(*string) * length + GetBufLen( length );
-  }
-
-inline  size_t  GetBufLen( char* string )
-  {
-    return GetBufLen( (const char*)string );
-  }
-
-template <class T>
-inline  size_t  GetBufLen( const std::vector<T>& a )
-  {
-    size_t  cc = ::GetBufLen( a.size() );
-
-    for ( auto& t: a )
-      cc += ::GetBufLen( t );
-
-    return cc;
-  }
-
-template <class C>
-inline  size_t  GetBufLen( const std::basic_string<C>& s )
-  {
-    return ::GetBufLen( s.length() ) + sizeof(C) * s.length();
-  }
-
-template <class K,
-          class V>
-inline  size_t  GetBufLen( const std::map<K, V>& m )
-  {
-    size_t  cch = ::GetBufLen( m.size() );
-
-    for ( auto ptr = m.begin(); ptr != m.end(); ++ptr )
-      cch += ::GetBufLen( ptr->first ) + ::GetBufLen( ptr->second );
-
-    return cch;
-  }
-
-//[]=========================================================================[]
-
-inline  char*           Serialize( char* o, const void* p, size_t l )
-  {
-    return o != nullptr ? l + (char*)memcpy( o, p, l ) : nullptr;
-  }
-
-inline  unsigned char*  Serialize( unsigned char* o, const void* p, size_t l )
-  {
-    return o != nullptr ? l + (unsigned char*)memcpy( o, p, l ) : nullptr;
-  }
-
-inline  FILE*           Serialize( FILE* o, const void* p, size_t l )
-  {
-    return o != nullptr && fwrite( p, sizeof(char), l, o ) == l ? o : nullptr;
-  }
-
-//[]=========================================================================[]
-
-inline  const char* FetchFrom( const char* s, void* p, size_t l )
-  {
-    return s != nullptr ? (memcpy( p, s, l ), l + s) : nullptr;
-  }
-
-inline  const unsigned char* FetchFrom( const unsigned char* s, void* p, size_t l )
-  {
-    return s != nullptr ? (memcpy( p, s, l ), l + s) : nullptr;
-  }
-
-inline  FILE*       FetchFrom( FILE* s, void* p, size_t l )
-  {
-    return s != nullptr && fread( p, sizeof(char), l, s ) == l ? s : nullptr;
-  }
-
-//[]=========================================================================[]
-
-template <class O>  O*  Serialize( O* o, char c )                         {  return Serialize( o, &c, sizeof(c) );  }
-template <class O>  O*  Serialize( O* o, unsigned char c )                {  return Serialize( o, &c, sizeof(c) );  }
-template <class O>  O*  Serialize( O* o, float  f )                       {  return Serialize( o, &f, sizeof(f) );  }
-template <class O>  O*  Serialize( O* o, double d )                       {  return Serialize( o, &d, sizeof(d) );  }
-template <class O>  O*  Serialize( O* o, bool b )                         {  return Serialize( o, (char)(b ? 1 : 0) );  }
-
-template <class O,
-          class T>  O*  Serialize( O*  o, T t )
-  {
-    int   nshift = 0;
-    char  bstore;
-  
-    do
-    {
-      unsigned  ushift = nshift++ * 7;
-
-      bstore = (char)(((t & (((T)0x7f) << ushift)) >> ushift) & 0x7f);
-        t &= ~(((T)0x7f) << ushift);
-      if ( t != 0 )
-        bstore |= 0x80;
-      o = Serialize( o, &bstore, sizeof(bstore) );
-    } while ( o != NULL && (bstore & 0x80) != 0 );
-
-    return o;
-  }
-
-template <class O>  O*  Serialize( O* o, const char* s )
-  {
-    auto  length = strlen( s );
-
-    return Serialize( Serialize( o, length ), (const void*)s, sizeof(*s) * length );
-  }
-
-template <class O>  O*  Serialize( O* o, char* s )
-  {
-    return Serialize( o, (const char*)s );
-  }
-
-template <class O,
-          class T>  O*  Serialize( O* o, const std::vector<T>& a )
-  {
-    o = ::Serialize( o, a.size() );
-
-    for ( auto p = a.begin(); p != a.end() && o != nullptr; ++p )
-      o = ::Serialize( o, *p );
-
-    return o;
-  }
-
-template <class O,
-          class C>  O*  Serialize( O* o, const std::basic_string<C>& s )
-  {
-    return ::Serialize( ::Serialize( o, s.length() ), s.c_str(), sizeof(C) * s.length() );
-  }
-
-template <class O,
-          class K,
-          class V>  O*  Serialize( O* o, const std::map<K, V>& m )
-  {
-    o = ::Serialize( o, m.size() );
-
-    for ( auto ptr = m.begin(); o != nullptr && ptr != m.end(); ++ptr )
-      o = ::Serialize( ::Serialize( o, ptr->first ), ptr->second );
-
-    return o;
-  }
-
-//[]=========================================================================[]
-
-template <class S>  S*  FetchFrom( S* s, char& c )                        {  return FetchFrom( s, &c, sizeof(c) );  }
-template <class S>  S*  FetchFrom( S* s, unsigned char& c )               {  return FetchFrom( s, &c, sizeof(c) );  }
-template <class S>  S*  FetchFrom( S* s, float&  f )                      {  return FetchFrom( s, &f, sizeof(f) );  }
-template <class S>  S*  FetchFrom( S* s, double& d )                      {  return FetchFrom( s, &d, sizeof(d) );  }
-template <class S>  S*  FetchFrom( S* s, bool& b )
-  {
-    char  c;
-
-    s = FetchFrom( s, c );
-    b = s != nullptr && c != 0;
-    return s;
-  }
-
-template <class S,
-          class T>  S*  FetchFrom( S* s, T& t )
-  {
-    int   nshift = 0;
-    char  bfetch;
-
-    t = 0;
-    do  {
-      if ( (s = FetchFrom( s, &bfetch, sizeof(bfetch) )) == nullptr ) return nullptr;
-        else  t |= (((T)bfetch & 0x7f)) << (nshift++ * 7);
-    } while ( bfetch & 0x80 );
-
-    return s;
-  }
-
-template <class S>  S*  FetchFrom( S* s, char*&  r )
-  {
-    unsigned  length;
-
-    if ( (s = FetchFrom( s, length )) == nullptr )
-      return nullptr;
     if ( (r = (char*)malloc( length + 1 )) == nullptr )
       return nullptr;
     if ( (s = FetchFrom( s, r, length )) == nullptr ) free( r );
       else  r[length] = '\0';
-    return s;
   }
+  return s;
+}
 
-template <class S>  S*  FetchFrom( S* s, const char*& r )
-  {
-    return FetchFrom( s, (char*&)r );
-  }
+template <class O>  inline  O*  Serialize( O* o, char* s )  {  return Serialize( o, (const char*)s );  }
+template <class S>  inline  S*  FetchFrom( S* s, const char*& r ) {  return FetchFrom( s, (char*&)r );  }
 
-template <class S,
-          class T>  S*  FetchFrom( S* s, std::vector<T>& a )
-  {
-    int   length;
+/*
+ * std:: types serialization/deserialization specializations
+ */
 
-    a.clear();
+/*
+ * std::basic_string<>
+ */
+template <class C>
+size_t  GetBufLen( const std::basic_string<C>& s )
+{
+  return ::GetBufLen( s.length() ) + sizeof(C) * s.length();
+}
 
-    if ( (s = ::FetchFrom( s, length )) == nullptr )
-      return s;
+template <class O,
+class C>  O*  Serialize( O* o, const std::basic_string<C>& s )
+{
+  return ::Serialize( ::Serialize( o, s.length() ), s.c_str(), sizeof(C) * s.length() );
+}
 
-    a.reserve( (length + 0x0f) & ~0x0f );
-    a.resize( length );
+template <class S, class C>
+S*  FetchFrom( S* s, std::basic_string<C>& o )
+{
+  int   l;
 
-    for ( auto i = 0; i < length && s != nullptr; ++i )
-      s = ::FetchFrom( s, a.at( i ) );
+  o.clear();
 
-    return s;
-  }
+  if ( (s = ::FetchFrom( s, l )) == nullptr )
+    return nullptr;
 
-template <class S,
-          class C>  S*  FetchFrom( S* s, std::basic_string<C>& o )
-  {
-    int   l;
+  o.reserve( (l + 0x10) & ~0x0f );
+  o.resize( l );
+  o[l] = (C)0;
 
+  if ( (s = ::FetchFrom( s, (C*)o.c_str(), l * sizeof(C) )) == nullptr )
     o.clear();
 
-    if ( (s = ::FetchFrom( s, l )) == nullptr )
-      return nullptr;
+  return s;
+}
 
-    o.reserve( (l + 0x10) & ~0x0f );
-    o.resize( l );
-    o[l] = (C)0;
+template <class S, class C>
+S*  SkipToEnd( S* s, const std::basic_string<C>* )
+{
+  int   l;
 
-    if ( (s = ::FetchFrom( s, (C*)o.c_str(), l * sizeof(C) )) == nullptr )
-      o.clear();
+  return (s = FetchFrom( s, l )) != nullptr ? SkipBytes( s, l * sizeof(C) ) : s;
+}
 
-    return s;
-  }
+/*
+ * std::vector<>
+ */
+template <class T>
+size_t  GetBufLen( const std::vector<T>& v )
+{
+  auto  value_size = ::GetBufLen( v.size() );
+
+  for ( auto& element: v )
+    value_size += ::GetBufLen( element );
+
+  return value_size;
+}
+
+template <class O, class T>
+O*  Serialize( O* o, const std::vector<T>& a )
+{
+  o = ::Serialize( o, a.size() );
+
+  for ( auto& element: a )
+    o = ::Serialize( o, element );
+
+  return o;
+}
 
 template <class S,
-          class K,
-          class V>  S*  FetchFrom( S* s, std::map<K, V>& m )
-  {
-    size_t  len;
+class T>
+S*  FetchFrom( S* s, std::vector<T>& a )
+{
+  size_t  array_size;
 
-    s = ::FetchFrom( s, len );
+  a.clear();
 
-    for ( m.clear(); s != nullptr && len-- > 0; )
-    {
-      std::pair<K, V> pair;
-
-      if ( (s = ::FetchFrom( ::FetchFrom( s, pair.first ), pair.second )) != nullptr )
-        m.insert( m.end(), std::move( pair ) );
-    }
-
+  if ( (s = ::FetchFrom( s, array_size )) == nullptr )
     return s;
+
+  a.reserve( (array_size + 0x0f) & ~0x0f );
+  a.resize( array_size );
+
+  for ( size_t i = 0; i < array_size && s != nullptr; ++i )
+    s = ::FetchFrom( s, a.at( i ) );
+
+  return s;
+}
+
+template <class S, class T>
+S*  SkipToEnd( S* s, const std::vector<T>* )
+{
+  int   l;
+
+  for ( s = ::FetchFrom( s, l ); s != nullptr && l-- > 0; s = SkipToEnd( s, (const T*)nullptr ) )
+    (void)NULL;
+  return s;
+}
+
+/*
+ * std::map<>
+ */
+template <class K,
+          class V> inline
+size_t  GetBufLen( const std::map<K, V>& m )
+{
+  size_t  cch = ::GetBufLen( m.size() );
+
+  for ( auto ptr = m.begin(); ptr != m.end(); ++ptr )
+    cch += ::GetBufLen( ptr->first ) + ::GetBufLen( ptr->second );
+
+  return cch;
+}
+
+template <class O, class K, class V>
+O*  Serialize( O* o, const std::map<K, V>& m )
+{
+  o = ::Serialize( o, m.size() );
+
+  for ( auto ptr = m.begin(); o != nullptr && ptr != m.end(); ++ptr )
+    o = ::Serialize( ::Serialize( o, ptr->first ), ptr->second );
+
+  return o;
+}
+
+template <class S,
+class K,
+class V>
+S*  FetchFrom( S* s, std::map<K, V>& m )
+{
+  size_t  len;
+
+  s = ::FetchFrom( s, len );
+
+  for ( m.clear(); s != nullptr && len-- > 0; )
+  {
+    std::pair<K, V> pair;
+
+    if ( (s = ::FetchFrom( ::FetchFrom( s, pair.first ), pair.second )) != nullptr )
+      m.insert( m.end(), std::move( pair ) );
   }
+
+  return s;
+}
+
+template <class S,
+class K,
+class V>
+S*  SkipToEnd( S* s, std::map<K, V>& m )
+{
+  size_t  len;
+
+  for ( s = ::FetchFrom( s, len ); s != nullptr && len-- > 0;
+    s = SkipToEnd( SkipToEnd( s, (const K*)nullptr ), (const V*)nullptr ) ) (void)NULL;
+
+  return s;
+}
+
+/*
+ * helpers for buffers
+ */
+template <> inline  auto  FetchFrom( mtc::sourcebuf* s, void* p, size_t l ) -> mtc::sourcebuf*
+  {  return s != nullptr ? s->FetchFrom( p, l ) : s;  }
+template <> inline  auto  SkipBytes( mtc::sourcebuf* s, size_t l ) -> mtc::sourcebuf*
+  {  return s != nullptr ? s->skipto( l ) : s;  }
+
+namespace mtc
+{
+  template <class O> O*  serialbuf::Serialize( O* o ) const  {  return ::Serialize( o, data, size );  }
+}
 
 # endif  // __mtc_serialize__

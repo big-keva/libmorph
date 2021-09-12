@@ -4,7 +4,7 @@
 # include <tools/plaintable.h>
 # include <tools/ftables.h>
 # include <tools/sweets.h>
-# include <tools/serialize.decl.h>
+# include <tools/serialize.h>
 # include "classtable.hpp"
 # include "mtables.h"
 # include <map>
@@ -64,6 +64,23 @@ public:     // comparison
   bool  operator <  ( const lexemedump& r ) const {  return compare( r ) < 0;   }
   bool  operator == ( const lexemedump& r ) const {  return compare( r ) == 0;  }
 
+public:
+  auto  GetBufLen() const -> size_t
+  {
+    return 2 + ::GetBufLen( nlexid ) + sizeof(word16_t) + (stpost.length() != 0 ? stpost.length() + 1 : 0);
+  }
+  template <class O>
+  O*    Serialize( O* o ) const
+  {
+    word16_t  wstore = oclass | (stpost.length() != 0 ? 0x8000 : 0);
+
+    o = ::Serialize( ::Serialize( ::Serialize( ::Serialize( o,
+      &chrmin, sizeof(chrmin) ),
+      &chrmax, sizeof(chrmax) ), nlexid ), &wstore, sizeof(wstore) );
+
+    return (wstore & 0x8000) != 0 ? ::Serialize( o, stpost ) : o;
+  }
+
 protected:  // helpers
   int   compare( const lexemedump& r ) const
     {
@@ -76,23 +93,6 @@ protected:  // helpers
       return rescmp;
     }
 };
-
-size_t  GetBufLen( const lexemedump& s )
-{
-  return 2 + ::GetBufLen( s.nlexid ) + sizeof(word16_t) + (s.stpost.length() != 0 ? s.stpost.length() + 1 : 0);
-}
-
-template <class O>
-O*      Serialize( O* o, const lexemedump& s )
-  {
-    word16_t  wstore = s.oclass | (s.stpost.length() != 0 ? 0x8000 : 0);
-
-    o = ::Serialize( ::Serialize( ::Serialize( ::Serialize( o,
-      &s.chrmin, sizeof(s.chrmin) ),
-      &s.chrmax, sizeof(s.chrmax) ), s.nlexid ), &wstore, sizeof(wstore) );
-
-    return (wstore & 0x8000) != 0 ? ::Serialize( o, s.stpost ) : o;
-  }
 
 class ResolveRus
 {

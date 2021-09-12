@@ -1,12 +1,12 @@
 # pragma once
 # if !defined( __plaintable_h__ )
 # define __plaintable_h__
+# include "serialize.h"
 # include <cstddef>
-# include <vector>
 
 namespace libmorph
 {
-  std::vector<char> CreatePlainTable( const char* tables, size_t offset );
+  auto  CreatePlainTable( const char* tables, size_t offset ) -> std::vector<char>;
 }  // libmorph namespace
 
 namespace libmorph  {
@@ -26,6 +26,13 @@ namespace plaintab  {
   public:
     bool  operator == ( const graminfo& r ) const {  return grinfo == r.grinfo && bflags == r.bflags;  }
     bool  operator != ( const graminfo& r ) const {  return !(*this == r);  }
+
+  public:
+    auto  GetBufLen() const -> size_t
+      {  return 3;  }
+    template <class O>
+    O*    Serialize( O* o ) const
+      {  return ::Serialize( ::Serialize( o, &grinfo, sizeof(grinfo) ), &bflags, sizeof(bflags) );  }
   };
 
   void  Insert( std::vector<graminfo>& l, const graminfo& g )
@@ -36,18 +43,6 @@ namespace plaintab  {
 
 }}
 
-# include "serialize.decl.h"
-
-constexpr inline
-size_t  GetBufLen( const libmorph::plaintab::graminfo& )
-  {
-    return 3;
-  }
-template <class O> inline
-O*      Serialize( O* o, const libmorph::plaintab::graminfo& gl )
-  {
-    return ::Serialize( ::Serialize( o, &gl.grinfo, sizeof(gl.grinfo) ), &gl.bflags, sizeof(gl.bflags) );
-  }
 
 # include "wordtree.h"
 

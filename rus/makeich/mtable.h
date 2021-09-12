@@ -54,8 +54,9 @@ public:
   void  addstep( const std::string& mix, int step )  {  return addstep( mix.c_str(), step );  }
 
 public:     // serialization
-  uint16_t                GetBufLen() const;
-  template <class O>  O*  Serialize( O* ) const;
+  auto  GetBufLen() const -> uint16_t;
+  template <class O>
+  O*    Serialize( O* ) const;
 };
 
 //
