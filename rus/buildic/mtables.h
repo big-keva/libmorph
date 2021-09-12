@@ -11,7 +11,7 @@ namespace rus{
   class Alternator
   {
     //
-    // Чередование с условием
+    // Р§РµСЂРµРґРѕРІР°РЅРёРµ СЃ СѓСЃР»РѕРІРёРµРј
     //
     struct  alt
     {
@@ -20,14 +20,14 @@ namespace rus{
     };
 
     //
-    // Представление ссылок на некоторую таблицу чередований
+    // РџСЂРµРґСЃС‚Р°РІР»РµРЅРёРµ СЃСЃС‹Р»РѕРє РЅР° РЅРµРєРѕС‚РѕСЂСѓСЋ С‚Р°Р±Р»РёС†Сѓ С‡РµСЂРµРґРѕРІР°РЅРёР№
     //
     struct tab: public std::vector<alt>
     {
-      uint16_t              Find( const char* tabs,
-                                  uint16_t    type,
-                                  const char* stem,
-                                  const char* rems ) const;
+      uint16_t  Find( const char* tabs,
+                      uint16_t    type,
+                      const char* stem,
+                      const char* rems ) const;
     };
 
     template <class S>  S*  Load( alt& a, S* s );
@@ -38,12 +38,12 @@ namespace rus{
     static  std::tuple<uint8_t, uint8_t>  GetMinMaxChar( const char* tables, uint16_t tboffs, uint8_t chrmin, uint8_t chrmax );
 
   public:     // API
-    uint16_t                Find( const char* tabs,
-                                  const char* ztyp,
-                                  uint16_t    type,
-                                  const char* stem,
-                                  const char* rems ) const;
-    FILE*                   Load( FILE* );
+    uint16_t  Find( const char* tabs,
+                    const char* ztyp,
+                    uint16_t    type,
+                    const char* stem,
+                    const char* rems ) const;
+    FILE*     Load( FILE* );
 
   protected:  // vars
     std::vector<tab>            tabset;
