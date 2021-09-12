@@ -24,7 +24,7 @@ public:     // API
       if ( pfound != clsset.end() )
         return pfound->second;
 
-      clsset.push_back( std::make_pair( rclass, (uint16_t)length ) );
+      clsset.push_back( { rclass, (uint16_t)length } );
         length += rclass.GetBufLen();
 
       if ( length > (uint16_t)-1 )
@@ -41,8 +41,9 @@ public:     // serialization
   template <class O>
   O*      Serialize( O* o ) const
     {
-      for ( auto p = clsset.begin(); o != nullptr && p < clsset.end(); ++p )
-        o = p->first.Serialize( o );
+      for ( auto& nextclass: clsset )
+        if ( (o = nextclass.first.Serialize( o )) == nullptr )
+          break;
       return o;
     }
 };
