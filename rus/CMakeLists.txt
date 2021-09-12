@@ -4,12 +4,15 @@ project(morphrus)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
 
-set (DicCPP dictree/classmap.cpp
+set(DicCPP  dictree/classmap.cpp
             dictree/stemtree.cpp
             dictree/lidstree.cpp
             dictree/flexTree.cpp
             dictree/mixTypes.cpp
             dictree/mxTables.cpp)
+
+set(BuilDic morphrus-buildic)
+set(MakeIch morphrus-makeich)
 
 file(GLOB DicSrc ${morphrus_SOURCE_DIR}/dict/*.dic)
 
@@ -82,13 +85,13 @@ if (build-php)
 endif()
 
 add_custom_command(OUTPUT ${DicCPP}
-	COMMAND makerus -flex-table=${FlexTab} -flex-index=${FlexIdx}
-			-intr-table=${IntrTab} -intr-index=${IntrIdx}
-			-target-dir=dictree
-			-unknown=dictree/unknown.txt
-			-namespace=__libmorphrus__
-			${DicSrc}
-        DEPENDS makerus ${DicSrc} ${FlexTab} ${FlexIdx} ${IntrTab} ${IntrIdx} dictree
+	COMMAND ${BuilDic} -flex-table=${FlexTab} -flex-index=${FlexIdx}
+		-intr-table=${IntrTab} -intr-index=${IntrIdx}
+		-target-dir=dictree
+		-unknown=dictree/unknown.txt
+		-namespace=__libmorphrus__
+		${DicSrc}
+        DEPENDS ${BuilDic} ${DicSrc} ${FlexTab} ${FlexIdx} ${IntrTab} ${IntrIdx} dictree
 )
 
 add_custom_command(OUTPUT ${FlexTab} ${FlexIdx}
@@ -96,21 +99,21 @@ add_custom_command(OUTPUT ${FlexTab} ${FlexIdx}
 	DEPENDS tfc ${FlexSrc} tmp)
 
 add_custom_command(OUTPUT ${IntrTab} ${IntrIdx}
-	COMMAND makeich ${IntrSrc} ${IntrTab} ${IntrIdx}
-	DEPENDS makeich ${IntrSrc} tmp)
+	COMMAND ${MakeIch} ${IntrSrc} ${IntrTab} ${IntrIdx}
+	DEPENDS ${MakeIch} ${IntrSrc} tmp)
 
-add_executable(makeich
+add_executable(${MakeIch}
 	makeich/makeich.cpp)
 
-add_executable(makerus
+add_executable(${BuilDic}
 	buildic/lresolve.cpp
 	buildic/makerus.cpp
 	buildic/mtables.cpp)
 
-target_link_libraries(makerus
+target_link_libraries(${BuilDic}
 	moonycode)
 
-target_link_libraries(makeich
+target_link_libraries(${MakeIch}
 	moonycode)
 
 # directories in build tree for custom built files:
