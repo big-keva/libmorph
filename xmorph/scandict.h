@@ -112,22 +112,26 @@ namespace LIBMORPH_NAMESPACE {
   result  RecursScanDict( const action&         doitem, const unsigned char*  thedic,
                           const unsigned char*  thestr, size_t                cchstr )
   {
-    aflags        uflags = counter<aflags>::getvalue( thedic );
-    int           ncount = counter<aflags>::getlower( uflags );
-    unsigned char chfind;
-    result        retval;
+    auto    uflags = counter<aflags>::getvalue( thedic );
+    auto    ncount = counter<aflags>::getlower( uflags );
+    result  retval;
 
     assert( cchstr > 0 );
 
-    for ( chfind = *thestr; ncount-- > 0; )
+    for ( auto chfind = *thestr; ncount-- > 0; )
     {
-      unsigned char         chnext = *thedic++;
-      unsigned              sublen = getserial( thedic );
-      const unsigned char*  subdic = thedic;  thedic += sublen;
+      auto  chnext = *thedic++;
+      auto  sublen = getserial( thedic );
+      auto  subdic = thedic;
+
+      thedic += sublen;
 
       if ( chnext == chfind && cchstr > 0 )
         if ( (retval = RecursScanDict<aflags, result, action>( doitem, subdic, thestr + 1, cchstr - 1 )) != (result)0 )
           return retval;
+
+      if ( chfind >  chnext && !counter<aflags>::hasupper( uflags ) )
+        return (result)0;
     }
     return counter<aflags>::hasupper( uflags ) ? doitem( thedic, thestr, cchstr ) : (result)0;
   }
