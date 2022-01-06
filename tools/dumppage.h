@@ -45,7 +45,7 @@ namespace libmorph
       {
         if ( lpfile != nullptr )
         {
-          if ( nspace != "" )
+          if ( !nspace.empty() )
             fprintf( lpfile, "\n"  "}  // end namespace\n\n" );
           fclose( lpfile );
         }
@@ -95,20 +95,20 @@ namespace libmorph
           std::string stpath;
           const char* sslash = "";
 
-          if ( outdir != "" && strchr( "/\\", outdir.back() ) == nullptr )
+          if ( !outdir.empty() && strchr( "/\\", outdir.back() ) == nullptr )
             sslash = "/";
 
-          stpath = outdir + sslash + (szname != "" ? szname : vaname) + ".cpp";
+          stpath = outdir + sslash + (szname.empty() ? vaname : szname) + ".cpp";
 
           if ( (lpfile = fopen( stpath.c_str(), "wt" )) == NULL )
             throw std::runtime_error( "coult not create file '" + stpath + "'" );
 
         // print header if available
-          if ( header != "" )
+          if ( !header.empty() )
             fprintf( lpfile, "%s\n", header.c_str() );
 
         // print namespace if available
-          if ( nspace != "" )
+          if ( !nspace.empty() )
             fprintf( lpfile, "namespace %s\n"  "{\n"  "\n", nspace.c_str() );
         }
         return lpfile;

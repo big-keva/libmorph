@@ -253,7 +253,7 @@ class BuildRus: public buildmorph<lexemedump, ResolveRus>
     if ( strncmp( arg, key, keylen ) != 0 )
       return false;
 
-    if ( arg[keylen] != '=' && arg[keylen] != '=' )
+    if ( arg[keylen] != '=' && arg[keylen] != ':' )
       return false;
 
     if ( out.length() != 0 )
@@ -265,8 +265,7 @@ class BuildRus: public buildmorph<lexemedump, ResolveRus>
 
 public:
   BuildRus(): buildmorph<lexemedump, ResolveRus>( rusmorph, libmorph_rus_license, codepages::codepage_866 ), rusmorph()
-    {
-    }
+    {}
   template <class Args>
   int   Run( Args& args )
     {
@@ -278,7 +277,7 @@ public:
       std::string outp_dir;
       std::string name_spc;
       std::string codepage;
-      std::string unknowns;
+      std::string unk_name;
 
       std::vector<const char*>  dict_set;
 
@@ -292,7 +291,7 @@ public:
             && !GetSwitch( intr_idx, 1 + *arg, "intr-index" )
             && !GetSwitch( outp_dir, 1 + *arg, "target-dir" )
 
-            && !GetSwitch( unknowns, 1 + *arg, "unknown" )
+            && !GetSwitch( unk_name, 1 + *arg, "unknown" )
             && !GetSwitch( name_spc, 1 + *arg, "namespace" )
             && !GetSwitch( codepage, 1 + *arg, "codepage" ) )
           throw std::runtime_error( "invalid switch: " + std::string( *arg ) );
@@ -302,22 +301,22 @@ public:
       }
 
     // check parameters
-      if ( outp_dir == "" )
+      if ( outp_dir.empty() )
         libmorph::LogMessage( 0, "undefined output directory was set to default '%s'\n", (outp_dir = "./").c_str() );
 
-      if ( name_spc == "" )
+      if ( name_spc.empty() )
         libmorph::LogMessage( 0, "undefined 'namespace' was set to default '%s'\n", (name_spc = "__libmorphrus__").c_str() );
 
-      if ( unknowns == "" )
+      if ( unk_name.empty() )
         libmorph::LogMessage( 0, "'-unknown' parameter undefined, unknown words will not be dumped\n" );
 
-      if ( flex_tab == "" || flex_idx == "" || intr_tab == "" || intr_idx == "" )
+      if ( flex_tab.empty() || flex_idx.empty() || intr_tab.empty() || intr_idx.empty() )
         throw std::runtime_error( "no flexion/interchange tables specified, use --help" );
 
       if ( dict_set.size() == 0 )
         throw std::runtime_error( "no dictinaries specified, use --help" );
 
-      SetUnknowns( unknowns ).
+      SetUnknowns( unk_name ).
       SetNamespace( name_spc ).
       SetTargetDir( outp_dir );
 

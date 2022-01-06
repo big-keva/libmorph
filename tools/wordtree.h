@@ -87,7 +87,7 @@ element*  wordtree<element, counter>::Insert( const char* pszstr, size_t cchstr 
       ++ptrtop;
 
     if ( ptrtop == ptrend || ptrtop->chnode != (uint8_t)*pszstr )
-      ptrtop = nested.insert( ptrtop, wordtree( (uint8_t)*pszstr ) );
+      ptrtop = nested.emplace( ptrtop, wordtree( (uint8_t)*pszstr ) );
 
     return ptrtop->Insert( pszstr + 1, cchstr - 1 );
   }
@@ -114,8 +114,6 @@ const element*  wordtree<element, counter>::Search( const char* pszstr, size_t c
 
     return ptrtop->Search( pszstr + 1, cchstr - 1 );
   }
-
-  assert( cchstr == 0 );
 
   return p_data.get();
 }

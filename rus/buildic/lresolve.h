@@ -56,21 +56,16 @@ struct  lexemeinfo
 
   std::string stpost;
 
+  lexemeinfo( const lexemeinfo& ) = delete;
+  lexemeinfo& operator = ( const lexemeinfo& ) = delete;
 public:
-  lexemeinfo()
-    {}
-  lexemeinfo( const lexemeinfo& li ):
-    ststem( li.ststem ),
-    mclass( li.mclass ),
-    chrmin( li.chrmin ),
-    chrmax( li.chrmax ),
-    stpost( li.stpost ) {}
+  lexemeinfo() = default;
   lexemeinfo( lexemeinfo&& li ):
-    ststem( std::move( li.ststem ) ),
-    mclass( std::move( li.mclass ) ),
-    chrmin( li.chrmin ),
-    chrmax( li.chrmax ),
-    stpost( std::move( li.stpost ) ) {}
+      ststem( std::move( li.ststem ) ),
+      mclass( std::move( li.mclass ) ),
+      chrmin( li.chrmin ),
+      chrmax( li.chrmax ),
+      stpost( std::move( li.stpost ) ) {}
   lexemeinfo& operator = ( lexemeinfo&& li )
     {
       ststem = std::move( li.ststem );

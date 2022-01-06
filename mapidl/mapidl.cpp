@@ -1,3 +1,4 @@
+# include <algorithm>
 # include <cstring>
 # include <cstdlib>
 # include <cstdio>
@@ -27,7 +28,7 @@ void  InsertLexId( lexid_map& map, unsigned lex )
     map.resize( uindex + 1 );
   }
   if ( (map[uindex] & lxmask) != 0 )
-    fprintf( stderr, "Lexical identifier %d is already used!\n", lex );
+    fprintf( stderr, "Lexical identifier %u is already used!\n", lex );
   else map[uindex] |= lxmask;
 }
 
@@ -54,8 +55,8 @@ auto  GetMaxLexId( const lexid_map& map ) -> unsigned
   while ( top != end && *top == 0 )
     ++top;
 
-  for ( int off = element_bits - 1, bit = (1 << off); top != end && off >= 0; bit = (1 << --off) )
-    if ( (*top & bit) != 0 )
+  for ( int off = element_bits - 1; top != end && off >= 0; --off )
+    if ( (*top & (1 << off)) != 0 )
       return off + (map.rend() - top - 1) * element_bits;
 
   return -1;
@@ -104,8 +105,8 @@ void  PrintLexMap( FILE* out, const lexid_map& map )
     return (void)fprintf( out, "No lexemes present, no lines with LEXID:nnn string found\n" );
 
 // type the minimal and the maximal lexeme
-  fprintf( out, "Minimal lexeme: %d (%08x)\n"
-                "Maximal lexeme: %d (%08x)\n", minlex, minlex, maxlex, maxlex );
+  fprintf( out, "Minimal lexeme: %u (%08x)\n"
+                "Maximal lexeme: %u (%08x)\n", minlex, minlex, maxlex, maxlex );
 
 // type the holes
   while ( minlex < maxlex )
@@ -119,7 +120,7 @@ void  PrintLexMap( FILE* out, const lexid_map& map )
     while ( h_hole < maxlex && !TestIfLexId( map, h_hole ) )
       ++h_hole;
 
-    fprintf( out, "\tHole of %d items, %d (%08x) - %d (%08x)\n",
+    fprintf( out, "\tHole of %u items, %u (%08x) - %u (%08x)\n",
       h_hole - l_hole, l_hole, l_hole, h_hole - 1, h_hole - 1 );
 
     minlex = h_hole;
@@ -175,7 +176,7 @@ int   main( int argc, char* argv[] )
 
 // check program arguments
   if ( argc < 2 )
-    return (fprintf( stderr, about ), -1);
+    return fputs( about, stderr ), -1;
 
 // try open dictionary
   if ( (lpfile = fopen( argv[1], "rb" )) == nullptr )

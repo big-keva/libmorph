@@ -88,7 +88,7 @@ public:     // compare
   bool  operator != ( const conditions& c ) const {  return !(*this == c);  }
 
 public:     //
-  void  add_condition( const char* cond, int ipos ) {  refset.push_back( reference( cond, ipos ) );  }
+  void  add_condition( const char* cond, int ipos ) {  refset.emplace_back( reference( cond, ipos ) );  }
   
 public:     // serialization
   template <class O>  O*  Serialize( O* o, const std::vector<interchange>& ) const;
@@ -264,7 +264,7 @@ inline  std::vector<std::string>  collector::parse_tabindex( const char* names )
       --names;
 
     if ( names != pszorg )
-      idxlist.push_back( std::string( pszorg, names - pszorg ) );
+      idxlist.emplace_back( std::string( pszorg, names - pszorg ) );
 
     if ( *(names = nospace( names )) == ',' )
       ++names;

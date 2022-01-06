@@ -179,8 +179,9 @@ namespace LIBMORPH_NAMESPACE
     // modify the codepage
       if ( codepage != codepages::codepage_1251 )
       {
-        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
-          else  return WORDBUFF_FAILED;
+        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
+          return WORDBUFF_FAILED;
+        pszstr = cpsstr;
       }
 
     // get capitalization scheme
@@ -629,9 +630,9 @@ int   MLMAPROC        mlmaruLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
   CMlmaMb*  palloc;
   unsigned  pageid = (unsigned)-1;
 
-  for ( auto page = codepageList; page < codepageList + array_len(codepageList) && pageid == (unsigned)-1; ++page )
-    if ( igncasecmp( page->szcodepage, codepage ) == 0 )
-      pageid = page->idcodepage;
+  for ( auto i = 0; i != array_len(codepageList); ++i )
+    if ( igncasecmp( codepageList[i].szcodepage, codepage ) == 0 )
+      {  pageid = codepageList[i].idcodepage;  break;  }
 
   if ( pageid == (unsigned)-1 || ptrAPI == nullptr )
     return EINVAL;

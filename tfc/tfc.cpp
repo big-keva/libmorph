@@ -40,17 +40,17 @@ fxitem  MapLine( const char*  string, graminfo cginfo )
   substr( inflex.sztail, flexchar, no_space( string ) ) ) ) ) ) ) ) ) ) );
 
   if ( inflex.sztail == "''" )
-    inflex.sztail = "";
+    inflex.sztail.clear();
 
-  if ( grtext != "" )
+  if ( !grtext.empty() )
     cginfo = MapInfo( grtext.c_str(), cginfo );
 
   inflex.grinfo = cginfo.grinfo;
   inflex.bflags = cginfo.bflags;
 
-  if ( sznext != "" ) {  inflex.bflags |= 0x80;  inflex.sznext = sznext;  }  else
-  if ( szopts != "" ) {  inflex.bflags |= 0x40;  inflex.sznext = szopts;  }  else
-    inflex.sznext = "";
+  if ( !sznext.empty() ) {  inflex.bflags |= 0x80;  inflex.sznext = std::move( sznext );  }  else
+  if ( !szopts.empty() ) {  inflex.bflags |= 0x40;  inflex.sznext = std::move( szopts );  }  else
+    inflex.sznext.clear();
 
   return inflex;
 }
@@ -211,7 +211,7 @@ int   main( int argc, char* argv[] )
 
 // Check if completed
   if ( ptrsym == nullptr )
-    return (fprintf( stderr, about ), -1);
+    return fputs( about, stderr ), -1;
 
   fprintf( stderr, "Compiling tables...\n" );
 

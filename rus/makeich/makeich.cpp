@@ -97,8 +97,8 @@ void  MakeTab( Source&    source,
       || (st_two = load( stnext )).length() == 0 )
         throw std::runtime_error( "interchange table has less than 2 fragments" );
 
-    if ( st_one == "''" ) st_one = "";
-    if ( st_two == "''" ) st_two = "";
+    if ( st_one == "''" ) st_one.clear();
+    if ( st_two == "''" ) st_two.clear();
 
     ichone.addstep( st_one, 0 );
     ichone.addstep( st_two, 1 );
@@ -184,10 +184,7 @@ int   main( int argc, char* argv[] )
 
 // Check if completed
   if ( ptrsym == nullptr )
-  {
-    fprintf( stderr, about );
-    return -1;
-  }
+    return fputs( about, stderr ), -1;
 
   fprintf( stderr, "Compiling tables...\n" );
 

@@ -226,7 +226,7 @@
       {
 
 #     define  MLMA_METHOD( method )   \
-      int (MLMAPROC *method)
+      int (MLMAPROC *(method))
 
 #     define  MLMA_THIS   void*,
 #     define  MLMA_VOID   void*

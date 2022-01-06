@@ -90,29 +90,29 @@ namespace LIBMORPH_NAMESPACE
   }
 
     #define MascNotAnimMixPower(GramInfo)   \
-      ((((GramInfo & (gfFormMask | gfMultiple)) == 0) || ((GramInfo & (gfFormMask | gfMultiple)) == (3 << 12))) ? 1 : 2)
+      (((((GramInfo) & (gfFormMask | gfMultiple)) == 0) || (((GramInfo) & (gfFormMask | gfMultiple)) == (3 << 12))) ? 1 : 2)
 
     #define MascAnimateMixPower(GramInfo)   \
-      (((GramInfo & (gfFormMask | gfMultiple)) == 0) ? 1 : 2)
+      ((((GramInfo) & (gfFormMask | gfMultiple)) == 0) ? 1 : 2)
 
     #define MascMixedMixPower(GramInfo, AFlags)   \
       ((((AFlags) & afAnimated) != 0) ? MascAnimateMixPower((GramInfo)) :  \
         MascNotAnimMixPower((GramInfo)))
 
     #define FemnNotAnimMixPower(GramInfo)   \
-      (((GramInfo & (gfFormMask | gfMultiple)) == ((1 << 12) | gfMultiple)) ? 2 : 1)
+      ((((GramInfo) & (gfFormMask | gfMultiple)) == ((1 << 12) | gfMultiple)) ? 2 : 1)
 
     #define FemnAnimateMixPower(GramInfo)   \
-      ((((GramInfo & (gfFormMask | gfMultiple)) == ((1 << 12) | gfMultiple)) || \
-        ((GramInfo & (gfFormMask | gfMultiple)) == ((3 << 12) | gfMultiple))) ? 2 : 1)
+      (((((GramInfo) & (gfFormMask | gfMultiple)) == ((1 << 12) | gfMultiple)) || \
+        (((GramInfo) & (gfFormMask | gfMultiple)) == ((3 << 12) | gfMultiple))) ? 2 : 1)
 
     #define FemnMixedMixPower(GramInfo, AFlags)   \
       ((((AFlags) & afAnimated) != 0) ? FemnAnimateMixPower((GramInfo)) :  \
         FemnNotAnimMixPower((GramInfo)))
 
     #define GetAdjectivMixPower(GramInfo)   \
-      ((GramInfo == gfCompared) ? 3 :       \
-       ((GramInfo == ((1 << 9) | gfShortOne)) ? 2 : 1))
+      (((GramInfo) == gfCompared) ? 3 :       \
+       (((GramInfo) == ((1 << 9) | gfShortOne)) ? 2 : 1))
 
   // stem access class
 

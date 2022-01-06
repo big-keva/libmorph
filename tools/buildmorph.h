@@ -191,7 +191,7 @@ void  buildmorph<steminfo, resolver>::PutUnknown( const char* unknown )
 {
   if ( unknowns == nullptr )
   {
-    if ( unknwn == "" )
+    if ( unknwn.empty() )
       return;
     if ( (unknowns = fopen( unknwn.c_str(), "wt" )) == nullptr )
       throw std::runtime_error( "could not create file '" + unknwn + "'" );
