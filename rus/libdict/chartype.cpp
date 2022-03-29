@@ -55,7 +55,7 @@ namespace LIBMORPH_NAMESPACE
     CT_REGULAR,         // Comma is a regular char
     CT_DLMCHAR,         // Minus - a defis - is a delimiter
                             CT_INVALID, CT_INVALID,
-  // Characters in range 48 - 127
+  // Characters in range 0x30 - 0x7f
     CT_INVALID, CT_INVALID, CT_INVALID, CT_INVALID,
     CT_INVALID, CT_INVALID, CT_INVALID, CT_INVALID,
     CT_INVALID, CT_INVALID, CT_INVALID, CT_INVALID,
