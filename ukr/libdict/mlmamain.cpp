@@ -17,6 +17,8 @@
     with this program; if not, write to the Free Software Foundation, Inc.,
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+    Commercial license is available upon request.
+
     Contacts:
       email: keva@meta.ua, keva@rambler.ru
       Skype: big_keva
@@ -31,7 +33,7 @@
 # include <xmorph/scanlist.h>
 # include <xmorph/wildscan.h>
 # include <xmorph/lemmatiz.h>
-# include <libcodes/codes.h>
+# include <moonycode/codes.h>
 # include <stdlib.h>
 # include <string.h>
 # include <errno.h>
@@ -62,8 +64,8 @@ namespace LIBMORPH_NAMESPACE
   //
   struct  CMlmaMb: public IMlmaMb
   {
-    virtual int MLMAPROC  Attach();
-    virtual int MLMAPROC  Detach();
+    virtual int MLMAPROC  Attach() {  return 0;  }
+    virtual int MLMAPROC  Detach() {  return 0;  }
 
     virtual int MLMAPROC  SetLoCase( char*            pszstr, size_t    cchstr );
     virtual int MLMAPROC  SetUpCase( char*            pszstr, size_t    cchstr );
@@ -86,24 +88,20 @@ namespace LIBMORPH_NAMESPACE
                                      const char*      pszstr, size_t    cchstr );
 
   public:     // construction
-    CMlmaMb( unsigned cp = codepages::codepage_1251 ): codepage( cp )
-      {
-      }
+    CMlmaMb( unsigned cp = codepages::codepage_1251 ): codepage( cp ) {}
 
   protected:  // codepage
     unsigned  codepage;
 
   };
 
-  struct  CMlmaCp: public CMlmaMb
+  struct  CMlmaCp final: public CMlmaMb
   {
     virtual int MLMAPROC  Attach();
     virtual int MLMAPROC  Detach();
 
   public:     // construction
-    CMlmaCp( unsigned cp ): CMlmaMb( cp ), refcount( 0 )
-      {
-      }
+    CMlmaCp( unsigned cp ): CMlmaMb( cp ), refcount( 0 ) {}
 
   protected:  // codepage
     long      refcount;
@@ -112,8 +110,8 @@ namespace LIBMORPH_NAMESPACE
 
   struct  CMlmaWc: public IMlmaWc
   {
-    virtual int MLMAPROC  Attach();
-    virtual int MLMAPROC  Detach();
+    virtual int MLMAPROC  Attach() {  return 0;  }
+    virtual int MLMAPROC  Detach() {  return 0;  }
 
     virtual int MLMAPROC  SetLoCase( widechar*        pwsstr, size_t    cchstr );
     virtual int MLMAPROC  SetUpCase( widechar*        pwsstr, size_t    cchstr );
@@ -139,33 +137,19 @@ namespace LIBMORPH_NAMESPACE
   CMlmaMb mlmaMbInstance;
   CMlmaWc mlmaWcInstance;
 
-  using namespace codepages;
-
   // CMlmaMb implementation
-
-  int   CMlmaMb::Attach()
-  {
-    return 0;
-  }
-
-  int   CMlmaMb::Detach()
-  {
-    return 0;
-  }
 
   int   CMlmaMb::SetLoCase( char* pszstr, size_t  cchstr )
   {
     CATCH_ALL
-      strtolower( codepage, pszstr, cchstr, pszstr, cchstr );
-      return 0;
+      return codepages::strtolower( codepage, pszstr, cchstr, pszstr, cchstr ), 0;
     ON_ERRORS( -1 )
   }
 
   int   CMlmaMb::SetUpCase( char* pszstr, size_t  cchstr )
   {
     CATCH_ALL
-      strtoupper( codepage, pszstr, cchstr, pszstr, cchstr );
-      return 0;
+      return codepages::strtoupper( codepage, pszstr, cchstr, pszstr, cchstr ), 0;
     ON_ERRORS( -1 )
   }
 
@@ -177,25 +161,29 @@ namespace LIBMORPH_NAMESPACE
       doCheckWord                       scheck( locase, dwsets );
       listLookup<doCheckWord, steminfo> lookup( scheck );
 
-    // check string length
+    // check source string and length
+      if ( pszstr == nullptr )
+        return 0;
+
       if ( cchstr == (size_t)-1 )
-        cchstr = strlen( pszstr );
+        for ( cchstr = 0; pszstr[cchstr] != 0; ++cchstr ) (void)NULL;
 
     // check for overflow
       if ( cchstr >= sizeof(locase) )
         return WORDBUFF_FAILED;
 
     // modify the codepage
-      if ( codepage != codepage_1251 )
+      if ( codepage != codepages::codepage_1251 )
       {
-        if ( (cchstr = mbcstombcs( codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
-          else  return WORDBUFF_FAILED;
+        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
+          return WORDBUFF_FAILED;
+        pszstr = cpsstr;
       }
 
     // get capitalization scheme
       scheck.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
 
-      // fill scheck structure
+    // fill scheck structure
       return LinearScanDict<byte_t, int>( lookup, stemtree, locase, cchstr );
     ON_ERRORS( -1 )
   }
@@ -211,19 +199,23 @@ namespace LIBMORPH_NAMESPACE
       doLemmatize                       lemact( locase, dwsets, codepage );
       listLookup<doLemmatize, steminfo> lookup( lemact );
 
-    // check string length
+    // check source string and length
+      if ( pszstr == nullptr )
+        return 0;
+
       if ( cchstr == (size_t)-1 )
-        cchstr = strlen( pszstr );
+        for ( cchstr = 0; pszstr[cchstr] != 0; ++cchstr ) (void)NULL;
 
     // check for overflow
       if ( cchstr >= sizeof(locase) )
         return WORDBUFF_FAILED;
 
     // modify the codepage
-      if ( codepage != codepage_1251 )
+      if ( codepage != codepages::codepage_1251 )
       {
-        if ( (cchstr = mbcstombcs( codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
-          else  return WORDBUFF_FAILED;
+        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
+          return WORDBUFF_FAILED;
+        pszstr = cpsstr;
       }
 
     // get capitalization scheme
@@ -274,19 +266,23 @@ namespace LIBMORPH_NAMESPACE
       doBuildForm                       abuild( locase, 0, codepage );
       listLookup<doBuildForm, steminfo> lookup( abuild );
 
-    // check string length
+    // check source string and length
+      if ( pszstr == nullptr )
+        return 0;
+
       if ( cchstr == (size_t)-1 )
-        cchstr = strlen( pszstr );
+        for ( cchstr = 0; pszstr[cchstr] != 0; ++cchstr ) (void)NULL;
 
     // check for overflow
       if ( cchstr >= sizeof(locase) )
         return WORDBUFF_FAILED;
 
     // modify the codepage
-      if ( codepage != codepage_1251 )
+      if ( codepage != codepages::codepage_1251 )
       {
-        if ( (cchstr = mbcstombcs( codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
-          else  return WORDBUFF_FAILED;
+        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
+          return WORDBUFF_FAILED;
+        pszstr = cpsstr;
       }
 
       abuild.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
@@ -306,19 +302,23 @@ namespace LIBMORPH_NAMESPACE
       char    cpsstr[256];
       int     nchars;
 
-    // check string length
+    // check source string and length
+      if ( pszstr == nullptr )
+        return 0;
+
       if ( cchstr == (size_t)-1 )
-        cchstr = strlen( pszstr );
+        for ( cchstr = 0; pszstr[cchstr] != 0; ++cchstr ) (void)NULL;
 
     // check for overflow
       if ( cchstr >= sizeof(locase) )
         return WORDBUFF_FAILED;
 
     // modify the codepage
-      if ( codepage != codepage_1251 )
+      if ( codepage != codepages::codepage_1251 )
       {
-        if ( (cchstr = mbcstombcs( codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
-          else  return WORDBUFF_FAILED;
+        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
+          return WORDBUFF_FAILED;
+        pszstr = cpsstr;
       }
 
     // change the word to the lower case
@@ -330,7 +330,7 @@ namespace LIBMORPH_NAMESPACE
       if ( (nchars = (int)WildScan( (byte_t*)cpsstr, cchout, locase, cchstr )) <= 0 )
         return nchars;
 
-      return (int)mbcstombcs( codepage, output, cchout, codepage_1251, cpsstr, nchars );
+      return (int)codepages::mbcstombcs( codepage, output, cchout, codepages::codepage_1251, cpsstr, nchars );
     ON_ERRORS( -1 )
   }
 
@@ -372,10 +372,11 @@ namespace LIBMORPH_NAMESPACE
         return WORDBUFF_FAILED;
 
     // modify the codepage
-      if ( codepage != codepage_1251 )
+      if ( codepage != codepages::codepage_1251 )
       {
-        if ( (cchstr = mbcstombcs( codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
-          else  return WORDBUFF_FAILED;
+        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
+          return WORDBUFF_FAILED;
+        pszstr = cpsstr;
       }
 
     // change the word to the lower case
@@ -408,29 +409,17 @@ namespace LIBMORPH_NAMESPACE
 
   // CMlmaWc wrapper implementation
 
-  int   CMlmaWc::Attach()
-  {
-    return 0;
-  }
-
-  int   CMlmaWc::Detach()
-  {
-    return 0;
-  }
-
   int   CMlmaWc::SetLoCase( widechar* pwsstr, size_t  cchstr )
   {
     CATCH_ALL
-      strtolower( (widechar*)pwsstr, cchstr, (const widechar*)pwsstr, cchstr );
-      return 0;
+      return codepages::strtolower( (widechar*)pwsstr, cchstr, (const widechar*)pwsstr, cchstr ), 0;
     ON_ERRORS( -1 )
   }
                                
   int   CMlmaWc::SetUpCase( widechar* pwsstr, size_t  cchstr )
   {
     CATCH_ALL
-      strtoupper( (widechar*)pwsstr, cchstr, (const widechar*)pwsstr, cchstr );
-      return 0;
+      return codepages::strtoupper( (widechar*)pwsstr, cchstr, (const widechar*)pwsstr, cchstr ), 0;
     ON_ERRORS( -1 )
   }
                                
@@ -440,7 +429,7 @@ namespace LIBMORPH_NAMESPACE
     size_t  ccword;
 
   // get string length and convert to ansi
-    if ( (ccword = widetombcs( codepage_1251, szword, 0x100, (const widechar*)pwsstr, cchstr )) == (size_t)-1 )
+    if ( (ccword = codepages::widetombcs( codepages::codepage_1251, szword, 0x100, (const widechar*)pwsstr, cchstr )) == (size_t)-1 )
       return WORDBUFF_FAILED;
     return mlmaMbInstance.CheckWord( szword, ccword, dwsets );
   }
@@ -460,7 +449,7 @@ namespace LIBMORPH_NAMESPACE
     int         lindex;
 
   // get string length and convert to ansi
-    if ( (ccword = widetombcs( codepage_1251, szword, 0xf0, (const widechar*)pwsstr, cchstr )) == (size_t)-1 )
+    if ( (ccword = codepages::widetombcs( codepages::codepage_1251, szword, 0xf0, (const widechar*)pwsstr, cchstr )) == (size_t)-1 )
       return WORDBUFF_FAILED;
 
   // call default lemmatizer
@@ -483,7 +472,7 @@ namespace LIBMORPH_NAMESPACE
     if ( plemma != nullptr )
       for ( lindex = 0, lplemm = szlemm; lindex < lcount; ++lindex )
       {
-        size_t    nccstr = mbcstowide( codepage_1251, (widechar*)plemma, clemma, lplemm ) + 1;
+        size_t    nccstr = codepages::mbcstowide( codepages::codepage_1251, (widechar*)plemma, clemma, lplemm ) + 1;
           
         plemma += nccstr;
         clemma -= nccstr;
@@ -508,7 +497,7 @@ namespace LIBMORPH_NAMESPACE
   // convert
     for ( findex = 0, lpform = szform; findex < fcount; ++findex )
     {
-      size_t    nccstr = mbcstowide( codepage_1251, output, cchout, lpform ) + 1;
+      size_t    nccstr = codepages::mbcstowide( codepages::codepage_1251, output, cchout, lpform ) + 1;
 
       output += nccstr;
       cchout -= nccstr;
@@ -529,7 +518,7 @@ namespace LIBMORPH_NAMESPACE
     int     findex;
 
   // get string length and convert to ansi
-    if ( (ccword = widetombcs( codepage_1251, szword, sizeof(szword) - 1, pwsstr, cchstr )) == (size_t)-1 )
+    if ( (ccword = codepages::widetombcs( codepages::codepage_1251, szword, sizeof(szword) - 1, pwsstr, cchstr )) == (size_t)-1 )
       return WORDBUFF_FAILED;
 
   // build the form
@@ -540,7 +529,7 @@ namespace LIBMORPH_NAMESPACE
   // convert
     for ( findex = 0, lpform = szform; findex < fcount; ++findex )
     {
-      size_t    nccstr = mbcstowide( codepage_1251, output, cchout, lpform ) + 1;
+      size_t    nccstr = codepages::mbcstowide( codepages::codepage_1251, output, cchout, lpform ) + 1;
 
       output += nccstr;
       cchout -= nccstr;
@@ -559,7 +548,7 @@ namespace LIBMORPH_NAMESPACE
     int     ccount;
 
   // get string length and convert to native codepage
-    if ( (ccword = widetombcs( codepage_1251, szword, sizeof(szword) - 1, pwsstr, cchstr )) == (size_t)-1 )
+    if ( (ccword = codepages::widetombcs( codepages::codepage_1251, szword, sizeof(szword) - 1, pwsstr, cchstr )) == (size_t)-1 )
       return WORDBUFF_FAILED;
 
   // build the form
@@ -568,7 +557,7 @@ namespace LIBMORPH_NAMESPACE
         return ccount;
 
   // convert
-    mbcstowide( codepage_1251, output, cchout, chhelp, ccount );
+    codepages::mbcstowide( codepages::codepage_1251, output, cchout, chhelp, ccount );
     return ccount;
   }
 
@@ -588,7 +577,7 @@ namespace LIBMORPH_NAMESPACE
     size_t  ccword;
 
   // get string length and convert to native codepage
-    if ( (ccword = widetombcs( codepage_1251, szword, sizeof(szword) - 1, pwsstr, cchstr )) == (size_t)-1 )
+    if ( (ccword = codepages::widetombcs( codepages::codepage_1251, szword, sizeof(szword) - 1, pwsstr, cchstr )) == (size_t)-1 )
       return WORDBUFF_FAILED;
 
     return mlmaMbInstance.EnumWords( pienum, szword, ccword );
@@ -600,28 +589,28 @@ namespace LIBMORPH_NAMESPACE
     const char* szcodepage;
   } codepageList[] =
   {
-    { codepage_1251, "Windows-1251" },
-    { codepage_1251, "Windows" },
-    { codepage_1251, "1251" },
-    { codepage_1251, "Win-1251" },
-    { codepage_1251, "Win" },
-    { codepage_1251, "Windows 1251" },
-    { codepage_1251, "Win 1251" },
-    { codepage_1251, "ansi" },
-    { codepage_koi8, "koi-8" },
-    { codepage_koi8, "koi8" },
-    { codepage_koi8, "20866" },
-    { codepage_866,  "dos" },
-    { codepage_866,  "oem" },
-    { codepage_866,  "866" },
-    { codepage_iso,  "28595" },
-    { codepage_iso,  "iso-88595" },
-    { codepage_iso,  "iso-8859-5" },
-    { codepage_mac,  "10007" },
-    { codepage_iso,  "mac" },
-    { codepage_utf8, "65001" },
-    { codepage_utf8, "utf-8" },
-    { codepage_utf8, "utf8" }
+    { codepages::codepage_1251, "Windows-1251" },
+    { codepages::codepage_1251, "Windows" },
+    { codepages::codepage_1251, "1251" },
+    { codepages::codepage_1251, "Win-1251" },
+    { codepages::codepage_1251, "Win" },
+    { codepages::codepage_1251, "Windows 1251" },
+    { codepages::codepage_1251, "Win 1251" },
+    { codepages::codepage_1251, "ansi" },
+    { codepages::codepage_koi8, "koi-8" },
+    { codepages::codepage_koi8, "koi8" },
+    { codepages::codepage_koi8, "20866" },
+    { codepages::codepage_866,  "dos" },
+    { codepages::codepage_866,  "oem" },
+    { codepages::codepage_866,  "866" },
+    { codepages::codepage_iso,  "28595" },
+    { codepages::codepage_iso,  "iso-88595" },
+    { codepages::codepage_iso,  "iso-8859-5" },
+    { codepages::codepage_mac,  "10007" },
+    { codepages::codepage_iso,  "mac" },
+    { codepages::codepage_utf8, "65001" },
+    { codepages::codepage_utf8, "utf-8" },
+    { codepages::codepage_utf8, "utf8" }
   };
 
 }
@@ -641,14 +630,14 @@ int   MLMAPROC        mlmaukLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
   CMlmaMb*  palloc;
   unsigned  pageid = (unsigned)-1;
 
-  for ( auto page = codepageList; page < codepageList + array_len(codepageList) && pageid == (unsigned)-1; ++page )
-    if ( igncasecmp( page->szcodepage, codepage ) == 0 )
-      pageid = page->idcodepage;
+  for ( auto& page: codepageList )
+    if ( igncasecmp( page.szcodepage, codepage ) == 0 )
+      {  pageid = page.idcodepage;  break;  }
 
   if ( pageid == (unsigned)-1 || ptrAPI == nullptr )
     return EINVAL;
 
-  if ( pageid == codepage_1251 )
+  if ( pageid == codepages::codepage_1251 )
     return mlmaukLoadMbAPI( ptrAPI );
 
   if ( (palloc = new CMlmaMb( pageid )) == nullptr )

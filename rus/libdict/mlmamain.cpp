@@ -88,9 +88,7 @@ namespace LIBMORPH_NAMESPACE
                                      const char*      pszstr, size_t    cchstr );
 
   public:     // construction
-    CMlmaMb( unsigned cp = codepages::codepage_1251 ): codepage( cp )
-      {
-      }
+    CMlmaMb( unsigned cp = codepages::codepage_1251 ): codepage( cp ) {}
 
   protected:  // codepage
     unsigned  codepage;
@@ -103,9 +101,7 @@ namespace LIBMORPH_NAMESPACE
     virtual int MLMAPROC  Detach();
 
   public:     // construction
-    CMlmaCp( unsigned cp ): CMlmaMb( cp ), refcount( 0 )
-      {
-      }
+    CMlmaCp( unsigned cp ): CMlmaMb( cp ), refcount( 0 ) {}
 
   protected:  // codepage
     long      refcount;
@@ -187,7 +183,7 @@ namespace LIBMORPH_NAMESPACE
     // get capitalization scheme
       scheck.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
 
-      // fill scheck structure
+    // fill scheck structure
       return LinearScanDict<byte_t, int>( lookup, stemtree, locase, cchstr );
     ON_ERRORS( -1 )
   }
@@ -217,8 +213,9 @@ namespace LIBMORPH_NAMESPACE
     // modify the codepage
       if ( codepage != codepages::codepage_1251 )
       {
-        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
-          else  return WORDBUFF_FAILED;
+        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
+          return WORDBUFF_FAILED;
+        pszstr = cpsstr;
       }
 
     // get capitalization scheme
@@ -283,8 +280,9 @@ namespace LIBMORPH_NAMESPACE
     // modify the codepage
       if ( codepage != codepages::codepage_1251 )
       {
-        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
-          else  return WORDBUFF_FAILED;
+        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
+          return WORDBUFF_FAILED;
+        pszstr = cpsstr;
       }
 
       abuild.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
@@ -318,8 +316,9 @@ namespace LIBMORPH_NAMESPACE
     // modify the codepage
       if ( codepage != codepages::codepage_1251 )
       {
-        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
-          else  return WORDBUFF_FAILED;
+        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
+          return WORDBUFF_FAILED;
+        pszstr = cpsstr;
       }
 
     // change the word to the lower case
@@ -375,8 +374,9 @@ namespace LIBMORPH_NAMESPACE
     // modify the codepage
       if ( codepage != codepages::codepage_1251 )
       {
-        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) != (size_t)-1 ) pszstr = cpsstr;
-          else  return WORDBUFF_FAILED;
+        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
+          return WORDBUFF_FAILED;
+        pszstr = cpsstr;
       }
 
     // change the word to the lower case
@@ -630,9 +630,9 @@ int   MLMAPROC        mlmaruLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
   CMlmaMb*  palloc;
   unsigned  pageid = (unsigned)-1;
 
-  for ( auto i = 0; i != array_len(codepageList); ++i )
-    if ( igncasecmp( codepageList[i].szcodepage, codepage ) == 0 )
-      {  pageid = codepageList[i].idcodepage;  break;  }
+  for ( auto& page: codepageList )
+    if ( igncasecmp( page.szcodepage, codepage ) == 0 )
+      {  pageid = page.idcodepage;  break;  }
 
   if ( pageid == (unsigned)-1 || ptrAPI == nullptr )
     return EINVAL;
