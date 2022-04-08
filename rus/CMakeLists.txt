@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.1)
 project(morphrus)
 
 set(CMAKE_C_STANDARD 11)
@@ -138,3 +138,11 @@ install(
   FILES
     include/mlma1049.h
   DESTINATION include/libmorph/rus/include)
+
+add_executable(test-libmorph-rus
+	libdict/test/testcapi.c
+	libdict/test/testfunc.cpp)
+
+target_link_libraries(test-libmorph-rus
+	morphrus
+	moonycode)
