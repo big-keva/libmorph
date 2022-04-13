@@ -25,8 +25,10 @@
 ******************************************************************************/
 # include "../../include/mlma1049.h"
 # include <stdexcept>
+# include <algorithm>
 # include <string>
 # include <cassert>
+# include <cstring>
 # include <vector>
 # include <cstdio>
 # include <chrono>
@@ -70,7 +72,7 @@ public:
 
   virtual int   MLMAPROC Attach()  override  {  return 1;  }
   virtual int   MLMAPROC Detach()  override  {  return 1;  }
-  virtual int   MLMAPROC RegisterLexeme( lexeme_t nlexid, int, const formid_t* ) override
+  virtual int   MLMAPROC RegisterLexeme( lexeme_t, int, const formid_t* ) override
     {
       if ( nwords++ == 0 )
         tstart = hires_clock::now();
@@ -197,7 +199,7 @@ protected:
     }
 };
 
-int   main( int argc, char* argv[] )
+int   main()
 {
   try
   {
