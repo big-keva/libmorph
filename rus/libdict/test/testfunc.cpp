@@ -25,14 +25,14 @@
 ******************************************************************************/
 # include "../../include/mlma1049.h"
 # include <stdexcept>
-# include <algorithm>
 # include <string>
 # include <cassert>
-# include <cstring>
 # include <vector>
 # include <cstdio>
 # include <chrono>
 # include <iostream>
+# include <cstring>
+# include <algorithm>
 
 using hires_clock = std::chrono::high_resolution_clock;
 
@@ -72,7 +72,7 @@ public:
 
   virtual int   MLMAPROC Attach()  override  {  return 1;  }
   virtual int   MLMAPROC Detach()  override  {  return 1;  }
-  virtual int   MLMAPROC RegisterLexeme( lexeme_t, int, const formid_t* ) override
+  virtual int   MLMAPROC RegisterLexeme( lexeme_t nlexid, int, const formid_t* ) override
     {
       if ( nwords++ == 0 )
         tstart = hires_clock::now();
@@ -129,7 +129,7 @@ public:
 };
 
 /*
-  Проверяет прозрачность построения форм и лемматизации "туда" и "обратно".
+  пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ "пїЅпїЅпїЅпїЅ" пїЅ "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ".
 */
 class TestReversibility: public TestMlmaMb
 {
@@ -199,13 +199,13 @@ protected:
     }
 };
 
-int   main()
+int   main( int argc, char* argv[] )
 {
   try
   {
 //    TestReversibility()( 188017 );
 
-    TestLemmatization()( "простой", 45384, 16500, 136174 );
+    TestLemmatization()( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 45384, 16500, 136174 );
 
     return 0;
   }
@@ -241,8 +241,8 @@ int   main()
   SGramInfo               agrams[0x40];
 
 // test C API
-  TestLemmatize( "предлагается", 0, 1, 1913, "предлагать" );
-  TestLemmatize( "простой", 0, 3, 45384, "простой", 16500, "простоять", 136174, "простой" );
+  TestLemmatize( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 0, 1, 1913, "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ" );
+  TestLemmatize( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 0, 3, 45384, "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 16500, "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 136174, "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ" );
 
   mlmaruLoadCpAPI( &pmorph, "utf8" );
     pmorph->SetLoCase( strcpy( aforms, "РљРѕРјСЃРѕРјРѕР»СЊСЃРє-РЅР°-РђРјСѓСЂРµ" ), (size_t)-1 );
@@ -263,69 +263,69 @@ int   main()
 
     LexemesPrinter  lp;
 
-    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "за*к*аз", -1 );  lp.Report();
-    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "за*аз", -1 );    lp.Report();
-    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "за*каз", -1 );   lp.Report();
-    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "зак*аз", -1 );   lp.Report();
-    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "за*к*ат", -1 );  lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "пїЅпїЅ*пїЅ*пїЅпїЅ", -1 );  lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "пїЅпїЅ*пїЅпїЅ", -1 );    lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "пїЅпїЅ*пїЅпїЅпїЅ", -1 );   lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "пїЅпїЅпїЅ*пїЅпїЅ", -1 );   lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "пїЅпїЅ*пїЅ*пїЅпїЅ", -1 );  lp.Report();
 
-    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "п*явл*е*", -1 );  lp.Report();
-    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "пр*", -1 );       lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "пїЅ*пїЅпїЅпїЅ*пїЅ*", -1 );  lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "пїЅпїЅ*", -1 );       lp.Report();
 
-    pmorph->CheckWord( "к", 1, 0 );
-    pmorph->CheckWord( "не", 2, 0 );
-    pmorph->CheckWord( "Но", 2, 0 );
-    pmorph->CheckWord( "ПО", 2, 0 );
-    pmorph->CheckWord( "если", 4, 0 );
-    pmorph->CheckWord( "Москва", 6, 0 );
-    pmorph->CheckWord( "москва", 6, 0 );
-    pmorph->CheckWord( "москва", 6, sfIgnoreCapitals );
-    pmorph->CheckWord( "КГБ", 3, 0 );
-    pmorph->CheckWord( "Мвд", 3, 0 );
-    pmorph->CheckWord( "мвд", 3, 0 );
-    pmorph->CheckWord( "мВд", 3, sfIgnoreCapitals );
-    pmorph->CheckWord( "двигать", (size_t)-1, 0 );
+    pmorph->CheckWord( "пїЅ", 1, 0 );
+    pmorph->CheckWord( "пїЅпїЅ", 2, 0 );
+    pmorph->CheckWord( "пїЅпїЅ", 2, 0 );
+    pmorph->CheckWord( "пїЅпїЅ", 2, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅпїЅ", 4, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅпїЅпїЅпїЅ", 6, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅпїЅпїЅпїЅ", 6, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅпїЅпїЅпїЅ", 6, sfIgnoreCapitals );
+    pmorph->CheckWord( "пїЅпїЅпїЅ", 3, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅ", 3, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅ", 3, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅ", 3, sfIgnoreCapitals );
+    pmorph->CheckWord( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, 0 );
 
-    pmorph->CheckWord( "сапожек", (size_t)-1, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, 0 );
 
-    pmorph->CheckWord( "дождутся", (size_t)-1, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, 0 );
   pmorph->Detach();
 
-  CheckTemplate( "?одразобрать", 1, "п" );
-  CheckTemplate( "п?дразобрать", 1, "о" );
-  CheckTemplate( "по?разобрать", 1, "д" );
-  CheckTemplate( "под?азобрать", 1, "р" );
-  CheckTemplate( "подр?зобрать", 1, "а" );
-  CheckTemplate( "подра?обрать", 1, "з" );
-  CheckTemplate( "подраз?брать", 1, "о" );
-  CheckTemplate( "подразо?рать", 2, "бд" );
-  CheckTemplate( "подразоб?ать", 1, "р" );
-  CheckTemplate( "подразобр?ть", 1, "а" );
-  CheckTemplate( "подразобра?ь", 1, "т" );
-  CheckTemplate( "подразобрат?", 1, "ь" );
-  CheckTemplate( "подразобрать?", 1, "\0" );
+  CheckTemplate( "?пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅ?пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅ?пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅ?пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅ?пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅпїЅ?пїЅпїЅпїЅпїЅпїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅпїЅпїЅ?пїЅпїЅпїЅпїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ?пїЅпїЅпїЅпїЅ", 2, "пїЅпїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ?пїЅпїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ?пїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ?пїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ?", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ?", 1, "\0" );
 
-  nlemma = pmorph->Lemmatize( "труднее", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
-  nlemma = pmorph->Lemmatize( "медитировать", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
 
   nlemma = pmorph->Lemmatize( ",", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
 
-  nlemma = pmorph->Lemmatize( "КГБ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
-  nlemma = pmorph->Lemmatize( "кГб", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
-  nlemma = pmorph->Lemmatize( "кГб", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, sfIgnoreCapitals );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, sfIgnoreCapitals );
 
-  nlemma = pmorph->Lemmatize( "простой", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
-  nlemma = pmorph->Lemmatize( "путин", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
-  nlemma = pmorph->Lemmatize( "путин", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, sfIgnoreCapitals );
-  nlemma = pmorph->Lemmatize( "вберу", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
-  nlemma = pmorph->Lemmatize( "комсомольска-на-амуре", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, sfIgnoreCapitals );
-  nlemma = pmorph->Lemmatize( "Санкт-Петербург", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, sfIgnoreCapitals );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ-пїЅпїЅ-пїЅпїЅпїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, sfIgnoreCapitals );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
 
-  nforms = pmorph->FindForms( aforms, 0x100, "вобрать", (size_t)-1, 6 );
-  nforms = pmorph->FindForms( aforms, 0x100, "путин", (size_t)-1, 0 );
-  nforms = pmorph->FindForms( aforms, 0x100, "Путин", (size_t)-1, 0 );
-  nforms = pmorph->FindForms( aforms, 0x100, "простой", (size_t)-1, 2 );
-  nforms = pmorph->FindForms( aforms, 0x100, "кто-нибудь", (size_t)-1, 2 );
+  nforms = pmorph->FindForms( aforms, 0x100, "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, 6 );
+  nforms = pmorph->FindForms( aforms, 0x100, "пїЅпїЅпїЅпїЅпїЅ", (size_t)-1, 0 );
+  nforms = pmorph->FindForms( aforms, 0x100, "пїЅпїЅпїЅпїЅпїЅ", (size_t)-1, 0 );
+  nforms = pmorph->FindForms( aforms, 0x100, "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, 2 );
+  nforms = pmorph->FindForms( aforms, 0x100, "пїЅпїЅпїЅ-пїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, 2 );
 
   nforms = pmorph->BuildForm( aforms, sizeof(aforms), 17110, 6 );
 
@@ -373,13 +373,13 @@ int   main()
 
     while ( buftop < bufend && (unsigned char)*buftop <= 0x20 )
       ++buftop;
-    if ( (unsigned char)*buftop < (unsigned char)'А' )
+    if ( (unsigned char)*buftop < (unsigned char)'пїЅ' )
     {
       ++buftop;
       continue;
     }
 
-    for ( wrdtop = buftop; buftop < bufend && (unsigned char)*buftop >= (unsigned char)'А'; ++buftop )
+    for ( wrdtop = buftop; buftop < bufend && (unsigned char)*buftop >= (unsigned char)'пїЅ'; ++buftop )
       (void)NULL;
 /*
     {
@@ -388,7 +388,7 @@ int   main()
       fprintf( lpfile, "\n" );
     }
 
-    if ( !(buftop - wrdtop == 6 && memcmp( wrdtop, "должен", 6 ) == 0) )
+    if ( !(buftop - wrdtop == 6 && memcmp( wrdtop, "пїЅпїЅпїЅпїЅпїЅпїЅ", 6 ) == 0) )
       continue;
 */
     if ( pmorph->Lemmatize( (const char*)wrdtop, buftop - wrdtop, lemmas, 0x20, NULL, 0x100, agrams, 0x40, sfIgnoreCapitals ) > 0 )

@@ -5,6 +5,8 @@
 # include <tuple>
 # include <map>
 
+#include <string>
+
 namespace libmorph {
 namespace rus{
 
