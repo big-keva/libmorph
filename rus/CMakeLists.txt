@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.5)
 project(morphrus)
 
 set(CMAKE_C_STANDARD 11)
@@ -24,34 +24,21 @@ set (IntrTab tmp/interchg.bmx)
 set (IntrIdx tmp/interchg.sym)
 set (IntrSrc ${morphrus_SOURCE_DIR}/tables/mtables.mx)
 
-if (build-static)
-  add_library(morphrus STATIC
-      libdict/chartype.cpp
-      libdict/mlmamain.cpp
-      ${libmorph_SOURCE_DIR}/xmorph/capsheme.cpp
-      ${libmorph_SOURCE_DIR}/xmorph/lemmatiz.cpp
-      ${libmorph_SOURCE_DIR}/xmorph/wildscan.cpp
-      ${DicCPP}
-  )
-endif ()
-
-if (build-shared)
+if (BUILD_SHARED_LIBS)
   set(SYMBOLS_FILE ${morphrus_SOURCE_DIR}/libdict/morphrus.unix.def)
-
-  add_library(morphrus-sh SHARED
-      libdict/chartype.cpp
-      libdict/mlmamain.cpp
-      ${libmorph_SOURCE_DIR}/xmorph/capsheme.cpp
-      ${libmorph_SOURCE_DIR}/xmorph/lemmatiz.cpp
-      ${libmorph_SOURCE_DIR}/xmorph/wildscan.cpp
-      ${DicCPP}
-  )
-
   set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Wl,-retain-symbols-file -Wl,${SYMBOLS_FILE}")
+endif(BUILD_SHARED_LIBS)
 
-  target_link_libraries(morphrus-sh
-	moonycode)
-endif()
+add_library(morphrus
+  libdict/chartype.cpp
+  libdict/mlmamain.cpp
+  ${libmorph_SOURCE_DIR}/xmorph/capsheme.cpp
+  ${libmorph_SOURCE_DIR}/xmorph/lemmatiz.cpp
+  ${libmorph_SOURCE_DIR}/xmorph/wildscan.cpp
+  ${DicCPP}
+)
+
+target_link_libraries(morphrus moonycode)
 
 if (build-php)
   include(../cmake/FindPHP.cmake)
@@ -126,13 +113,7 @@ add_custom_target(tmp ALL
 	COMMAND ${CMAKE_COMMAND} -E make_directory tmp)
 
 # install
-if (build-static)
-	install(TARGETS morphrus DESTINATION lib)
-endif()
-
-if (build-shared)
-	install(TARGETS morphrus-sh DESTINATION lib)
-endif()
+install(TARGETS morphrus DESTINATION lib)
 
 install(
   FILES
@@ -144,5 +125,5 @@ add_executable(test-libmorph-rus
 	libdict/test/testfunc.cpp)
 
 target_link_libraries(test-libmorph-rus
-	morphrus
-	moonycode)
+    morphrus
+    moonycode)
