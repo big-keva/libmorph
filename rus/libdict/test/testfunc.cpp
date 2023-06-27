@@ -27,13 +27,299 @@
 # include <stdexcept>
 # include <algorithm>
 # include <string>
-# include <cassert>
 # include <cstring>
 # include <vector>
 # include <cstdio>
-# include <chrono>
-# include <iostream>
+# include <mtc/test-it-easy.hpp>
 
+class LexSet: public std::vector<lexeme_t>
+{
+  using std::vector<lexeme_t>::vector;
+
+public:
+  auto  operator &= ( const LexSet& with ) -> LexSet&
+  {
+    auto  me = begin();
+    auto  he = with.begin();
+
+    while ( me != end() )
+    {
+      while ( he != with.end() && *he < *me )
+        ++he;
+      if ( he == with.end() || *he != *me ) me = erase( me );
+        else ++me;
+    }
+    return *this;
+  }
+  auto  operator & ( const LexSet& with ) const -> LexSet
+  {
+    return std::move( LexSet( *this ) &= with );
+  }
+};
+
+class FillVector: public IMlmaEnum
+{
+  std::vector<lexeme_t>&  fill;
+
+public:
+  FillVector( std::vector<lexeme_t>& v ):
+    fill( v ) {}
+  auto  ptr() const -> IMlmaEnum*
+    {  return (IMlmaEnum*)this;  }
+
+public:
+  int   MLMAPROC  Attach() override {  return 1;  }
+  int   MLMAPROC  Detach() override {  return 1;  }
+  int   MLMAPROC  RegisterLexeme( lexeme_t nlexid, int, const formid_t* ) override
+    {  return fill.push_back( nlexid ), 0;  }
+};
+
+auto  FindLexemes( IMlmaMb* mlma, const char* pstr ) -> LexSet
+{
+  LexSet  lexset;
+
+  mlma->EnumWords( FillVector( lexset ).ptr(), pstr, (size_t)-1 );
+
+  std::sort( lexset.begin(), lexset.end() );
+
+  return std::move( lexset );
+}
+
+auto  LemmatizeIt( IMlmaMb* mlma, const char* pstr ) -> LexSet
+{
+  LexSet      lexset;
+  SLemmInfoA  lemmas[8];
+  int         nlemma = mlma->Lemmatize( pstr, (size_t)-1, lemmas, 8, nullptr, 0, nullptr, 0, 0);
+
+  for ( auto p = lemmas; p != lemmas + nlemma; ++p )
+    lexset.push_back( p->nlexid );
+
+  std::sort( lexset.begin(), lexset.end() );
+
+  return std::move( lexset );
+}
+
+TestItEasy::RegisterFunc  testmorphrus( []()
+{
+  TEST_CASE( "morph/rus" )
+  {
+    SECTION( "morphological analyser API may be created with different mbcs codepages" )
+    {
+      IMlmaMb*  mlma = nullptr;
+
+      SECTION( "valid string keys give access to named API" )
+      {
+        const char* cnames[] = {
+          "Windows-1251",
+          "Windows",
+          "1251",
+          "Win-1251",
+          "Win",
+          "Windows 1251",
+          "Win 1251",
+          "ansi",
+          "koi-8",
+          "koi8",
+          "20866",
+          "dos",
+          "oem",
+          "866",
+          "28595",
+          "iso-88595",
+          "iso-8859-5",
+          "10007",
+          "mac",
+          "65001",
+          "utf-8",
+          "utf8"
+        };
+
+        for ( auto cpname = std::begin( cnames ); cpname != std::end( cnames ); ++cpname )
+        {
+          REQUIRE_NOTHROW( mlmaruLoadCpAPI( &mlma, *cpname ) );
+            REQUIRE( mlma != nullptr );
+          REQUIRE_NOTHROW( mlma = mlma != nullptr ? (mlma->Detach(), nullptr) : nullptr  );
+        }
+      }
+
+      mlmaruLoadCpAPI( &mlma, "utf-8" );
+
+      SECTION( "SetLoCase" )
+      {
+        char  locase[0x100];
+        int   length;
+
+        SECTION( "if enough space, it converts complete string and returns count of converted bytes" )
+        {
+          REQUIRE_NOTHROW( length = mlma->SetLoCase( locase, sizeof(locase), "РўРµРЎС‚РћРІРћРµ РЎР»РћРІРћСЃРћС‡Р•С‚РђРЅРРµ", (size_t)-1 ) );
+            REQUIRE( std::string( locase ) == "С‚РµСЃС‚РѕРІРѕРµ СЃР»РѕРІРѕСЃРѕС‡РµС‚Р°РЅРёРµ" );
+            REQUIRE( length == strlen( "С‚РµСЃС‚РѕРІРѕРµ СЃР»РѕРІРѕСЃРѕС‡РµС‚Р°РЅРёРµ" ) );
+        }
+
+        SECTION( "if lo buffer capacity, it returns -1" )
+        {
+          REQUIRE_NOTHROW( length = mlma->SetLoCase( locase, 4, "РўРµРЎС‚РћРІРћРµ РЎР»РћРІРћСЃРћС‡Р•С‚РђРЅРРµ", (size_t)-1 ) );
+            REQUIRE( length == -1 );
+        }
+      }
+      SECTION( "SetUpCase" )
+      {
+        char  upcase[0x100];
+        int   length;
+
+        SECTION( "if enough space, it convers complete string and returns count of converted bytes" )
+        {
+          REQUIRE_NOTHROW( length = mlma->SetUpCase( upcase, sizeof(upcase), "РўРµРЎС‚РћРІРћРµ РЎР»РћРІРћСЃРћС‡Р•С‚РђРЅРРµ", (size_t)-1 ) );
+            REQUIRE( std::string( upcase ) == "РўР•РЎРўРћР’РћР• РЎР›РћР’РћРЎРћР§Р•РўРђРќРР•" );
+            REQUIRE( length == strlen( "РўР•РЎРўРћР’РћР• РЎР›РћР’РћРЎРћР§Р•РўРђРќРР•" ) );
+        }
+        SECTION( "if lo buffer capacity, it returns -1" )
+        {
+          REQUIRE_NOTHROW( length = mlma->SetUpCase( upcase, 4, "РўРµРЎС‚РћРІРћРµ РЎР»РћРІРћСЃРћС‡Р•С‚РђРЅРРµ", (size_t)-1 ) );
+            REQUIRE( length == -1 );
+        }
+      }
+      SECTION( "CheckWord" )
+      {
+        SECTION( "called with exact BYTES length of string and no options, it recognizes word" )
+        {  REQUIRE( mlma->CheckWord( "РїСЂРѕРІРµСЂРєР°", strlen( "РїСЂРѕРІРµСЂРєР°" ), 0 ) == 1 );  }
+        SECTION( "called with exact BYTES length of string and no options, it does not recognize unknwon word" )
+        {  REQUIRE( mlma->CheckWord( "С‹РІР°Р»", strlen( "С‹РІР°Р»" ), 0 ) == 0 );  }
+        SECTION( "called with exact BYTES length of string and no options, it does not recognize word with mixed capitals" )
+        {  REQUIRE( mlma->CheckWord( "РџСЂРћРІР•СЂРљР°", strlen( "РџСЂРћРІР•СЂРљР°" ), 0 ) == 0 );  }
+        SECTION( "called with exact BYTES length of string and 'sfIgnoreCapitals', it recognizse word with mixed capitals" )
+        {  REQUIRE( mlma->CheckWord( "РџСЂРћРІР•СЂРљР°", strlen( "РџСЂРћРІР•СЂРљР°" ), sfIgnoreCapitals ) == 1 );  }
+        SECTION( "called with unknown length and no options, it does not recognize word with mixed capitals" )
+        {  REQUIRE( mlma->CheckWord( "РџСЂРћРІР•СЂРљР°", (size_t)-1, 0 ) == 0 );  }
+        SECTION( "called with unknown length and 'sfIgnoreCapitals', it recognizes word with mixed capitals" )
+        {  REQUIRE( mlma->CheckWord( "РџСЂРћРІР•СЂРљР°", (size_t)-1, sfIgnoreCapitals ) == 1 );  }
+      }
+      SECTION( "Lemmatize" )
+      {
+        SLemmInfoA  lemmas[0x20];
+        char        aforms[0xf0];
+        SGramInfo   grinfo[0x40];
+
+        SECTION( "unknown words are not lemmatized with any parameters" )
+        {  REQUIRE( mlma->Lemmatize( "aaa", -1, nullptr, 0, nullptr, 0, nullptr, 0, 0 ) == 0 );  }
+        SECTION( "simple lemmatization without grammatical descriptions just builds forms" )
+        {  REQUIRE( mlma->Lemmatize( "РїСЂРѕСЃС‚РѕР№", -1, nullptr, 0, aforms, 0xf0, nullptr, 0, 0 ) == 3 );  }
+        SECTION( "lemmatization without strings gets lemmas" )
+        {  REQUIRE( mlma->Lemmatize( "РїСЂРѕСЃС‚РѕР№", -1, lemmas, 0x20, nullptr, 0, nullptr, 0, 0 ) == 3 );  }
+        SECTION( "complete lemmatization builds strings, gets lemmas and grammatical descriptions" )
+        {  REQUIRE( mlma->Lemmatize( "РїСЂРѕСЃС‚РѕР№", -1, lemmas, 0x20, aforms, 0xf0, grinfo, 0x40, 0 ) == 3 );  }
+
+        SECTION( "with not enough buffer for froms, it returns LEMMBUFF_FAILED" )
+        {  REQUIRE( mlma->Lemmatize( "РїСЂРѕСЃС‚РѕР№", -1, lemmas, 0x20, aforms, 0xf, grinfo, 0x40, 0 ) == LEMMBUFF_FAILED );  }
+        SECTION( "with not enough buffer for lemmas, it returns LIDSBUFF_FAILED" )
+        {  REQUIRE( mlma->Lemmatize( "РїСЂРѕСЃС‚РѕР№", -1, lemmas, 0x02, aforms, 0xf0, grinfo, 0x40, 0 ) == LIDSBUFF_FAILED );  }
+        SECTION( "with not enough buffer for grammas, it returns GRAMBUFF_FAILED" )
+        {  REQUIRE( mlma->Lemmatize( "РїСЂРѕСЃС‚РѕР№", -1, lemmas, 0x20, aforms, 0xf0, grinfo, 0x02, 0 ) == GRAMBUFF_FAILED );  }
+      }
+      SECTION( "BuildForm" )
+      {
+        char      aforms[0xf0];
+        lexeme_t  lMETLA = 61579;
+
+        SECTION( "being called with invalid lexeme, it returns 0" )
+        {  REQUIRE( mlma->BuildForm( aforms, 0xf0, 5, 0 ) == 0 );  }
+        SECTION( "being called with empty buffer and invalid lexeme, it returns 0" )
+        {  REQUIRE( mlma->BuildForm( nullptr, 0xf0, 5, 0 ) == 0 );  }
+        SECTION( "being called with empty buffer and correct lexeme, it returns LEMMBUFF_FAILED" )
+        {  REQUIRE( mlma->BuildForm( nullptr, 0xf0, lMETLA, 0 ) == 0 );  }
+        SECTION( "being called with small buffer and correct lexeme, it returns LEMMBUFF_FAILED" )
+        {  REQUIRE( mlma->BuildForm( aforms, 0x03, lMETLA, 0 ) == 0 );  }
+        SECTION( "with correct buffer, it builds 2 forms" )
+        {  REQUIRE( mlma->BuildForm( aforms, 0xf0, lMETLA, 5 ) == 2 );  }
+      }
+      SECTION( "FindForms" )
+      {
+      /*
+    MLMA_METHOD( FindForms )( MLMA_THIS
+                              char*           output, size_t    cchout,
+                              const char*     pszstr, size_t    cchstr,
+                                                      formid_t  idform ) MLMA_PURE;
+      */
+      }
+      SECTION( "CheckHelp" )
+      {
+        /*
+    MLMA_METHOD( CheckHelp )( MLMA_THIS
+                              char*           output, size_t    cchout,
+                              const char*     pszstr, size_t    cchstr ) MLMA_PURE;
+        */
+      }
+      SECTION( "GetWdInfo" )
+      {
+        /*
+    MLMA_METHOD( GetWdInfo )( MLMA_THIS
+                              unsigned char*  pwinfo, lexeme_t  nlexid ) MLMA_PURE;
+        */
+      }
+      SECTION( "EnumWords" )
+      {
+        auto  lset_1 = FindLexemes( mlma, "РјРµР»РѕС‡*" );
+        auto  lset_2 = LemmatizeIt( mlma, "РјРµР»РѕС‡СЊ" );
+        auto  lset_3 = lset_1 & lset_2;
+
+        REQUIRE( !lset_1.empty() );
+        REQUIRE( !lset_2.empty() );
+        REQUIRE( !lset_3.empty() );
+        /*
+    MLMA_METHOD( EnumWords )( MLMA_THIS
+                              IMlmaEnum*      pienum,
+                              const char*     pszstr, size_t    cchstr ) MLMA_PURE;
+        */
+      }
+    }
+    if ( false )
+    {
+      SECTION( "checking the reversability of the dictionary" )
+      {
+        IMlmaMb*  mlma;
+
+        mlmaruLoadCpAPI( &mlma, "utf-8" );
+
+        for ( lexeme_t nlexid = 0; nlexid != 2256000; ++nlexid )
+        {
+          unsigned char wdinfo;
+
+          if ( mlma->GetWdInfo( &wdinfo, nlexid ) == 0 )
+            continue;
+
+          for ( int idform = 0; idform < 256; ++idform )
+          {
+            char  sforms[0x100];
+            int   nforms = mlma->BuildForm( sforms, sizeof(sforms), nlexid, (unsigned char)idform );
+
+            if ( nforms == 0 )
+              continue;
+
+            for ( auto s = sforms; nforms-- > 0; )
+            {
+              SLemmInfoA  lemmas[8];
+              int         ccform = strlen( s );
+              int         nlemma = mlma->Lemmatize( s, ccform, lemmas, 8, nullptr, 0, nullptr, 0, 0 );
+
+              REQUIRE( nlemma != 0 );
+              REQUIRE( std::find_if( lemmas + 0, lemmas + nlemma, [nlexid]( const SLemmInfoA& lemm )
+                {  return lemm.nlexid == nlexid;  } ) != lemmas + nlemma );
+
+              s += (ccform + 1);
+            }
+          }
+        }
+      }
+    }
+  }
+} );
+
+int   main()
+{
+  return TestItEasy::Conclusion();
+}
+
+# if 0
 using hires_clock = std::chrono::high_resolution_clock;
 
 extern "C"    // C API
@@ -56,12 +342,10 @@ void  CheckTemplate( const char* stempl, int nchars, const char* answer )
 class LexemesPrinter: public IMlmaEnum
 {
   hires_clock::time_point tstart;
-  int                     nwords;
+  int                     nwords = 0;
 
 public:
-  LexemesPrinter(): nwords( 0 )
-    {
-    }
+  LexemesPrinter() = default;
   void  Report()
     {
       auto  tprint = hires_clock::now();
@@ -129,7 +413,7 @@ public:
 };
 
 /*
-  Проверяет прозрачность построения форм и лемматизации "туда" и "обратно".
+  пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ "пїЅпїЅпїЅпїЅ" пїЅ "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ".
 */
 class TestReversibility: public TestMlmaMb
 {
@@ -199,15 +483,19 @@ protected:
     }
 };
 
+/*
+template <class ... lexemes>
+void  TestLemmatization( IMlmaMb* mlma, const char* word, lexeme_t nlexid, )*/
 int   main()
 {
+  pmorph->Lemmatize( "РјРµР»РѕС‡СЊ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, sfIgnoreCapitals );
+  pmorph->Lemmatize( "РјРµР»РѕС‡Рё", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, sfIgnoreCapitals );
+
   try
   {
 //    TestReversibility()( 188017 );
 
-    TestLemmatization()( "простой", 45384, 16500, 136174 );
-
-    return 0;
+    TestLemmatization()( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 45384, 16500, 136174 );
   }
   catch ( const TestReversibility::fault& x )
   {
@@ -241,8 +529,8 @@ int   main()
   SGramInfo               agrams[0x40];
 
 // test C API
-  TestLemmatize( "предлагается", 0, 1, 1913, "предлагать" );
-  TestLemmatize( "простой", 0, 3, 45384, "простой", 16500, "простоять", 136174, "простой" );
+  TestLemmatize( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 0, 1, 1913, "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ" );
+  TestLemmatize( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 0, 3, 45384, "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 16500, "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 136174, "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ" );
 
   mlmaruLoadCpAPI( &pmorph, "utf8" );
     pmorph->SetLoCase( strcpy( aforms, "РљРѕРјСЃРѕРјРѕР»СЊСЃРє-РЅР°-РђРјСѓСЂРµ" ), (size_t)-1 );
@@ -252,6 +540,9 @@ int   main()
     pmorph->CheckWord( "РєРѕРјСЃРѕРјРѕР»СЊСЃРє-РЅР°-Р°РјСѓСЂРµ", (size_t)-1, sfIgnoreCapitals );
 
     pmorph->Lemmatize( "РєРёРµРІ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, sfIgnoreCapitals );
+
+    pmorph->Lemmatize( "РјРµР»РѕС‡СЊ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, sfIgnoreCapitals );
+    pmorph->Lemmatize( "РјРµР»РѕС‡Рё", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, sfIgnoreCapitals );
 
     pmorph->BuildForm( aforms, 0x100, 61577, 5 );
 
@@ -263,69 +554,69 @@ int   main()
 
     LexemesPrinter  lp;
 
-    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "за*к*аз", -1 );  lp.Report();
-    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "за*аз", -1 );    lp.Report();
-    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "за*каз", -1 );   lp.Report();
-    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "зак*аз", -1 );   lp.Report();
-    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "за*к*ат", -1 );  lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "пїЅпїЅ*пїЅ*пїЅпїЅ", -1 );  lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "пїЅпїЅ*пїЅпїЅ", -1 );    lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "пїЅпїЅ*пїЅпїЅпїЅ", -1 );   lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "пїЅпїЅпїЅ*пїЅпїЅ", -1 );   lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "пїЅпїЅ*пїЅ*пїЅпїЅ", -1 );  lp.Report();
 
-    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "п*явл*е*", -1 );  lp.Report();
-    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "пр*", -1 );       lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "пїЅ*пїЅпїЅпїЅ*пїЅ*", -1 );  lp.Report();
+    lp = LexemesPrinter();  pmorph->EnumWords( &lp, "пїЅпїЅ*", -1 );       lp.Report();
 
-    pmorph->CheckWord( "к", 1, 0 );
-    pmorph->CheckWord( "не", 2, 0 );
-    pmorph->CheckWord( "Но", 2, 0 );
-    pmorph->CheckWord( "ПО", 2, 0 );
-    pmorph->CheckWord( "если", 4, 0 );
-    pmorph->CheckWord( "Москва", 6, 0 );
-    pmorph->CheckWord( "москва", 6, 0 );
-    pmorph->CheckWord( "москва", 6, sfIgnoreCapitals );
-    pmorph->CheckWord( "КГБ", 3, 0 );
-    pmorph->CheckWord( "Мвд", 3, 0 );
-    pmorph->CheckWord( "мвд", 3, 0 );
-    pmorph->CheckWord( "мВд", 3, sfIgnoreCapitals );
-    pmorph->CheckWord( "двигать", (size_t)-1, 0 );
+    pmorph->CheckWord( "пїЅ", 1, 0 );
+    pmorph->CheckWord( "пїЅпїЅ", 2, 0 );
+    pmorph->CheckWord( "пїЅпїЅ", 2, 0 );
+    pmorph->CheckWord( "пїЅпїЅ", 2, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅпїЅ", 4, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅпїЅпїЅпїЅ", 6, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅпїЅпїЅпїЅ", 6, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅпїЅпїЅпїЅ", 6, sfIgnoreCapitals );
+    pmorph->CheckWord( "пїЅпїЅпїЅ", 3, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅ", 3, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅ", 3, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅ", 3, sfIgnoreCapitals );
+    pmorph->CheckWord( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, 0 );
 
-    pmorph->CheckWord( "сапожек", (size_t)-1, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, 0 );
 
-    pmorph->CheckWord( "дождутся", (size_t)-1, 0 );
+    pmorph->CheckWord( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, 0 );
   pmorph->Detach();
 
-  CheckTemplate( "?одразобрать", 1, "п" );
-  CheckTemplate( "п?дразобрать", 1, "о" );
-  CheckTemplate( "по?разобрать", 1, "д" );
-  CheckTemplate( "под?азобрать", 1, "р" );
-  CheckTemplate( "подр?зобрать", 1, "а" );
-  CheckTemplate( "подра?обрать", 1, "з" );
-  CheckTemplate( "подраз?брать", 1, "о" );
-  CheckTemplate( "подразо?рать", 2, "бд" );
-  CheckTemplate( "подразоб?ать", 1, "р" );
-  CheckTemplate( "подразобр?ть", 1, "а" );
-  CheckTemplate( "подразобра?ь", 1, "т" );
-  CheckTemplate( "подразобрат?", 1, "ь" );
-  CheckTemplate( "подразобрать?", 1, "\0" );
+  CheckTemplate( "?пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅ?пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅ?пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅ?пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅ?пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅпїЅ?пїЅпїЅпїЅпїЅпїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅпїЅпїЅ?пїЅпїЅпїЅпїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ?пїЅпїЅпїЅпїЅ", 2, "пїЅпїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ?пїЅпїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ?пїЅпїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ?пїЅ", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ?", 1, "пїЅ" );
+  CheckTemplate( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ?", 1, "\0" );
 
-  nlemma = pmorph->Lemmatize( "труднее", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
-  nlemma = pmorph->Lemmatize( "медитировать", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
 
   nlemma = pmorph->Lemmatize( ",", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
 
-  nlemma = pmorph->Lemmatize( "КГБ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
-  nlemma = pmorph->Lemmatize( "кГб", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
-  nlemma = pmorph->Lemmatize( "кГб", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, sfIgnoreCapitals );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, sfIgnoreCapitals );
 
-  nlemma = pmorph->Lemmatize( "простой", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
-  nlemma = pmorph->Lemmatize( "путин", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
-  nlemma = pmorph->Lemmatize( "путин", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, sfIgnoreCapitals );
-  nlemma = pmorph->Lemmatize( "вберу", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
-  nlemma = pmorph->Lemmatize( "комсомольска-на-амуре", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, sfIgnoreCapitals );
-  nlemma = pmorph->Lemmatize( "Санкт-Петербург", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, sfIgnoreCapitals );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ-пїЅпїЅ-пїЅпїЅпїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, sfIgnoreCapitals );
+  nlemma = pmorph->Lemmatize( "пїЅпїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, lemmas, 0x10, aforms, 0x100, agrams, 0x40, 0 );
 
-  nforms = pmorph->FindForms( aforms, 0x100, "вобрать", (size_t)-1, 6 );
-  nforms = pmorph->FindForms( aforms, 0x100, "путин", (size_t)-1, 0 );
-  nforms = pmorph->FindForms( aforms, 0x100, "Путин", (size_t)-1, 0 );
-  nforms = pmorph->FindForms( aforms, 0x100, "простой", (size_t)-1, 2 );
-  nforms = pmorph->FindForms( aforms, 0x100, "кто-нибудь", (size_t)-1, 2 );
+  nforms = pmorph->FindForms( aforms, 0x100, "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, 6 );
+  nforms = pmorph->FindForms( aforms, 0x100, "пїЅпїЅпїЅпїЅпїЅ", (size_t)-1, 0 );
+  nforms = pmorph->FindForms( aforms, 0x100, "пїЅпїЅпїЅпїЅпїЅ", (size_t)-1, 0 );
+  nforms = pmorph->FindForms( aforms, 0x100, "пїЅпїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, 2 );
+  nforms = pmorph->FindForms( aforms, 0x100, "пїЅпїЅпїЅ-пїЅпїЅпїЅпїЅпїЅпїЅ", (size_t)-1, 2 );
 
   nforms = pmorph->BuildForm( aforms, sizeof(aforms), 17110, 6 );
 
@@ -373,13 +664,13 @@ int   main()
 
     while ( buftop < bufend && (unsigned char)*buftop <= 0x20 )
       ++buftop;
-    if ( (unsigned char)*buftop < (unsigned char)'А' )
+    if ( (unsigned char)*buftop < (unsigned char)'пїЅ' )
     {
       ++buftop;
       continue;
     }
 
-    for ( wrdtop = buftop; buftop < bufend && (unsigned char)*buftop >= (unsigned char)'А'; ++buftop )
+    for ( wrdtop = buftop; buftop < bufend && (unsigned char)*buftop >= (unsigned char)'пїЅ'; ++buftop )
       (void)NULL;
 /*
     {
@@ -388,7 +679,7 @@ int   main()
       fprintf( lpfile, "\n" );
     }
 
-    if ( !(buftop - wrdtop == 6 && memcmp( wrdtop, "должен", 6 ) == 0) )
+    if ( !(buftop - wrdtop == 6 && memcmp( wrdtop, "пїЅпїЅпїЅпїЅпїЅпїЅ", 6 ) == 0) )
       continue;
 */
     if ( pmorph->Lemmatize( (const char*)wrdtop, buftop - wrdtop, lemmas, 0x20, NULL, 0x100, agrams, 0x40, sfIgnoreCapitals ) > 0 )
@@ -405,3 +696,4 @@ int   main()
 
 	return 0;
 }
+# endif
