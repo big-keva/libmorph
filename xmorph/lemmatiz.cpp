@@ -52,21 +52,29 @@ namespace LIBMORPH_NAMESPACE
     auto  set_graminfo = stinfo.tfoffs != 0 ? set_flexinfo : set_0xffinfo;
 
     assert( nerror == 0 );
-    assert( plemma != 0 );
 
   // check if overflow will occur in this call
-    if ( plemma < elemma )  {  plemma->nlexid = nlexid;  plemma->ngrams = 0;  }
-      else  return (nerror = LIDSBUFF_FAILED);
+    if ( plemma != nullptr )
+    {
+      if ( plemma >= elemma )
+        return (nerror = LIDSBUFF_FAILED);
+
+      plemma->nlexid = nlexid;
+      plemma->plemma = pforms;
+      plemma->pgrams = pgrams;
+      plemma->ngrams = 0;
+    }
 
   // check if there is a buffer for normal forms; create normal forms
   // and store single form to the buffer selected for forms
-    if ( (plemma->plemma = pforms) != nullptr )
+    if ( pforms != nullptr )
     {
-      byte_t  fmbuff[256];
-      size_t  ccstem;
+      char    fmbuff[256];
+      char*   outptr = fmbuff;
 
     // Построить основу из словаря без изменяемой ее части
-      memcpy( fmbuff, szstem, ccstem = (pszstr - szstem) );
+      for ( auto src = szstem; src != pszstr; )
+        *outptr++ = *src++;
 
     // Построить окончания, соответствующие нормальной форме слова.
     // Если слово не флективно, то окончание будет нулевым
@@ -75,22 +83,26 @@ namespace LIBMORPH_NAMESPACE
         unsigned  nfInfo = GetNormalInfo( stinfo.wdinfo, flexes->grInfo, dwsets );
 
       // Построить нормальную форму слова. Если она не строится, проверить, почему.
-        if ( !CreateDictForm( fmbuff + ccstem, stinfo, nfInfo, afAnimated|afNotAlive ) )
-          strncpy( (char*)fmbuff, (const char*)szstem, ccstem = pszstr - szstem );
-        else ccstem = strlen( (const char*)fmbuff );
+        if ( CreateDictForm( (byte_t*)outptr, stinfo, nfInfo, afAnimated|afNotAlive ) )
+          while ( *outptr != '\0' ) ++outptr;
       }
-        else
-      fmbuff[ccstem] = 0;
+
+      *outptr = '\0';
 
     // Слово может иметь текст в постпозиции
       if ( szpost != nullptr )
       {
-        memcpy( fmbuff + ccstem, szpost + 1, *szpost );
-          fmbuff[ccstem = ccstem + *szpost] = '\0';
+        auto  ccpost = *szpost++;
+        auto  endptr = ccpost + szpost;
+
+        while ( szpost != endptr )
+          *outptr++ = *szpost++;
+
+        *outptr = '\0';
       }
 
     // Привести слово к минимальной возможной капитализации
-      SetCapScheme( (char*)fmbuff, GetMinScheme( stinfo.MinCapScheme(), (const char*)fmbuff, scheme >> 8 ) );
+      SetCapScheme( fmbuff, GetMinScheme( stinfo.MinCapScheme(), fmbuff, scheme >> 8 ) );
 
     // create output string
     // check for overflow
@@ -98,23 +110,23 @@ namespace LIBMORPH_NAMESPACE
       {
         size_t  cchout;
 
-        if ( (cchout = codepages::mbcstombcs( encode, pforms, eforms - pforms, codepages::codepage_1251,
-          (const char*)fmbuff, ccstem + 1 )) == (size_t)-1 )  return LEMMBUFF_FAILED;
-        else pforms += cchout;
-      }
-        else
-      {
-        if ( pforms + ccstem >= eforms )
+        if ( (cchout = codepages::mbcstombcs( encode, pforms, eforms - pforms, codepages::codepage_1251, fmbuff, outptr - fmbuff + 1 )) == (size_t)-1 )
           return (nerror = LEMMBUFF_FAILED);
 
+        pforms += cchout;
+      }
+        else
       // register normal form
-        memcpy( pforms, fmbuff, ccstem + 1 );
-          pforms += ccstem + 1;
+      {
+        for ( auto src = fmbuff; pforms != eforms && src != outptr; )
+          *pforms++ = *src++;
+        if ( pforms = eforms )  return (nerror = LEMMBUFF_FAILED);
+          else *pforms++ = '\0';
       }
     }
 
   // Проверить, надо ли восстанавливать грамматические описания
-    if ( (plemma->pgrams = pgrams) != NULL )
+    if ( plemma != nullptr && (plemma->pgrams = pgrams) != NULL )
     {
       for ( ; fcount > 0 && pgrams < egrams; --fcount )
         set_graminfo( *pgrams++, stinfo, *flexes++ );
@@ -122,8 +134,11 @@ namespace LIBMORPH_NAMESPACE
       if ( fcount == 0 )  plemma->ngrams = (unsigned)(pgrams - plemma->pgrams);
         else return (nerror = GRAMBUFF_FAILED);
     }
-    ++plemma;
-    return 0;
+
+    if ( plemma != nullptr )
+      ++plemma;
+
+    return ++nlemma, 0;
   }
 
 // doBuildForm implementation
@@ -135,10 +150,10 @@ namespace LIBMORPH_NAMESPACE
                                  const SGramInfo* flexes,
                                  unsigned         fcount )
   {
-    byte_t    szform[64];
+    char      fmbuff[64];
+    char*     outptr = fmbuff;
     byte_t    stails[256];
     byte_t*   lptail = stails;
-    size_t    ccstem;
     int       ntails;
     unsigned  tfoffs = stinfo.tfoffs;
     word16_t  grInfo;
@@ -149,8 +164,11 @@ namespace LIBMORPH_NAMESPACE
     (void)fcount;
 
   // check the arguments
-    assert( output != NULL );
     assert( nerror == 0 );
+
+  // check function call
+    if ( output == nullptr || output >= outend )
+      return (nerror = LEMMBUFF_FAILED);
 
   // Построить описание нужной формы, если она задана идентификатором
     if ( idform != (unsigned)-1 )
@@ -183,20 +201,13 @@ namespace LIBMORPH_NAMESPACE
         return 0;
 
   // Построить основу из словаря без изменяемой ее части
-    memcpy( szform, szstem, ccstem = (pszstr - szstem) );
+    for ( auto src = szstem; src != pszstr; )
+      *outptr++ = *src++;
 
   // Построить окончания, соответствующие нормальной форме слова.
   // Если слово не флективно, то окончание будет нулевым
-    if ( tfoffs == 0 )
-    {
-      stails[0] = '\0';
-        ntails = 1;
-    }
-      else
-    {
-      if ( (ntails = CreateFormFlex( stails, stinfo, grInfo, bFlags )) == 0 )
-        return 0;
-    }
+    if ( tfoffs == 0 )  {  stails[0] = '\0';  ntails = 1;  }
+      else  ntails = CreateFormFlex( stails, stinfo, grInfo, bFlags );
 
   // the loop creates forms directly in the output buffer to prevent
   // copying of data twice, to the local buffer and to the output
@@ -205,26 +216,26 @@ namespace LIBMORPH_NAMESPACE
   // flexion
     while ( ntails-- > 0 )
     {
-      byte_t* outptr;
-      size_t  cbcopy;
+      auto    totail = outptr;
+      size_t  cchout;
 
     // append next tail
-      for ( outptr = szform + ccstem; (*outptr = *lptail++) != '\0'; ++outptr )
-        (void)NULL;
+      while ( (*totail = *lptail++) != '\0' )
+        ++totail;
 
     // check if a word has a postfix; append the postfix; check if overflow
       if ( szpost != NULL )
-        outptr = *szpost + (byte_t*)memcpy( outptr, szpost + 1, *szpost );
+        totail = *szpost + (char*)memcpy( totail, szpost + 1, *szpost );
 
     // set the zero
       *outptr++ = '\0';
 
     // set capitalization scheme
-      SetCapScheme( (char*)szform, GetMinScheme( stinfo.MinCapScheme(), (char*)szform, scheme >> 8 ) );
+      SetCapScheme( (char*)fmbuff, GetMinScheme( stinfo.MinCapScheme(), fmbuff, scheme >> 8 ) );
 
     // output the string
-      if ( (cbcopy = codepages::mbcstombcs( encode, output, outend - output, codepages::codepage_1251, (const char*)szform, outptr - szform )) == (size_t)-1 )
-        return (nerror = LEMMBUFF_FAILED);  else  output += cbcopy;
+      if ( (cchout = codepages::mbcstombcs( encode, output, outend - output, codepages::codepage_1251, fmbuff, outptr - fmbuff )) == (size_t)-1 )
+        return (nerror = LEMMBUFF_FAILED);  else  output += cchout;
 
     // correct buffer length
       ++rcount;
