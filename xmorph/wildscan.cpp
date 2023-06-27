@@ -51,7 +51,7 @@ namespace LIBMORPH_NAMESPACE
       {
         case '*': InsertChar( output, chnext );
                   continue;
-        case '?': if ( LinearScanDict<byte_t, int>( grscan, subdic, thestr + 1, cchstr - 1 ) )
+        case '?': if ( LinearScanDict<byte_t, int>( grscan, subdic, { thestr + 1, cchstr - 1 } ) )
                     InsertChar( output, chnext );
                   continue;
         default:  if ( chnext == chfind )
@@ -154,7 +154,7 @@ namespace LIBMORPH_NAMESPACE
             for ( chsave = *curmix++, ++flextr, --flexcc, --mixlen; flexcc > 0 && mixlen > 0 && *flextr == *curmix;
               --flexcc, --mixlen, ++flextr, ++curmix ) (void)NULL;
 
-            if ( mixlen == 0 && LinearScanDict<byte_t, int>( grscan, flexTree + (stinfo.tfoffs << 4), flextr, flexcc ) > 0 )
+            if ( mixlen == 0 && LinearScanDict<byte_t, int>( grscan, flexTree + (stinfo.tfoffs << 4), { flextr, flexcc } ) > 0 )
               InsertChar( output, chsave );
           }
             else
@@ -190,7 +190,7 @@ namespace LIBMORPH_NAMESPACE
           doFastCheck                       fcheck;
           listLookup<doFastCheck, steminfo> lookup( fcheck );
 
-          if ( LinearScanDict<byte_t, int>( lookup, thedic, thestr + 1, cchstr - 1 ) > 0 )
+          if ( LinearScanDict<byte_t, int>( lookup, thedic, { thestr + 1, cchstr - 1 } ) > 0 )
             InsertChar( output, chnext );
           thedic += sublen;
         }
