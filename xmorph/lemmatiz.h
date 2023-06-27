@@ -47,25 +47,23 @@ namespace LIBMORPH_NAMESPACE
   //
   struct  doLemmatize: public doCheckWord
   {
-    SLemmInfoA*     plemma;   // the output buffer for descriptions
-    SLemmInfoA*     elemma;
-    char*           pforms;   // the buffer for the forms
-    char*           eforms;   // the buffer size
-    SGramInfo*      pgrams;   // the buffer for grammar descriptions
-    SGramInfo*      egrams;   // gramma descriptions length
-    unsigned        encode;   // the character encoding
+    SLemmInfoA*     plemma = nullptr;   // the output buffer for descriptions
+    SLemmInfoA*     elemma = nullptr;
+    char*           pforms = nullptr;   // the buffer for the forms
+    char*           eforms = nullptr;   // the buffer size
+    SGramInfo*      pgrams = nullptr;   // the buffer for grammar descriptions
+    SGramInfo*      egrams = nullptr;   // gramma descriptions length
+    unsigned        encode;             // the character encoding
 
+    unsigned        nlemma = 0;
     int             nerror;
 
   public: // the registration API
-          doLemmatize( const byte_t* szbase, unsigned uflags, unsigned cp ): doCheckWord( szbase, uflags ),
-                         plemma( nullptr ),
-                         pforms( nullptr ),
-                         pgrams( nullptr ),
-                         encode( cp ),
-                         nerror( 0x00 )
-            {
-            }
+    doLemmatize( const byte_t* szbase, unsigned uflags, unsigned cp ): doCheckWord( szbase, uflags ),
+      encode( cp ),
+      nerror( 0x00 ) {}
+
+  public:
     int   InsertStem( lexeme_t          nlexid,
                       const steminfo&   stinfo,
                       const byte_t*     szpost,
