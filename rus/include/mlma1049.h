@@ -255,9 +255,11 @@
     MLMA_METHOD( Detach )( MLMA_VOID ) MLMA_PURE;
 
     MLMA_METHOD( SetLoCase )( MLMA_THIS
-                              char*           pszstr, size_t  cchstr )  MLMA_PURE;
+                              char*           outstr, size_t  cchout,
+                              const char*     srcstr, size_t  cchsrc )  MLMA_PURE;
     MLMA_METHOD( SetUpCase )( MLMA_THIS
-                              char*           pszstr, size_t  cchstr )  MLMA_PURE;
+                              char*           outstr, size_t  cchout,
+                              const char*     srcstr, size_t  cchsrc )  MLMA_PURE;
     MLMA_METHOD( CheckWord )( MLMA_THIS
                               const char*     pszstr, size_t  cchstr,
                               unsigned        dwsets ) MLMA_PURE;

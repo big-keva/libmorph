@@ -67,8 +67,10 @@ namespace LIBMORPH_NAMESPACE
     virtual int MLMAPROC  Attach() {  return 0;  }
     virtual int MLMAPROC  Detach() {  return 0;  }
 
-    virtual int MLMAPROC  SetLoCase( char*            pszstr, size_t    cchstr );
-    virtual int MLMAPROC  SetUpCase( char*            pszstr, size_t    cchstr );
+    virtual int MLMAPROC  SetLoCase( char*            outstr, size_t    cchout,
+                                     const char*      srcstr, size_t    cchsrc );
+    virtual int MLMAPROC  SetUpCase( char*            outstr, size_t    cchout,
+                                     const char*      srcstr, size_t    cchsrc );
     virtual int MLMAPROC  CheckWord( const char*      pszstr, size_t    cchstr,
                                      unsigned         dwsets );
     virtual int MLMAPROC  Lemmatize( const char*      pszstr, size_t    cchstr,
@@ -139,27 +141,28 @@ namespace LIBMORPH_NAMESPACE
 
   // CMlmaMb implementation
 
-  int   CMlmaMb::SetLoCase( char* pszstr, size_t  cchstr )
+  int   CMlmaMb::SetLoCase( char*       outstr, size_t  cchout,
+                            const char* srcstr, size_t  cchsrc )
   {
     CATCH_ALL
-      return codepages::strtolower( codepage, pszstr, cchstr, pszstr, cchstr ), 0;
+      return codepages::strtolower( codepage, outstr, cchout, srcstr, cchsrc );
     ON_ERRORS( -1 )
   }
 
-  int   CMlmaMb::SetUpCase( char* pszstr, size_t  cchstr )
+  int   CMlmaMb::SetUpCase( char*       outstr, size_t  cchout,
+                            const char* srcstr, size_t  cchsrc )
   {
     CATCH_ALL
-      return codepages::strtoupper( codepage, pszstr, cchstr, pszstr, cchstr ), 0;
+      return codepages::strtoupper( codepage, outstr, cchout, srcstr, cchsrc );
     ON_ERRORS( -1 )
   }
 
   int   CMlmaMb::CheckWord( const char* pszstr, size_t  cchstr, unsigned  dwsets )
   {
     CATCH_ALL
-      byte_t                            locase[256];
-      char                              cpsstr[256];
-      doCheckWord                       scheck( locase, dwsets );
-      listLookup<doCheckWord, steminfo> lookup( scheck );
+      byte_t      locase[256];
+      char        cpsstr[256];
+      doCheckWord scheck( locase, dwsets );
 
     // check source string and length
       if ( pszstr == nullptr )
@@ -184,20 +187,20 @@ namespace LIBMORPH_NAMESPACE
       scheck.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
 
     // fill scheck structure
-      return LinearScanDict<byte_t, int>( lookup, stemtree, locase, cchstr );
+      return LinearScanDict<byte_t, int>( listLookup<doCheckWord, steminfo>( scheck ),
+        stemtree, { locase, cchstr } );
     ON_ERRORS( -1 )
   }
 
   int   CMlmaMb::Lemmatize( const char* pszstr, size_t  cchstr,
-                            SLemmInfoA* output, size_t  cchout,
-                            char*       plemma, size_t  clemma,
-                            SGramInfo*  pgrams, size_t  ngrams, unsigned  dwsets )
+                            SLemmInfoA* plemma, size_t  clemma,
+                            char*       pforms, size_t  cforms,
+                            SGramInfo*  pgrams, size_t  cgrams, unsigned  dwsets )
   {
     CATCH_ALL
-      byte_t                            locase[256];
-      char                              cpsstr[256];
-      doLemmatize                       lemact( locase, dwsets, codepage );
-      listLookup<doLemmatize, steminfo> lookup( lemact );
+      byte_t      locase[256];
+      char        cpsstr[256];
+      doLemmatize lemact( locase, dwsets, codepage );
 
     // check source string and length
       if ( pszstr == nullptr )
@@ -222,13 +225,13 @@ namespace LIBMORPH_NAMESPACE
       lemact.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
 
     // fill other fields
-      lemact.elemma = (lemact.plemma = output) + cchout;
-      lemact.eforms = (lemact.pforms = plemma) + clemma;
-      lemact.egrams = (lemact.pgrams = pgrams) + ngrams;
+      lemact.elemma = (lemact.plemma = plemma) + clemma;
+      lemact.eforms = (lemact.pforms = pforms) + cforms;
+      lemact.egrams = (lemact.pgrams = pgrams) + cgrams;
 
     // call dictionary scanner
-      return LinearScanDict<byte_t, int>( lookup, stemtree, locase, cchstr ) < 0 ?
-        lemact.nerror : (int)(lemact.plemma - output);
+      return LinearScanDict<byte_t, int>( listLookup<doLemmatize, steminfo>( lemact ), stemtree, { locase, cchstr } ) < 0 ?
+        lemact.nerror : (int)lemact.nlemma;
     ON_ERRORS( -1 )
   }
 
@@ -240,7 +243,7 @@ namespace LIBMORPH_NAMESPACE
       auto          getofs = []( const byte_t* thedic, const byte_t*, size_t cchstr ) {  return cchstr == 0 ? thedic : nullptr;  };
 
     // No original word form; algo jumps to lexeme block dictionary point by lexeme id
-      if ( (ofsptr = LinearScanDict<word16_t, const byte_t*>( getofs, lidstree, lidkey, lexkeylen( lidkey, nlexid ) )) != nullptr )
+      if ( (ofsptr = LinearScanDict<word16_t, const byte_t*>( getofs, lidstree, { lidkey, lexkeylen( lidkey, nlexid ) } )) != nullptr )
       {
         const byte_t* dicpos = stemtree + getserial( ofsptr );
         byte_t        szstem[0x80];
@@ -291,7 +294,7 @@ namespace LIBMORPH_NAMESPACE
       abuild.bflags = 0;
       abuild.idform = idform;
 
-      return LinearScanDict<byte_t, int>( lookup, stemtree, locase, cchstr ) < 0 ? abuild.nerror : abuild.rcount;
+      return LinearScanDict<byte_t, int>( lookup, stemtree, { locase, cchstr } ) < 0 ? abuild.nerror : abuild.rcount;
     ON_ERRORS( -1 )
   }
 
@@ -342,7 +345,7 @@ namespace LIBMORPH_NAMESPACE
       auto          getofs = []( const byte_t* thedic, const byte_t*, size_t cchstr ){  return cchstr == 0 ? thedic : nullptr;  };
 
     // No original word form; algo jumps to lexeme block dictionary point by lexeme id
-      if ( (ofsptr = LinearScanDict<word16_t, const byte_t*>( getofs, lidstree, lidkey, lexkeylen( lidkey, lexkey ) )) != nullptr )
+      if ( (ofsptr = LinearScanDict<word16_t, const byte_t*>( getofs, lidstree, { lidkey, lexkeylen( lidkey, lexkey ) } )) != nullptr )
       {
         const byte_t* dicpos = stemtree + getserial( ofsptr ) + 2; /* 2 => clower && cupper */
         lexeme_t      nlexid = getserial( dicpos );
