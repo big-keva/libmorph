@@ -80,15 +80,20 @@ namespace LIBMORPH_NAMESPACE {
       }
   };
 
+  struct  search_str
+  {
+    const byte_t* str;
+    size_t        len;
+  };
+
   template <class aflags, class result, class action>
-  result  LinearScanDict( action&       doitem, const byte_t* thedic,
-                          const byte_t* thestr, size_t        cchstr )
+  result  LinearScanDict( const action& doitem, const byte_t* thedic, const search_str& src )
   {
     scan_stack<aflags>  astack[0x40];     // never longer words
     scan_stack<aflags>* pstack;
     result              retval;
 
-    for ( (pstack = astack)->setlevel( thedic, thestr, cchstr ); pstack >= astack; )
+    for ( (pstack = astack)->setlevel( thedic, src.str, src.len ); pstack >= astack; )
     {
       const unsigned char*  subdic;
 
