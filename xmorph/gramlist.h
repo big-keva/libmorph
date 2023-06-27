@@ -9,17 +9,17 @@ namespace LIBMORPH_NAMESPACE
 
   class gramBuffer
   {
-    const steminfo& stinfo;
-    unsigned        powset;
-    SGramInfo*      outorg;
-    SGramInfo*      outptr;
+    const steminfo&     stinfo;
+    unsigned            powset;
+    mutable SGramInfo*  outorg;
+    mutable SGramInfo*  outptr;
 
   public:     // construction
     gramBuffer( const steminfo& s, unsigned m, SGramInfo* p ): stinfo( s ), powset( m ), outorg( p ), outptr( p ) {}
 
   public:     // API
     int     getlen() const  {  return (int)(outptr - outorg);  }
-    void    append( word16_t grinfo, byte_t bflags )  {  *outptr++ = setgrinfo( 0, 0, grinfo, bflags );  }
+    void    append( word16_t grinfo, byte_t bflags ) const  {  *outptr++ = setgrinfo( 0, 0, grinfo, bflags );  }
 
   private:      // check classes
     struct anyvalue
@@ -54,8 +54,8 @@ namespace LIBMORPH_NAMESPACE
   protected:  // filler
     template <class isplural, class mixlevel>
     int   FilterGram( const byte_t* thedic,
-                      isplural      plural,     // plural filter, defined if wfMultiple
-                      mixlevel      isswap )    // mixpower filter
+                      isplural      plural,         // plural filter, defined if wfMultiple
+                      mixlevel      isswap ) const  // mixpower filter
       {
         for ( auto nforms = *thedic++; nforms-- > 0; )
         {
@@ -70,7 +70,7 @@ namespace LIBMORPH_NAMESPACE
       }
 
   public:     // gramLoader functor
-    int   operator () ( const byte_t* thedic, const byte_t* thestr, size_t cchstr )
+    int   operator () ( const byte_t* thedic, const byte_t* thestr, size_t cchstr ) const
       {
         (void)thestr;
 
