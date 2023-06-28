@@ -120,7 +120,7 @@ namespace LIBMORPH_NAMESPACE
       {
         for ( auto src = fmbuff; pforms != eforms && src != outptr; )
           *pforms++ = *src++;
-        if ( pforms = eforms )  return (nerror = LEMMBUFF_FAILED);
+        if ( pforms == eforms )  return (nerror = LEMMBUFF_FAILED);
           else *pforms++ = '\0';
       }
     }
