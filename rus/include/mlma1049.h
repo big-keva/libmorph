@@ -51,7 +51,7 @@
 # if !defined( mlmaru_search_flags_defined )
 #   define mlmaru_search_flags_defined
 #   define sfHardForms       0x0004    // Затрудненные словоформы
-#   define sfDefisWordTails  0x0008    // Обрабатывать соед. гласные
+#   define sfConnectorVowels 0x0008    // Отождествлять соединительные гласные
 #   define nfAdjVerbs        0x0100    // Нормализация до причастия
 # endif
 
@@ -116,8 +116,6 @@
 # if !defined( russian_gram_info_defined )
 #   define russian_gram_info_defined
 
-#   define wfMultiple     0x40          /* Множественное число   */
-
 #   define afAnimated     0x01          /*                       */
 #   define afNotAlive     0x02          /*                       */
 #   define afLifeless     0x02          /* синоним               */
@@ -153,24 +151,26 @@
 
 # endif  /* russian_gram_info_defined */
 
+#   define wfMultiple   0x0040          /* Множественное число   */
+
 # if !defined( wfUnionS )
 #   define wfUnionS     0x0040
 # endif
 
 # if !defined( wfExcellent )
-#   define wfExcellent  0x0100
+#   define wfExcellent  0x0080
 # endif
 
 # if !defined( wfCountable )
-#   define wfCountable  0x0200
+#   define wfCountable  0x0100
 # endif
 
 # if !defined( wfInformal )
-#   define wfInformal   0x0400
+#   define wfInformal   0x0200
 # endif
 
 # if !defined( wfObscene )
-#   define wfObscene    0x0800
+#   define wfObscene    0x0400
 # endif
 
 # if !defined( EXPORT )
