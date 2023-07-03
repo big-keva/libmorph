@@ -534,7 +534,7 @@ S*  FetchFrom( S* s, std::map<K, V>& m )
 template <class S,
 class K,
 class V>
-S*  SkipToEnd( S* s, std::map<K, V>& m )
+S*  SkipToEnd( S* s, std::map<K, V>&/* m*/ )
 {
   size_t  len;
 

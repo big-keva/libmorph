@@ -27,14 +27,21 @@ namespace LIBMORPH_NAMESPACE
 
   inline  static  void  set_flexinfo( SGramInfo& o, const steminfo& s, const SGramInfo& g )
   {
-    o.idForm = MapWordInfo( o.wdInfo = s.wdinfo & ~0xe000,
-                            o.grInfo = g.grInfo,
+    o.idForm = MapWordInfo( o.wdInfo = s.wdinfo & ~(wfPostSt + wfFlexes + wfMixTab + 0x1800),
+                            o.grInfo = g.grInfo,                                  /* ^^^ mix type  */
                             o.bFlags = g.bFlags );
   }
 
   inline  static  void  set_0xffinfo( SGramInfo& o, const steminfo& s, const SGramInfo& g )
   {
     o = setgrinfo( (word16_t)(s.wdinfo & ~0xe000), 0xff, g.grInfo, g.bFlags );
+  }
+
+  inline  static  bool  has_gramform( const SLemmInfoA& lemm, byte_t form )
+  {
+    for ( auto ptr = lemm.pgrams, end = ptr + lemm.ngrams; ptr != end; ++ptr )
+      if ( ptr->idForm == form )  return true;
+    return false;
   }
 
 //=========================================================================================
@@ -50,24 +57,29 @@ namespace LIBMORPH_NAMESPACE
                                  unsigned         fcount )
   {
     auto  set_graminfo = stinfo.tfoffs != 0 ? set_flexinfo : set_0xffinfo;
+    bool  merge_lexeme = false;
 
     assert( nerror == 0 );
 
-  // check if overflow will occur in this call
+  // check if overflow will occur in this call;
+  // check if last lemma exists and may be merged to current
     if ( plemma != nullptr )
     {
-      if ( plemma >= elemma )
-        return (nerror = LIDSBUFF_FAILED);
+      if ( nlemma == 0 || plemma[-1].nlexid != nlexid )
+      {
+        if ( plemma >= elemma )
+          return (nerror = LIDSBUFF_FAILED);
 
-      plemma->nlexid = nlexid;
-      plemma->plemma = pforms;
-      plemma->pgrams = pgrams;
-      plemma->ngrams = 0;
+        plemma->nlexid = nlexid;
+        plemma->plemma = pforms;
+        plemma->pgrams = pgrams;
+        plemma->ngrams = 0;
+      } else merge_lexeme = true;
     }
 
   // check if there is a buffer for normal forms; create normal forms
   // and store single form to the buffer selected for forms
-    if ( pforms != nullptr )
+    if ( !merge_lexeme && pforms != nullptr )
     {
       char    fmbuff[256];
       char*   outptr = fmbuff;
@@ -126,19 +138,28 @@ namespace LIBMORPH_NAMESPACE
     }
 
   // Проверить, надо ли восстанавливать грамматические описания
-    if ( plemma != nullptr && (plemma->pgrams = pgrams) != NULL )
+    if ( plemma != nullptr && pgrams != NULL )
     {
-      for ( ; fcount > 0 && pgrams < egrams; --fcount )
-        set_graminfo( *pgrams++, stinfo, *flexes++ );
+      if ( merge_lexeme )
+      {
+        for ( ; fcount > 0 && pgrams < egrams; --fcount )
+          if ( !has_gramform( plemma[-1], flexes->idForm ) )  set_graminfo( *pgrams++, stinfo, *flexes++ );
+            else ++flexes;
+      }
+        else
+      {
+        for ( ; fcount > 0 && pgrams < egrams; --fcount )
+          set_graminfo( *pgrams++, stinfo, *flexes++ );
+      }
 
       if ( fcount == 0 )  plemma->ngrams = (unsigned)(pgrams - plemma->pgrams);
         else return (nerror = GRAMBUFF_FAILED);
     }
 
-    if ( plemma != nullptr )
-      ++plemma;
+    plemma += (plemma != nullptr && !merge_lexeme ? 1 : 0);
+    nlemma += (!merge_lexeme ? 1 : 0);
 
-    return ++nlemma, 0;
+    return 0;
   }
 
 // doBuildForm implementation
@@ -150,8 +171,8 @@ namespace LIBMORPH_NAMESPACE
                                  const SGramInfo* flexes,
                                  unsigned         fcount )
   {
-    char      fmbuff[64];
-    char*     outptr = fmbuff;
+    char      sbuild[64];
+    char*     pbuild = sbuild;
     byte_t    stails[256];
     byte_t*   lptail = stails;
     int       ntails;
@@ -202,7 +223,7 @@ namespace LIBMORPH_NAMESPACE
 
   // Построить основу из словаря без изменяемой ее части
     for ( auto src = szstem; src != pszstr; )
-      *outptr++ = *src++;
+      *pbuild++ = *src++;
 
   // Построить окончания, соответствующие нормальной форме слова.
   // Если слово не флективно, то окончание будет нулевым
@@ -216,7 +237,7 @@ namespace LIBMORPH_NAMESPACE
   // flexion
     while ( ntails-- > 0 )
     {
-      auto    totail = outptr;
+      auto    totail = pbuild;
       size_t  cchout;
 
     // append next tail
@@ -228,13 +249,13 @@ namespace LIBMORPH_NAMESPACE
         totail = *szpost + (char*)memcpy( totail, szpost + 1, *szpost );
 
     // set the zero
-      *outptr++ = '\0';
+      *totail++ = '\0';
 
     // set capitalization scheme
-      SetCapScheme( (char*)fmbuff, GetMinScheme( stinfo.MinCapScheme(), fmbuff, scheme >> 8 ) );
+      SetCapScheme( (char*)sbuild, GetMinScheme( stinfo.MinCapScheme(), sbuild, scheme >> 8 ) );
 
     // output the string
-      if ( (cchout = codepages::mbcstombcs( encode, output, outend - output, codepages::codepage_1251, fmbuff, outptr - fmbuff )) == (size_t)-1 )
+      if ( (cchout = codepages::mbcstombcs( encode, output, outend - output, codepages::codepage_1251, sbuild, totail - sbuild )) == (size_t)-1 )
         return (nerror = LEMMBUFF_FAILED);  else  output += cchout;
 
     // correct buffer length

@@ -18,7 +18,7 @@ const char* substr( std::string& output, const filter& _allow, const char* sourc
   while ( source != nullptr && *source != '\0' && _allow( *source ) )
     ++source;
 
-  output = std::move( std::string( srcorg, source - srcorg ) );
+  output = std::string( srcorg, source - srcorg );
     return source;
 }
 
@@ -118,7 +118,7 @@ void  MakeTab( Source& src, fxlist& tab )
 
   // Check if the command string
     if ( stnext.front() == '.' ) cginfo = MapInfo( stnext.c_str() + 1, cginfo );
-      else newtab.Insert( std::move( MapLine( stnext.c_str(), cginfo ) ) );
+      else newtab.Insert( MapLine( stnext.c_str(), cginfo ) );
   }
 
   if ( newtab.empty() )
