@@ -200,34 +200,37 @@ namespace LIBMORPH_NAMESPACE
     CATCH_ALL
       byte_t      locase[256];
       char        cpsstr[256];
+      unsigned    scheme;
       doLemmatize lemact( locase, dwsets, codepage );
 
     // check source string and length
-      if ( pszstr == nullptr )
+      if ( pszstr == nullptr || cchstr == 0 )
         return 0;
 
       if ( cchstr == (size_t)-1 )
         for ( cchstr = 0; pszstr[cchstr] != 0; ++cchstr ) (void)NULL;
 
-    // check for overflow
-      if ( cchstr >= sizeof(locase) )
-        return WORDBUFF_FAILED;
-
-    // modify the codepage
+    // check for utf8 or multibyte
       if ( codepage != codepages::codepage_1251 )
       {
         if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
           return WORDBUFF_FAILED;
-        pszstr = cpsstr;
+        if ( (scheme = GetCapScheme( locase, sizeof(locase), cpsstr, cchstr )) == (unsigned)-1 )
+          return WORDBUFF_FAILED;
       }
-
-    // get capitalization scheme
-      lemact.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
+        else
+      {
+        if ( cchstr > sizeof(locase) )
+          return WORDBUFF_FAILED;
+        if ( (scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr )) == (unsigned)-1 )
+          return WORDBUFF_FAILED;
+      }
 
     // fill other fields
       lemact.elemma = (lemact.plemma = plemma) + clemma;
       lemact.eforms = (lemact.pforms = pforms) + cforms;
       lemact.egrams = (lemact.pgrams = pgrams) + cgrams;
+      lemact.scheme = scheme & 0x0000ffff;
 
     // call dictionary scanner
       return LinearScanDict<byte_t, int>( listLookup<doLemmatize, steminfo>( lemact ), stemtree, { locase, cchstr } ) < 0 ?
@@ -264,37 +267,42 @@ namespace LIBMORPH_NAMESPACE
   int   CMlmaMb::FindForms( char* output, size_t  cchout, const char* pszstr, size_t  cchstr, formid_t idform )
   {
     CATCH_ALL
-      byte_t                            locase[256];
-      char                              cpsstr[256];
-      doBuildForm                       abuild( locase, 0, codepage );
-      listLookup<doBuildForm, steminfo> lookup( abuild );
+      byte_t      locase[256];
+      char        cpsstr[256];
+      unsigned    scheme;
+      doBuildForm abuild( locase, 0, codepage );
 
     // check source string and length
-      if ( pszstr == nullptr )
+      if ( pszstr == nullptr || cchstr == 0 )
         return 0;
 
       if ( cchstr == (size_t)-1 )
         for ( cchstr = 0; pszstr[cchstr] != 0; ++cchstr ) (void)NULL;
 
-    // check for overflow
-      if ( cchstr >= sizeof(locase) )
-        return WORDBUFF_FAILED;
-
-    // modify the codepage
+    // check for utf8 or multibyte
       if ( codepage != codepages::codepage_1251 )
       {
         if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
           return WORDBUFF_FAILED;
-        pszstr = cpsstr;
+        if ( (scheme = GetCapScheme( locase, sizeof(locase), cpsstr, cchstr )) == (unsigned)-1 )
+          return WORDBUFF_FAILED;
+      }
+        else
+      {
+        if ( cchstr > sizeof(locase) )
+          return WORDBUFF_FAILED;
+        if ( (scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr )) == (unsigned)-1 )
+          return WORDBUFF_FAILED;
       }
 
-      abuild.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
       abuild.outend = (abuild.output = output) + cchout;
       abuild.grinfo = 0;
       abuild.bflags = 0;
       abuild.idform = idform;
+      abuild.scheme = scheme & 0x0000ffff;
 
-      return LinearScanDict<byte_t, int>( lookup, stemtree, { locase, cchstr } ) < 0 ? abuild.nerror : abuild.rcount;
+      return LinearScanDict<byte_t, int>( listLookup<doBuildForm, steminfo>( abuild ), stemtree, { locase, cchstr } ) < 0 ?
+        abuild.nerror : (int)abuild.rcount;
     ON_ERRORS( -1 )
   }
 
