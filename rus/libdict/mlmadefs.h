@@ -43,7 +43,6 @@ namespace LIBMORPH_NAMESPACE
   # define wfPostSt   0x8000       /* Stem has post-text definition          */
   # define wfMixTab   0x4000       /* Stem has mix-table reference           */
   # define wfFlexes   0x2000       /* Stem has flex-table reference          */
-  # define wfOldWord  0x0080       /* Old word, at most not used now         */
 
   // Глобальные данные, которые никто не трогает
 
@@ -82,7 +81,7 @@ namespace LIBMORPH_NAMESPACE
 
   inline int  GetVerbMixPower( word16_t stemInfo, word16_t gramInfo )
   {
-    int   mixType = (stemInfo & 0x0300) >> 8;
+    int   mixType = (stemInfo & 0x1800) >> 11;
 
     return ( mixType == 0 ? GetVerbMixPowerType1( gramInfo ) :
            ( mixType == 1 ? GetVerbMixPowerType2( gramInfo ) :
@@ -208,7 +207,7 @@ namespace LIBMORPH_NAMESPACE
       else
     if ( IsAdjective( wbInfo ) )
       nfInfo = 1 << 9;
-    if ( wbInfo & wfMultiple )
+    if ( (wbInfo & wfMultiple) != 0 )
       nfInfo |= gfMultiple;
     return nfInfo;
   }
