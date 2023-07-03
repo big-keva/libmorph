@@ -218,7 +218,7 @@ public:
         ftable.data(), findex,
         mtable.data(), mindex )).mclass != nullclass )
       {
-        keyset.push_back( std::move( MapLexStem( lexinf ) ) );
+        keyset.push_back( MapLexStem( lexinf ) );
         return keyset;
       }
 
@@ -230,10 +230,10 @@ public:
         strncpy( zapart, zindex, strptr - zindex )[strptr - zindex] = '\0';
 
         if ( (lexinf = ResolveClassInfo( sznorm, szdies, sztype, zapart, string, ftable.data(), findex, mtable.data(), mindex )).mclass != nullclass )
-          keyset.push_back( std::move( MapLexStem( lexinf ) ) );
+          keyset.push_back( MapLexStem( lexinf ) );
 
         if ( (lexinf = ResolveClassInfo( sznorm, szdies, sztype, strptr + 2, string, ftable.data(), findex, mtable.data(), mindex )).mclass != nullclass )
-          keyset.push_back( std::move( MapLexStem( lexinf ) ) );
+          keyset.push_back( MapLexStem( lexinf ) );
       }
 
       return keyset;
