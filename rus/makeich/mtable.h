@@ -135,7 +135,7 @@ inline  void  interchange::addstep( const char* mix, int step )
   if ( beg != end && res == 0 )
     return (void)(beg->nflags |= (1 << step));
 
-  return (void)ichset.emplace( beg, std::move( fragment( mix, 1 << step ) ) );
+  return (void)ichset.emplace( beg, fragment( mix, 1 << step ) );
 }
 
 inline  uint16_t  interchange::GetBufLen() const
