@@ -446,7 +446,7 @@ lexemeinfo  ResolveClassInfo(
   }
 
   if ( mixIndex != 0 )
-    lexeme.mclass.wdinfo |= (mixIndex << 8);
+    lexeme.mclass.wdinfo |= ((mixIndex & 0x03) << 11);
 
   return lexeme;
 }
