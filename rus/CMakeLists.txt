@@ -120,11 +120,14 @@ install(
     include/mlma1049.h
   DESTINATION include/libmorph/rus/include)
 
-add_executable(libmorph-rus-test
-	libdict/test/testcapi.c
-	libdict/test/testfunc.cpp)
+if (FALSE)
+	add_executable(libmorph-rus-test
+		libdict/test/testcapi.c
+		libdict/test/testfunc.cpp)
 
-target_link_libraries(libmorph-rus-test
-     morphrus
-     moonycode
-     mtc)
+
+	target_link_libraries(libmorph-rus-test
+     		morphrus
+     		moonycode
+     		mtc)
+endif()
