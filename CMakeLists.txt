@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 project(libmorph)
 
 option(BUILD_STATIC_LIBS "Build static library" ON)
-option(BUILD_SHARED_LIBS "Build shared library" OFF)
+option(BUILD_SHARED_LIBS "Build shared library" ON)
 option(build-php "Build shared library" OFF)
 
 set(CMAKE_C_STANDARD 11)
