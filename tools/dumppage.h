@@ -1,6 +1,7 @@
 # pragma once
 # if !defined( __dumppage_h__ )
 # define __dumppage_h__
+# include <tools/serialize.h>
 # include <stdexcept>
 # include <cstdarg>
 # include <cstring>
@@ -123,7 +124,8 @@ namespace libmorph
 
 } // end 'libmorph' namespace
 
-inline  libmorph::dumpsource* Serialize( libmorph::dumpsource* o, const void* p, size_t l )
+template <>
+libmorph::dumpsource* Serialize( libmorph::dumpsource* o, const void* p, size_t l )
 {
   if ( o != nullptr )
     o->putbuff( p, l );

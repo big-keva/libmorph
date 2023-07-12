@@ -1,11 +1,10 @@
 # include <tools/dumppage.h>
 # include "lresolve.h"
 # include "../licenseGPL.h"
-# include <tools/plaintable.h>
-# include <tools/ftables.h>
-# include <tools/sweets.h>
-# include <tools/serialize.h>
-# include "classtable.hpp"
+# include "tools/plaintable.h"
+# include "tools/classtable.h"
+# include "tools/ftables.h"
+# include "tools/sweets.h"
 # include "mtables.h"
 # include <map>
 
@@ -107,7 +106,7 @@ class ResolveRus
   std::vector<char>         aplain;
   std::map<size_t, size_t>  iplain;
 
-  classtable                clsset;
+  classtable<morphclass>    clsset;
 
 protected:
   template <size_t N>
