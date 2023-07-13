@@ -82,7 +82,7 @@ auto  FindLexemes( IMlmaMb* mlma, const char* pstr ) -> LexSet
 
   std::sort( lexset.begin(), lexset.end() );
 
-  return std::move( lexset );
+  return lexset;
 }
 
 auto  LemmatizeIt( IMlmaMb* mlma, const char* pstr ) -> LexSet
@@ -96,7 +96,7 @@ auto  LemmatizeIt( IMlmaMb* mlma, const char* pstr ) -> LexSet
 
   std::sort( lexset.begin(), lexset.end() );
 
-  return std::move( lexset );
+  return lexset;
 }
 
 TestItEasy::RegisterFunc  testmorphrus( []()
@@ -187,7 +187,7 @@ TestItEasy::RegisterFunc  testmorphrus( []()
         {  REQUIRE( mlma->CheckWord( "ывал", strlen( "ывал" ), 0 ) == 0 );  }
         SECTION( "called with exact BYTES length of string and no options, it does not recognize word with mixed capitals" )
         {  REQUIRE( mlma->CheckWord( "ПрОвЕрКа", strlen( "ПрОвЕрКа" ), 0 ) == 0 );  }
-        SECTION( "called with exact BYTES length of string and 'sfIgnoreCapitals', it recognizse word with mixed capitals" )
+        SECTION( "called with exact BYTES length of string and 'sfIgnoreCapitals', it recognizes word with mixed capitals" )
         {  REQUIRE( mlma->CheckWord( "ПрОвЕрКа", strlen( "ПрОвЕрКа" ), sfIgnoreCapitals ) == 1 );  }
         SECTION( "called with unknown length and no options, it does not recognize word with mixed capitals" )
         {  REQUIRE( mlma->CheckWord( "ПрОвЕрКа", (size_t)-1, 0 ) == 0 );  }

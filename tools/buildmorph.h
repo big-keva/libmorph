@@ -23,13 +23,15 @@ inline  size_t  lexkeybuf( char* lexbuf, unsigned nlexid )
   return lexbuf - lexorg;
 }
 
-template <class steminfo, class resolver>
+template <class resolver>
 class buildmorph
 {
+  using   steminfo = typename resolver::entry_type;
+  using   stemdata = std::pair<std::string, steminfo>;
+
   typedef wordtree<std::vector<steminfo>, unsigned char>  StemTree;   // the actual tree
   typedef wordtree<unsigned, unsigned short>              LidsTree;
 
-  using   stemdata = std::pair<std::string, steminfo>;
 
 protected:
   std::string           nspace;
@@ -37,6 +39,7 @@ protected:
   std::string           outdir;
 
 protected:
+  const unsigned        sourceCP;
   StemTree              stemtree;   // the actual tree
   LidsTree              lidstree;
   resolver&             clparser;
@@ -44,16 +47,12 @@ protected:
   FILE*                 unknowns;
 
 public:     // construction
-  buildmorph( resolver& cparser, const char* license, unsigned codepage ):
-      clparser( cparser ),
-      sLicense( license ),
-      unknowns( nullptr )
-    {  (void)codepage;  }
- ~buildmorph()
-    {
-      if ( unknowns != nullptr )
-        fclose( unknowns );
-    }
+  buildmorph( resolver& cparser, const char* license, unsigned srcpage ):
+    sourceCP( srcpage ),
+    clparser( cparser ),
+    sLicense( license ),
+    unknowns( nullptr ) {}
+ ~buildmorph();
 
 public:
   buildmorph& SetTargetDir( const std::string& s )  {  outdir = s;  return *this;  }
@@ -71,8 +70,15 @@ protected:  // helpers
 
 // buildmorph implementation
 
-template <class steminfo, class resolver>
-void  buildmorph<steminfo, resolver>::CreateDict( const std::vector<const char*>& dicset )
+template <class resolver>
+buildmorph<resolver>::~buildmorph()
+{
+  if ( unknowns != nullptr )
+    fclose( unknowns );
+}
+
+template <class resolver>
+void  buildmorph<resolver>::CreateDict( const std::vector<const char*>& dicset )
 {
   size_t    length;
 
@@ -128,8 +134,8 @@ void  buildmorph<steminfo, resolver>::CreateDict( const std::vector<const char*>
     Namespace( nspace ).OutDir( outdir ).Header( sLicense ).Dump( "lidstree", lidstree );
 }
 
-template <class steminfo, class resolver>
-void  buildmorph<steminfo, resolver>::DictReader( FILE* source )
+template <class resolver>
+void  buildmorph<resolver>::DictReader( FILE* source )
 {
   char    szline[0x400];
   int     nwords;
@@ -143,7 +149,7 @@ void  buildmorph<steminfo, resolver>::DictReader( FILE* source )
     std::vector<stemdata> astems;
 
   // change codepage
-    codepages::mbcstombcs( codepages::codepage_1251, szline, sizeof(szline), codepages::codepage_866, szline );
+    codepages::mbcstombcs( codepages::codepage_1251, szline, sizeof(szline), sourceCP, szline );
 
   // string prepare block
     for ( strtop = szline; *strtop != '\0' && (unsigned char)*strtop <= 0x20; ++strtop )  (void)NULL;
@@ -166,7 +172,7 @@ void  buildmorph<steminfo, resolver>::DictReader( FILE* source )
       continue;
 
   // resolve word properties
-    if ( (astems = clparser.BuildStems( strtop )).size() == 0 )
+    if ( (astems = clparser( strtop )).size() == 0 )
     {
       PutUnknown( strtop );
       continue;
@@ -186,8 +192,8 @@ void  buildmorph<steminfo, resolver>::DictReader( FILE* source )
   }
 }
 
-template <class steminfo, class resolver>
-void  buildmorph<steminfo, resolver>::PutUnknown( const char* unknown )
+template <class resolver>
+void  buildmorph<resolver>::PutUnknown( const char* unknown )
 {
   if ( unknowns == nullptr )
   {

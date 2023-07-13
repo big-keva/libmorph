@@ -3,6 +3,7 @@
 # include "../licenseGPL.h"
 # include "tools/plaintable.h"
 # include "tools/classtable.h"
+# include "tools/buildmorph.h"
 # include "tools/ftables.h"
 # include "tools/sweets.h"
 # include "mtables.h"
@@ -51,52 +52,8 @@ unsigned char mixTypes[64] =
   0x00, 0x00
 };
 
-struct  lexemedump
-{
-  byte_t      chrmin;
-  byte_t      chrmax;
-  lexeme_t    nlexid;
-  word16_t    oclass;
-  std::string stpost;
-
-public:     // comparison
-  bool  operator <  ( const lexemedump& r ) const {  return compare( r ) < 0;   }
-  bool  operator == ( const lexemedump& r ) const {  return compare( r ) == 0;  }
-
-public:
-  auto  GetBufLen() const -> size_t
-  {
-    return 2 + ::GetBufLen( nlexid ) + sizeof(word16_t) + (stpost.length() != 0 ? stpost.length() + 1 : 0);
-  }
-  template <class O>
-  O*    Serialize( O* o ) const
-  {
-    word16_t  wstore = oclass | (stpost.length() != 0 ? 0x8000 : 0);
-
-    o = ::Serialize( ::Serialize( ::Serialize( ::Serialize( o,
-      &chrmin, sizeof(chrmin) ),
-      &chrmax, sizeof(chrmax) ), nlexid ), &wstore, sizeof(wstore) );
-
-    return (wstore & 0x8000) != 0 ? ::Serialize( o, stpost ) : o;
-  }
-
-protected:  // helpers
-  int   compare( const lexemedump& r ) const
-    {
-      int   rescmp;
-
-      if ( (rescmp = r.chrmax - chrmax) == 0 )
-      if ( (rescmp = chrmin - r.chrmin) == 0 )
-      if ( (rescmp = strcmp( stpost.c_str(), r.stpost.c_str() )) == 0 )
-            rescmp = nlexid - r.nlexid;
-      return rescmp;
-    }
-};
-
 class ResolveRus
 {
-  using stemdata = std::pair<std::string, lexemedump>;
-
   std::vector<char>         ftable;
   libmorph::TableIndex      findex;
 
@@ -108,7 +65,31 @@ class ResolveRus
 
   classtable<morphclass>    clsset;
 
+public:     /* entry_type - элемент словаря, обисание словоизмнения внешней графической основы  */
+  struct  entry_type
+  {
+    byte_t      chrmin;
+    byte_t      chrmax;
+    lexeme_t    nlexid;
+    word16_t    oclass;
+    std::string stpost;
+
+  public:     // comparison
+    bool  operator <  ( const entry_type& r ) const {  return compare( r ) < 0;   }
+    bool  operator == ( const entry_type& r ) const {  return compare( r ) == 0;  }
+
+  public:
+                        auto  GetBufLen() const -> size_t;
+    template <class O>  O*    Serialize( O* ) const;
+
+  protected:  // helpers
+    int   compare( const entry_type& ) const;
+
+  };
+
 protected:
+  using   stem_entry = std::pair<std::string, entry_type>;
+
   template <size_t N>
   const char* GetSubtext( const char* source, char (&output)[N] )
     {
@@ -126,28 +107,16 @@ protected:
       return source;
     }
 
-protected:
-  template <class O>
-  void  LoadObject( O& o, const std::string& szpath ) const
-    {
-      FILE* lpfile;
-
-      if ( (lpfile = fopen( szpath.c_str(), "rb" )) == nullptr )
-        throw std::runtime_error( "could not open file '" + std::string( szpath ) + "'" );
-
-      if ( o.Load( (FILE*)lpfile ) == nullptr )
-        {
-          fclose( lpfile );
-          throw std::runtime_error( "could not load object from file '" + std::string( szpath ) + "'" );
-        }
-      fclose( lpfile );
-    }
-
 public:
   void  InitTables( const std::string&  flex_table, const std::string& flex_index,
                     const std::string&  intr_table, const std::string& intr_index );
   void  SaveTables( const std::string&  output_dir, const std::string& name_space );
 
+public:
+  auto  operator ()( const char* article ) -> std::vector<stem_entry>
+  {  return BuildStems( article );  }
+
+protected:
   /*
     MapTables( class )
 
@@ -181,9 +150,9 @@ public:
       }
       return mclass;
     }
-  stemdata  MapLexStem( const lexemeinfo& li )
+  auto  MapLexStem( const lexemeinfo& li ) -> stem_entry
     {
-      lexemedump  stinfo;
+      entry_type  stinfo;
 
       stinfo.chrmin = li.chrmin;
       stinfo.chrmax = li.chrmax;
@@ -192,9 +161,9 @@ public:
 
       return std::make_pair( li.ststem, stinfo );
     }
-  std::vector<stemdata> BuildStems( const char* string )
+  auto  BuildStems( const char* string ) -> std::vector<stem_entry>
     {
-      std::vector<stemdata>   keyset;
+      std::vector<stem_entry> keyset;
       lexemeinfo              lexinf;
       char                    sznorm[0x100];
       char                    szdies[0x20];
@@ -239,34 +208,29 @@ public:
     }
 };
 
-# include <tools/buildmorph.h>
-
-class BuildRus: public buildmorph<lexemedump, ResolveRus>
+class BuildRus: public ResolveRus, buildmorph<ResolveRus>
 {
-  using inherited = buildmorph<lexemedump, ResolveRus>;
+  using inherited = buildmorph<ResolveRus>;
 
   bool  GetSwitch( std::string& out, const char* arg, const char* key ) const
   {
     size_t  keylen = strlen( key );
 
-    if ( strncmp( arg, key, keylen ) != 0 )
-      return false;
-
-    if ( arg[keylen] != '=' && arg[keylen] != ':' )
-      return false;
-
-    if ( out.length() != 0 )
-      throw std::runtime_error( std::string( "'" ) + key + "' is already defined as '" + out + "'" );
-
-    out = arg + 1 + keylen;
-      return true;
+    if ( strncmp( arg, key, keylen ) == 0 && (arg[keylen] == '=' || arg[keylen] == ':') )
+    {
+      if ( out.length() != 0 )
+        throw std::runtime_error( std::string( "'" ) + key + "' is already defined as '" + out + "'" );
+      out = arg + 1 + keylen;
+        return true;
+    }
+    return false;
   };
 
 public:
-  BuildRus(): buildmorph<lexemedump, ResolveRus>( rusmorph, libmorph_rus_license, codepages::codepage_866 ), rusmorph()
-    {}
-  template <class Args>
-  int   Run( Args& args )
+  BuildRus():
+    buildmorph<ResolveRus>( *this, libmorph_rus_license, codepages::codepage_866 )  {}
+
+  int   Run( int argc, char* argv[] )
     {
       std::string flex_tab;
       std::string flex_idx;
@@ -280,23 +244,23 @@ public:
 
       std::vector<const char*>  dict_set;
 
-      for ( auto arg = args.begin(); arg != args.end(); ++arg )
+      for ( auto i = 1; i != argc; ++i )
       {
-        if ( **arg == '-' )
+        if ( *argv[i] == '-' )
         {
-          if ( !GetSwitch( flex_tab, 1 + *arg, "flex-table" )
-            && !GetSwitch( flex_idx, 1 + *arg, "flex-index" )
-            && !GetSwitch( intr_tab, 1 + *arg, "intr-table" )
-            && !GetSwitch( intr_idx, 1 + *arg, "intr-index" )
-            && !GetSwitch( outp_dir, 1 + *arg, "target-dir" )
+          if ( !GetSwitch( flex_tab, 1 + argv[i], "flex-table" )
+            && !GetSwitch( flex_idx, 1 + argv[i], "flex-index" )
+            && !GetSwitch( intr_tab, 1 + argv[i], "intr-table" )
+            && !GetSwitch( intr_idx, 1 + argv[i], "intr-index" )
+            && !GetSwitch( outp_dir, 1 + argv[i], "target-dir" )
 
-            && !GetSwitch( unk_name, 1 + *arg, "unknown" )
-            && !GetSwitch( name_spc, 1 + *arg, "namespace" )
-            && !GetSwitch( codepage, 1 + *arg, "codepage" ) )
-          throw std::runtime_error( "invalid switch: " + std::string( *arg ) );
+            && !GetSwitch( unk_name, 1 + argv[i], "unknown" )
+            && !GetSwitch( name_spc, 1 + argv[i], "namespace" )
+            && !GetSwitch( codepage, 1 + argv[i], "codepage" ) )
+          throw std::runtime_error( "invalid switch: " + std::string( argv[i] ) );
         }
           else
-        dict_set.push_back( *arg );
+        dict_set.push_back( argv[i] );
       }
 
     // check parameters
@@ -319,17 +283,44 @@ public:
       SetNamespace( name_spc ).
       SetTargetDir( outp_dir );
 
-      rusmorph.InitTables( flex_tab, flex_idx, intr_tab, intr_idx );
+      InitTables( flex_tab, flex_idx, intr_tab, intr_idx );
         CreateDict( dict_set );
-      rusmorph.SaveTables( outp_dir, name_spc );
+      SaveTables( outp_dir, name_spc );
 
       return 0;
     }
 
-protected:
-  ResolveRus  rusmorph;
-
 };
+
+// ResolveRus::entry_type implementation
+
+auto  ResolveRus::entry_type::GetBufLen() const -> size_t
+{
+  return 2 + ::GetBufLen( nlexid ) + sizeof(word16_t) + (stpost.length() != 0 ? stpost.length() + 1 : 0);
+}
+
+template <class O>
+O*    ResolveRus::entry_type::Serialize( O* o ) const
+{
+  word16_t  wstore = oclass | (stpost.length() != 0 ? 0x8000 : 0);
+
+  o = ::Serialize( ::Serialize( ::Serialize( ::Serialize( o,
+    &chrmin, sizeof(chrmin) ),
+    &chrmax, sizeof(chrmax) ), nlexid ), &wstore, sizeof(wstore) );
+
+  return (wstore & 0x8000) != 0 ? ::Serialize( o, stpost ) : o;
+}
+
+int   ResolveRus::entry_type::compare( const entry_type& r ) const
+{
+  int   rescmp;
+
+  if ( (rescmp = r.chrmax - chrmax) == 0 )
+  if ( (rescmp = chrmin - r.chrmin) == 0 )
+  if ( (rescmp = strcmp( stpost.c_str(), r.stpost.c_str() )) == 0 )
+        rescmp = nlexid - r.nlexid;
+  return rescmp;
+}
 
 // ResolveRus implementation
 
@@ -342,102 +333,23 @@ void  ResolveRus::InitTables( const std::string&  flex_table, const std::string&
 
 // load flex ad mix tables
   ftable = libmorph::LoadSource( flex_table.c_str() );
-    LoadObject( findex, flex_index );
+    libmorph::LoadObject( findex, flex_index );
   mtable = libmorph::LoadSource( intr_table.c_str() );
-    LoadObject( mindex, intr_index );
+    libmorph::LoadObject( mindex, intr_index );
 }
 
 void  ResolveRus::SaveTables( const std::string& outdir, const std::string& nspace )
 {
-  size_t  length;
+  clsset.GetBufLen();
 
-  if ( (length = clsset.GetBufLen()) != (size_t)-1 )
-    libmorph::LogMessage( 0, "info: type dictionary size is %d bytes.\n", length );
-  else throw std::runtime_error( "fault to calculate the type dictionary size!" );
-
-  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license ).
-    Dump( "mxTables", mtc::serialbuf( mtable.data(), mtable.size() ) );
-  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license ).
-    Dump( "flexTree", mtc::serialbuf( aplain.data(), aplain.size() ) );
-  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license ).
-    Dump( "mixTypes", mtc::serialbuf( mixTypes, sizeof(mixTypes) ) );
-  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license ).
-    Dump( "classmap", clsset );
-}
-
-std::vector<char>         LoadCommandFile( const char* szpath )
-{
-  std::vector<char> output;
-  FILE*             lpfile = nullptr;
-
-  try
-  {
-    if ( (lpfile = fopen( szpath, "rb" )) == nullptr )
-      throw std::runtime_error( "could not open the responce file '" + std::string( szpath ) + "'" );
-
-    while ( !feof( lpfile ) )
-    {
-      char  chbuff[0x400];
-      auto  cbread = fread( chbuff, 1, sizeof(chbuff), lpfile );
-
-      if ( cbread != 0 )
-        output.insert( output.end(), chbuff, cbread + chbuff );
-    }
-
-    output.push_back( 0 );
-
-    fclose( lpfile );
-
-    return output;
-  }
-  catch ( ... )
-  {
-    if ( lpfile != nullptr )
-      fclose( lpfile );
-    throw;
-  }
-}
-
-std::vector<const char*>  ReadCommandLine( int argc, char* argv[] )
-{
-  std::vector<const char*>  out;
-
-  for ( auto arg = argv + 1; arg < argv + argc; ++arg )
-    if ( **arg != '@' )
-      out.push_back( *arg );
-
-  return out;
-}
-
-std::vector<const char*>  ReadCommandFile( std::vector<const char*>&& cmd, std::vector<char>& buf )
-{
-  std::replace_if( buf.begin(), buf.end(), []( char ch ){  return (unsigned char)ch <= 0x20;  }, '\0' );
-
-  for ( auto top = buf.begin(); top != buf.end(); )
-    if ( *top != '\0' )
-    {
-      auto  end = top;
-      auto  pos = cmd.end();
-
-      if ( *top == '-' )
-        while ( end != buf.end() && *end != '\0' && *end != '=' && *end != ':' ) ++end;
-      else
-        while ( end != buf.end() && *end != '\0' ) ++end;
-
-    // search key in the list
-      for ( auto p = cmd.begin(); p != cmd.end() && pos == cmd.end(); ++p )
-        if ( strncmp( buf.data() + (top - buf.begin()), *p, end - top ) == 0 )
-          pos = p;
-
-    // check of overriden in args
-      if ( pos == cmd.end() )
-        cmd.push_back( buf.data() + (top - buf.begin()) );
-
-      while ( top != buf.end() && *top != '\0' ) ++top;
-      while ( top != buf.end() && *top == '\0' ) ++top;
-    }
-
-  return std::move( cmd );
+  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license )
+    .Dump( "mxTables", mtc::serialbuf( mtable.data(), mtable.size() ) );
+  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license )
+    .Dump( "flexTree", mtc::serialbuf( aplain.data(), aplain.size() ) );
+  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license )
+    .Dump( "mixTypes", mtc::serialbuf( mixTypes, sizeof(mixTypes) ) );
+  libmorph::BinaryDumper().OutDir( outdir ).Namespace( nspace ).Header( libmorph_rus_license )
+    .Dump( "classmap", clsset );
 }
 
 /*
@@ -456,26 +368,16 @@ char about[] = "makerus - the dictionary builder;\n"
                "\t" "-codepage=codepage_name_for_dictionaries_sources\n"
                ;
 
-# include <tools/serialize.h>
-
 int   main( int argc, char* argv[] )
 {
   try
   {
-    BuildRus          generate;
-    auto              commands = ReadCommandLine( argc, argv );
-    std::vector<char> respfile;
+    BuildRus  generate;
 
     if ( argc < 2 )
       return libmorph::LogMessage( 0, about );
 
-    if ( *argv[1] == '@' )
-    {
-      respfile = LoadCommandFile( argv[1] + 1 );
-      commands = ReadCommandFile( std::move( commands ), respfile );
-    }
-
-    return generate.Run( commands );
+    return generate.Run( argc, argv  );
   }
   catch ( const std::runtime_error& x )
   {
