@@ -17,13 +17,13 @@ namespace libmorph
     return nerror;
   }
 
-  inline  std::vector<char> LoadSource( const char* szfile )
+  inline  auto  LoadSource( const std::string& szpath ) -> std::vector<char>
   {
     std::vector<char> output;
     FILE*             lpfile;
 
-    if ( (lpfile = fopen( szfile, "rb" )) == nullptr )
-      throw std::runtime_error( "file '" + std::string( szfile ) + "' not found" );
+    if ( (lpfile = fopen( szpath.c_str(), "rb" )) == nullptr )
+      throw std::runtime_error( "could not open file '" + szpath + "'" );
 
     while ( !feof( lpfile ) )
     {
@@ -37,6 +37,24 @@ namespace libmorph
     fclose( lpfile );
 
     return output;
+  }
+
+  template <class O>
+  auto    LoadObject( O& object, const std::string& szpath ) -> O&
+  {
+    FILE* lpfile;
+
+    if ( (lpfile = fopen( szpath.c_str(), "rb" )) == nullptr )
+      throw std::runtime_error( "could not open file '" + szpath + "'" );
+
+    if ( object.Load( (FILE*)lpfile ) == nullptr )
+    {
+      fclose( lpfile );
+      throw std::runtime_error( "could not load object from file '" + std::string( szpath ) + "'" );
+    }
+
+    fclose( lpfile );
+    return object;
   }
 
   inline  char* trim( char* thestr )
