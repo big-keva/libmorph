@@ -251,10 +251,17 @@ TestItEasy::RegisterFunc  testmorphrus( []()
       }
       SECTION( "GetWdInfo" )
       {
-        /*
-    MLMA_METHOD( GetWdInfo )( MLMA_THIS
-                              unsigned char*  pwinfo, lexeme_t  nlexid ) MLMA_PURE;
-        */
+        unsigned char wdinfo;
+
+        SECTION( "it returns the technical part-of-speach for any lexeme" )
+        {
+          REQUIRE( mlma->GetWdInfo( &wdinfo, 128 ) != 0 );
+          REQUIRE( wdinfo == 1 );
+        }
+        SECTION( "for invalid lexemes, it returns 0" )
+        {
+          REQUIRE( mlma->GetWdInfo( &wdinfo, 127 ) == 0 );
+        }
       }
       SECTION( "EnumWords" )
       {
