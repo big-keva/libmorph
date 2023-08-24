@@ -422,6 +422,9 @@ namespace LIBMORPH_NAMESPACE
 
   int   CMlmaWc::SetLoCase( widechar* pwsstr, size_t  cchstr )
   {
+    if ( cchstr == (size_t)-1 )
+      for ( cchstr = 0; pwsstr[cchstr] != 0; ++cchstr ) (void)NULL;
+
     CATCH_ALL
       return codepages::strtolower( (widechar*)pwsstr, cchstr, (const widechar*)pwsstr, cchstr ), 0;
     ON_ERRORS( -1 )
@@ -429,6 +432,9 @@ namespace LIBMORPH_NAMESPACE
                                
   int   CMlmaWc::SetUpCase( widechar* pwsstr, size_t  cchstr )
   {
+    if ( cchstr == (size_t)-1 )
+      for ( cchstr = 0; pwsstr[cchstr] != 0; ++cchstr ) (void)NULL;
+
     CATCH_ALL
       return codepages::strtoupper( (widechar*)pwsstr, cchstr, (const widechar*)pwsstr, cchstr ), 0;
     ON_ERRORS( -1 )
