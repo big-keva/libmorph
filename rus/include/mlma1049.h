@@ -318,6 +318,18 @@
     MLMA_METHOD( EnumWords )( MLMA_THIS
                               IMlmaEnum*      pienum,
                               const widechar* pszstr, size_t    cchstr ) MLMA_PURE;
+
+# if defined( __cplusplus )
+
+    template <size_t N>
+    int   BuildForm( widechar (&output)[N], lexeme_t nlexid, formid_t idform )
+      {  return BuildForm( output, N, nlexid, idform );  }
+
+    template <size_t N>
+    int   CheckHelp( widechar (&output)[N], const widechar* pwsstr, size_t cchstr = (size_t)-1 )
+      {  return CheckHelp( output, N, pwsstr, cchstr );  }
+
+# endif
   MLMA_END;
 
 # if !defined( __cplusplus )
