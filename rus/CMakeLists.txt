@@ -32,9 +32,9 @@ endif(BUILD_SHARED_LIBS)
 add_library(morphrus
   libdict/chartype.cpp
   libdict/mlmamain.cpp
-  ${libmorph_SOURCE_DIR}/xmorph/capsheme.cpp
-  ${libmorph_SOURCE_DIR}/xmorph/lemmatiz.cpp
-  ${libmorph_SOURCE_DIR}/xmorph/wildscan.cpp
+  ../xmorph/capsheme.cpp
+  ../xmorph/lemmatiz.cpp
+  ../xmorph/wildscan.cpp
   ${DicCPP}
 )
 
