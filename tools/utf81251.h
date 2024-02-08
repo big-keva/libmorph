@@ -1,7 +1,7 @@
 # pragma once
 # if !defined( __utf8to1251_h__ )
 # define __utf8to1251_h__
-# include <moonycode/codes.h>
+# include "moonycode/codes.h"
 # include <string>
 
 inline  std::string utf8to1251( const char* s )

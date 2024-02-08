@@ -3,7 +3,7 @@
 # include "../tools/sourcefile.h"
 # include "../tools/utf81251.h"
 # include "../tools/sweets.h"
-# include <moonycode/codes.h>
+# include "moonycode/codes.h"
 # include <errno.h>
 
 using namespace codepages;

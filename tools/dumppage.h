@@ -1,7 +1,7 @@
 # pragma once
 # if !defined( __dumppage_h__ )
 # define __dumppage_h__
-# include <tools/serialize.h>
+# include "serialize.h"
 # include <stdexcept>
 # include <cstdarg>
 # include <cstring>
