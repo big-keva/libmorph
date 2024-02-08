@@ -1,6 +1,6 @@
 # if !defined( __conditions_h__ )
 # define  __conditions_h__
-# include <tools/serialize.h>
+# include "../../tools/serialize.h"
 # include <cstdint>
 # include <cassert>
 # include <string>

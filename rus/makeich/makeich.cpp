@@ -1,6 +1,6 @@
-# include <moonycode/codes.h>
-# include <tools/utf81251.h>
-# include <tools/sourcefile.h>
+# include "moonycode/codes.h"
+# include "../../tools/utf81251.h"
+# include "../../tools/sourcefile.h"
 # include "mtable.h"
 
 std::string trim( std::string s )
