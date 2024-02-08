@@ -1,6 +1,6 @@
 # include "lresolve.h"
-# include <tools/utf81251.h>
-# include <tools/ftables.h>
+# include "../../tools/utf81251.h"
+# include "../../tools/ftables.h"
 # include <cstdint>
 # include <map>
 

@@ -1,11 +1,11 @@
-# include <tools/dumppage.h>
+# include "../../tools/dumppage.h"
 # include "lresolve.h"
 # include "../licenseGPL.h"
-# include "tools/plaintable.h"
-# include "tools/classtable.h"
-# include "tools/buildmorph.h"
-# include "tools/ftables.h"
-# include "tools/sweets.h"
+# include "../../tools/plaintable.h"
+# include "../../tools/classtable.h"
+# include "../../tools/buildmorph.h"
+# include "../../tools/ftables.h"
+# include "../../tools/sweets.h"
 # include "mtables.h"
 # include <map>
 

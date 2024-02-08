@@ -1,6 +1,6 @@
 # include "mtables.h"
-# include <tools/serialize.h>
-# include <tools/utf81251.h>
+# include "../../tools/serialize.h"
+# include "../../tools/utf81251.h"
 # include <cassert>
 
 namespace libmorph {
