@@ -309,7 +309,7 @@ lexemeinfo  ResolveClassInfo(
 // считается вполне легальной и поступает в список словооснов.
   if ( (lexeme.mclass.wdinfo & 0x3F) < 48 )
   {
-    if ( (lexeme.mclass.tfoffs = findex.Find( stOrig.c_str() )) == 0 && strcmp( zapart, "0" ) != 0 )
+    if ( (lexeme.mclass.tfoffs = findex[stOrig]) == 0 && strcmp( zapart, "0" ) != 0 )
       return lexemeinfo();
   }
     else
