@@ -41,6 +41,14 @@ namespace plaintab  {
         l.push_back( g );
     }
 
+  inline  word16_t  getword16( const byte_t*& p )
+  {
+    byte_t    blower = *p++;
+    word16_t  bupper = *p++;
+
+    return blower | (bupper << 8);
+  }
+
 }}
 
 
@@ -81,20 +89,15 @@ namespace plaintab  {
         for ( auto nitems = *ftable++; nitems-- > 0; )
         {
           auto      bflags = *ftable++;
-          auto      grinfo = *(uint16_t*)ftable;  ftable += sizeof(uint16_t);
+          auto      grinfo = getword16( ftable );
           auto      szflex = ftable;
           auto      ccflex = *szflex++;
           unsigned  ofnext;
     
           ftable = szflex + ccflex;
     
-          if ( (bflags & 0xc0) != 0 )
-          {
-            ofnext = *(uint16_t*)ftable;
-            ftable += sizeof(uint16_t);
-          }
-            else
-          ofnext = 0;
+          if ( (bflags & 0xc0) != 0 ) ofnext = getword16( ftable );
+            else ofnext = 0;
 
           memcpy( prefix + ccpref, szflex, ccflex );
 
