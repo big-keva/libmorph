@@ -1,6 +1,5 @@
 # if !defined( __grammap_h__ )
 # define __grammap_h__
-
 # include "typedefs.h"
 
 # if defined( LIBMORPH_NAMESPACE )

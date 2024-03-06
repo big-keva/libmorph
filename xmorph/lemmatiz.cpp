@@ -1,6 +1,6 @@
 # include "lemmatiz.h"
-# include <xmorph/flexmake.h>
-# include <xmorph/grammap.h>
+# include "flexmake.h"
+# include "grammap.h"
 # include <moonycode/codes.h>
 
 # if defined( NO_ASSERT )

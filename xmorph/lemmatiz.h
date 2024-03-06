@@ -3,7 +3,7 @@
 
 # include <namespace.h>
 # include "mlmadefs.h"
-# include <xmorph/capsheme.h>
+# include "capsheme.h"
 
 namespace LIBMORPH_NAMESPACE
 {

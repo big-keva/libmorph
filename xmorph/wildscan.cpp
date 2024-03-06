@@ -1,6 +1,6 @@
 # include "wildscan.h"
-# include <xmorph/scandict.h>
-# include <xmorph/scanlist.h>
+# include "scandict.h"
+# include "scanlist.h"
 # include <string.h>
 
 namespace LIBMORPH_NAMESPACE

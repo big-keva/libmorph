@@ -3,7 +3,7 @@
 # include <namespace.h>
 # include "mlmadefs.h"
 # include "scandict.h"
-# include <xmorph/grammap.h>
+# include "grammap.h"
 # include <cassert>
 
 namespace LIBMORPH_NAMESPACE

@@ -1,8 +1,7 @@
 # if !defined( _flexmake_h_ )
 # define _flexmake_h_
-
 # include <namespace.h>
-# include <xmorph/scandict.h>
+# include "scandict.h"
 # include "mlmadefs.h"
 # include <string.h>
 
