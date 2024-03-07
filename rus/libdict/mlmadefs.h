@@ -29,8 +29,8 @@
 # define _mlmadefs_h_
 
 // Определить кроссплатформенные типы данных
-# include "rus/include/mlma1049.h"
-# include "xmorph/typedefs.h"
+# include "../include/mlma1049.h"
+# include "libmorph/xmorph/typedefs.h"
 
 # if defined( LIBMORPH_NAMESPACE )
 namespace LIBMORPH_NAMESPACE

@@ -1,7 +1,7 @@
 # include "lemmatiz.h"
 # include "flexmake.h"
 # include "grammap.h"
-# include <moonycode/codes.h>
+# include "moonycode/codes.h"
 
 # if defined( NO_ASSERT )
 #   if defined( NDEBUG )
