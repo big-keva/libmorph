@@ -34,7 +34,7 @@ namespace LIBMORPH_NAMESPACE
 
   inline  static  void  set_0xffinfo( SGramInfo& o, const steminfo& s, const SGramInfo& g )
   {
-    o = setgrinfo( (word16_t)(s.wdinfo & ~0xe000), 0xff, g.grInfo, g.bFlags );
+    o = { (word16_t)(s.wdinfo & ~0xe000), 0xff, g.grInfo, g.bFlags };
   }
 
   inline  static  bool  has_gramform( const SLemmInfoA& lemm, byte_t form )
@@ -295,7 +295,7 @@ namespace LIBMORPH_NAMESPACE
     }
 
   // Теперь построить возможные окончания
-    return BuildFlexSet( lpDest, stinfo.GetFlexTable(), szfrag, ccfrag, grInfo, bflags );  
+    return BuildFlexSet( lpDest, stinfo.GetFlexTable(), { grInfo, bflags }, { szfrag, ccfrag } );
   }
 
   //=====================================================================
