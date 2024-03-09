@@ -18,8 +18,10 @@ namespace LIBMORPH_NAMESPACE
     gramBuffer( const steminfo& s, unsigned m, SGramInfo* p ): stinfo( s ), powset( m ), outorg( p ), outptr( p ) {}
 
   public:     // API
-    int     getlen() const  {  return (int)(outptr - outorg);  }
-    void    append( word16_t grinfo, byte_t bflags ) const  {  *outptr++ = setgrinfo( 0, 0, grinfo, bflags );  }
+    int     getlen() const
+      {  return (int)(outptr - outorg);  }
+    void    append( word16_t grinfo, byte_t bflags ) const
+      {  *outptr++ = { 0, 0, grinfo, bflags };  }
 
   private:      // check classes
     struct anyvalue
