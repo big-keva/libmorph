@@ -33,6 +33,7 @@ add_library(morphrus
   libdict/chartype.cpp
   libdict/mlmamain.cpp
   ../xmorph/capsheme.cpp
+  ../xmorph/flexmake.cpp
   ../xmorph/lemmatiz.cpp
   ../xmorph/wildscan.cpp
   ${DicCPP}
