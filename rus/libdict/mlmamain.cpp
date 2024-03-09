@@ -251,14 +251,15 @@ namespace LIBMORPH_NAMESPACE
         const byte_t* dicpos = stemtree + getserial( ofsptr );
         byte_t        szstem[0x80];
         doBuildForm   abuild( szstem, 0, codepage );
+        listTracer<doBuildForm, steminfo> tracer( abuild, szstem, dicpos );
 
         abuild.outend = (abuild.output = output) + cchout;
         abuild.grinfo = 0;
         abuild.bflags = 0;
         abuild.idform = idform;
 
-        return RecursGetTrack<byte_t, int>( listTracer<doBuildForm, steminfo>( abuild, szstem, dicpos ),
-          stemtree, szstem, 0, dicpos ) >= 0 ? abuild.rcount : abuild.nerror;
+        return RecursGetTrack<byte_t, int>( tracer, stemtree, szstem, 0, dicpos ) >= 0 ?
+          abuild.rcount : abuild.nerror;
       }
       return 0;
     ON_ERRORS( -1 )
