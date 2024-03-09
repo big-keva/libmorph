@@ -30,7 +30,7 @@
 
 // Определить кроссплатформенные типы данных
 # include "../include/mlma1049.h"
-# include "libmorph/xmorph/typedefs.h"
+# include "../../xmorph/typedefs.h"
 
 # if defined( LIBMORPH_NAMESPACE )
 namespace LIBMORPH_NAMESPACE
