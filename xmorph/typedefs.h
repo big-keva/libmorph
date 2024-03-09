@@ -22,16 +22,26 @@ namespace LIBMORPH_NAMESPACE {
     typedef unsigned int    word32_t;
 # endif  // !__word32_t_defined__
 
+  struct fragment
+  {
+    const byte_t* str;
+    size_t        len;
+
+  public:
+    auto  begin() const -> const byte_t*  {  return str;  }
+    auto  end() const -> const byte_t*  {  return str + len;  }
+  };
+
+  struct flexinfo
+  {
+    word16_t  gramm;
+    byte_t    flags;
+  };
+
   template <class T, size_t N>
   constexpr size_t  array_len( T (&)[N] )
   {
     return (size_t)N;
-  }
-
-  inline  SGramInfo setgrinfo( uint16_t wdInfo, formid_t idForm, uint16_t grInfo, uint8_t bFlags )
-  {
-    SGramInfo gi = { wdInfo, idForm, grInfo, bFlags };
-    return gi;
   }
 
   inline  unsigned  getserial( const byte_t*& p )
