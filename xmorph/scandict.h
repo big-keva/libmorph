@@ -142,7 +142,7 @@ namespace LIBMORPH_NAMESPACE {
   }
 
   template <class aflags, class result, class action>
-  result  RecursGetTrack( const action&         doitem,
+  result  RecursGetTrack( action&               doitem,
                           const unsigned char*  thedic,
                           unsigned char*        ptrack,
                           unsigned              ltrack,
