@@ -202,9 +202,7 @@
 /*============================================================================*/
 
 # if !defined( MLMA_INTERFACE )
-
 #   if defined( __cplusplus )
-
 #     define  MLMA_INTERFACE( iface ) \
       struct  iface {
 
@@ -240,7 +238,6 @@
 #     define  MLMA_END  }
 
 #   endif  // __cplusplus
-
 # endif  // MLMA_INTERFACE
 
 # if !defined( mlma_interface_defined )
@@ -340,6 +337,7 @@
     template <size_t N>
     int   BuildForm( widechar (&output)[N], lexeme_t nlexid, formid_t idform )
       {  return BuildForm( output, N, nlexid, idform );  }
+
     auto  BuildForm( lexeme_t nlexid, formid_t idform ) -> std::vector<string_t>
       {
         widechar  buffer[0x100];
