@@ -1,0 +1,168 @@
+# v2: using 'genrule'-s
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
+# the main library
+# bazel must be invoked as
+#  "$ bazel build //libmorph:morphrus"
+cc_library(
+    name = "morphrus",
+    srcs = [
+        ":morph-rus-dic",
+        "rus/libdict/chartype.cpp",
+        "rus/libdict/mlmamain.cpp",
+        "rus/libdict/mlmadefs.h",
+
+        "xmorph/capsheme.cpp",
+        "xmorph/lemmatiz.cpp",
+        "xmorph/wildscan.cpp",
+
+        "xmorph/lemmatiz.h",
+        "xmorph/capsheme.h",
+        "xmorph/wildscan.h",
+        "xmorph/scandict.h",
+        "xmorph/scanlist.h",
+        "xmorph/flexmake.h",
+        "xmorph/gramlist.h",
+        "xmorph/grammap.h",
+        "xmorph/typedefs.h",
+    ],
+    includes = ["rus/libdict"],
+    copts = [
+        "-I .",
+    ],
+    hdrs = [
+        "rus/include/mlma1049.h",
+        "rus/libdict/namespace.h"],
+
+    deps = ["//moonycode:moonycode"],
+    visibility = ["//visibility:public"],
+)
+
+# files & filefroups to be used later
+filegroup(name = "flextabs-bin", srcs = ["autogen/flextabs.bin"])
+filegroup(name = "flextabs-sym", srcs = ["autogen/flextabs.sym"])
+filegroup(name = "intrtabs-bin", srcs = ["autogen/intrtabs.bmx"])
+filegroup(name = "intrtabs-sym", srcs = ["autogen/intrtabs.sym"])
+filegroup(name = "tables-flx",
+    srcs = glob([
+        "rus/tables/flextabs.tf",
+        "rus/tables/**/*.tf"])
+)
+filegroup(name = "tables-mix",
+    srcs = glob([
+        "rus/tables/mtables.mx",
+        "rus/tables/**/*.mx"])
+)
+
+# build 'tfc' tool
+cc_binary(
+    name = "morph-tfc",
+    srcs = [
+        "tfc/ftable.cpp",
+        "tfc/ftable.h",
+        "tfc/gramap.cpp",
+        "tfc/gramap.h",
+        "tfc/tfc.cpp",
+        "tools/serialize.h",
+        "tools/utf81251.h",
+        "tools/sourcefile.h",
+        "tools/sweets.h",
+        "rus/include/mlma1049.h",
+        "ukr/include/mlma1058.h",
+    ],
+    deps = ["//moonycode:moonycode"]
+)
+
+# build 'makeich' tool
+cc_binary(
+    name = "morph-rus-ich",
+    srcs = [
+        "rus/makeich/makeich.cpp",
+        "rus/makeich/mtable.h",
+        "tools/serialize.h",
+        "tools/utf81251.h",
+        "tools/sourcefile.h"],
+    deps = ["//moonycode:moonycode"]
+)
+
+# build 'buildic' tool
+cc_binary(
+    name = "morph-rus-buildic",
+    srcs = [
+        "rus/licenseGPL.h",
+        "rus/buildic/lresolve.cpp",
+        "rus/buildic/lresolve.h",
+        "rus/buildic/mtables.cpp",
+        "rus/buildic/mtables.h",
+        "rus/buildic/makerus.cpp",
+        "rus/include/mlma1049.h",
+        "rus/libdict/mlmadefs.h",
+        "xmorph/typedefs.h",
+        "tools/buildmorph.h",
+        "tools/classtable.h",
+        "tools/ftables.h",
+        "tools/dumppage.h",
+        "tools/plaintable.h",
+        "tools/references.h",
+        "tools/serialize.h",
+        "tools/sweets.h",
+        "tools/utf81251.h",
+        "tools/wordtree.h",
+    ],
+    copts = [
+        "-I .",
+    ],
+    deps = ["//moonycode:moonycode"]
+)
+
+# build 'mapidl' tool
+cc_binary(
+    name = "libmorph-mapidl",
+    srcs = [
+        "mapidl/mapidl.cpp",
+        ":libmorph-rus-ftables",
+    ]
+)
+
+# use 'tfc' tool to generate flextabs
+genrule(
+    name = "flextabs-gen",
+    outs = ["autogen/flextabs.bin", "autogen/flextabs.sym"],
+    cmd = "./$(location :morph-tfc) -lang:rus libmorph/rus/tables/flextabs.tf "
+        + "$(location autogen/flextabs.bin) $(location autogen/flextabs.sym)",
+    tools = [":morph-tfc", ":tables-flx"],
+)
+
+# use '' tool to generate intrtabs
+genrule(
+    name = "intrtabs-gen",
+    outs = ["autogen/intrtabs.bmx", "autogen/intrtabs.sym"],
+    cmd = "./$(location :morph-rus-ich) libmorph/rus/tables/mtables.mx "
+        + "$(location autogen/intrtabs.bmx) $(location autogen/intrtabs.sym)",
+    tools = [":morph-rus-ich", ":tables-mix"],
+)
+
+# finally, generate morph dictionary using 'buildic' tool
+genrule(
+    name = "morph-rus-dic",
+    outs = [
+        "autogen/classmap.cpp",
+        "autogen/stemtree.cpp",
+        "autogen/lidstree.cpp",
+        "autogen/flexTree.cpp",
+        "autogen/mixTypes.cpp",
+        "autogen/mxTables.cpp",
+    ],
+    cmd = "./$(location :morph-rus-buildic) "
+        + "-flex-table=$(location :flextabs-bin) -flex-index=$(location :flextabs-sym) "
+        + "-intr-table=$(location :intrtabs-bin) -intr-index=$(location :intrtabs-sym) "
+        + "-target-dir=`dirname $(location autogen/classmap.cpp)` "
+        + "-unknown=`dirname $(location autogen/classmap.cpp)`/unknown.txt "
+        + "-namespace=__libmorphrus__ "
+        + "$(SRCS)",
+    srcs = glob(["rus/dict/*.dic"]),
+    tools = [":morph-rus-buildic", ":flextabs-bin", ":flextabs-sym", ":intrtabs-bin", ":intrtabs-sym"]
+)
+
+
+# vim: ts=4 sts=4 et ai
