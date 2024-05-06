@@ -50,7 +50,7 @@ namespace LIBMORPH_NAMESPACE
     listLookup( collector& a ): output( a ) {}
 
   public:     // scaner
-    int   operator ()( const byte_t* pstems, const byte_t* thestr, size_t cchstr ) const
+    int   operator ()( const byte_t* pstems, const fragment& thestr ) const
       {
         SGramInfo fxlist[0x40];     // Массив отождествлений на окончаниях
         unsigned  ucount = getserial( pstems );
@@ -62,7 +62,7 @@ namespace LIBMORPH_NAMESPACE
           lexeme_t      nlexid = getserial( pstems );
           word16_t      oclass = getword16( pstems );
           const byte_t* szpost;
-          size_t        ccflex = cchstr;
+          size_t        ccflex = thestr.len;
           stemcheck     stinfo;
           int           nforms;
           int           nerror;
@@ -81,7 +81,7 @@ namespace LIBMORPH_NAMESPACE
             if ( ccpost > ccflex )
               continue;
 
-            for ( flestr = thestr + ccflex - ccpost, ccflex -= ccpost, matstr = szpost + 1;
+            for ( flestr = thestr.str + ccflex - ccpost, ccflex -= ccpost, matstr = szpost + 1;
               ccpost-- > 0 && (rescmp = *flestr++ - *matstr++) == 0; ) (void)0;
 
             if ( rescmp != 0 )
@@ -93,10 +93,8 @@ namespace LIBMORPH_NAMESPACE
         // оценить, может ли хотя бы потенциально такое окончание быть у основ начиная с этой и далее
           if ( ccflex > 0 )
           {
-            if ( *thestr > chrmax )
-              break;
-            if ( *thestr < chrmin )
-              continue;
+            if ( *thestr.str > chrmax ) break;
+            if ( *thestr.str < chrmin ) continue;
           }
 
         // check capitalization scheme
@@ -110,7 +108,7 @@ namespace LIBMORPH_NAMESPACE
             {
               SGramInfo grprep = { 0, 0, stinfo.tfoffs, 0 };  stinfo.tfoffs = 0;
 
-              if ( (nerror = output.InsertStem( nlexid, stinfo, szpost, thestr, &grprep, 1 )) != 0 )
+              if ( (nerror = output.InsertStem( nlexid, stinfo, szpost, thestr.str, &grprep, 1 )) != 0 )
                 return nerror;
             }
             continue;
@@ -125,10 +123,10 @@ namespace LIBMORPH_NAMESPACE
           {
             gramBuffer  grlist( stinfo, (unsigned)-1, fxlist );
 
-            if ( (nforms = LinearScanDict<byte_t, int>( grlist, stinfo.GetFlexTable(), { thestr, ccflex } )) == 0 )
+            if ( (nforms = LinearScanDict<byte_t, int>( grlist, stinfo.GetFlexTable(), { thestr.str, ccflex } )) == 0 )
               continue;
 
-            if ( (nerror = output.InsertStem( nlexid, stinfo, szpost, thestr, fxlist, nforms )) != 0 )
+            if ( (nerror = output.InsertStem( nlexid, stinfo, szpost, thestr.str, fxlist, nforms )) != 0 )
               return nerror;
           }
             else
@@ -145,8 +143,8 @@ namespace LIBMORPH_NAMESPACE
               const byte_t* curmix = mixtab;
               size_t        mixlen = 0x0f & *curmix;
               unsigned      powers = *curmix++ >> 4;
-              const byte_t* flextr = thestr;
-              size_t        flexcc = cchstr;
+              const byte_t* flextr = thestr.str;
+              size_t        flexcc = thestr.len;
               gramBuffer    grlist( stinfo, powers, fxlist );
               size_t        cmplen;
               int           rescmp;
@@ -168,7 +166,7 @@ namespace LIBMORPH_NAMESPACE
               if ( (nforms = LinearScanDict<byte_t, int>( grlist, stinfo.GetFlexTable(), { flextr, flexcc } )) == 0 )
                 continue;
 
-              if ( (nerror = output.InsertStem( nlexid, stinfo, szpost, thestr, fxlist, nforms )) != 0 )
+              if ( (nerror = output.InsertStem( nlexid, stinfo, szpost, thestr.str, fxlist, nforms )) != 0 )
                 return nerror;
             }
           }

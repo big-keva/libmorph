@@ -40,7 +40,7 @@ namespace LIBMORPH_NAMESPACE
     while ( ncount-- > 0 )
     {
       gramBuffer    grlist( stinfo, mpower, grbuff );
-      auto          grscan = [&grlist]( const byte_t* d, const byte_t* s, size_t l ){  return grlist( d, s, l );  };
+      auto          grscan = [&grlist]( const byte_t* d, const fragment& s ){  return grlist( d, s );  };
       byte_t        chnext = *thedic++;
       unsigned      sublen = getserial( thedic );
       const byte_t* subdic = thedic;
@@ -142,7 +142,7 @@ namespace LIBMORPH_NAMESPACE
           if ( *flextr == '?' )
           {
             gramBuffer  grlist( stinfo, powers, fxlist );
-            auto        grscan = [&grlist]( const byte_t* d, const byte_t* s, size_t l ){  return grlist( d, s, l );  };
+            auto        grscan = [&grlist]( const byte_t* d, const fragment& s ){  return grlist( d, { s } );  };
             byte_t      chsave;
 
             if ( szpost != NULL )

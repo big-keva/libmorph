@@ -128,7 +128,7 @@
 
 
 #   define gfRetForms     0x8000        /* Возвратная форма      */
-#   define gfFormMask     0x7000        /* Маска для падежей     */
+#   define gfCaseMask     0x7000        /* Маска для падежей     */
 #   define gfMultiple     0x0800        /* Множественное число   */
 #   define gfGendMask     0x0600        /* Род                   */
 #   define gfShortOne     0x0100        /* Краткая форма         */

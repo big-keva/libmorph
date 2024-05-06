@@ -72,11 +72,11 @@ namespace LIBMORPH_NAMESPACE
       }
 
   public:     // gramLoader functor
-    int   operator () ( const byte_t* thedic, const byte_t* thestr, size_t cchstr ) const
+    int   operator () ( const byte_t* thedic, const fragment& thestr ) const
       {
         (void)thestr;
 
-        if ( cchstr == 0 )
+        if ( thestr.len == 0 )
         {
           if ( (stinfo.wdinfo & wfMultiple) != 0 )
           {

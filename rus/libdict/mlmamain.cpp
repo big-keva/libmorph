@@ -64,30 +64,32 @@ namespace LIBMORPH_NAMESPACE
   //
   struct  CMlmaMb: public IMlmaMb
   {
-    virtual int MLMAPROC  Attach() {  return 0;  }
-    virtual int MLMAPROC  Detach() {  return 0;  }
+    int MLMAPROC  Attach() override {  return 0;  }
+    int MLMAPROC  Detach() override {  return 0;  }
 
-    virtual int MLMAPROC  SetLoCase( char*            outstr, size_t    cchout,
-                                     const char*      srcstr, size_t    cchsrc );
-    virtual int MLMAPROC  SetUpCase( char*            outstr, size_t    cchout,
-                                     const char*      srcstr, size_t    cchsrc );
-    virtual int MLMAPROC  CheckWord( const char*      pszstr, size_t    cchstr,
-                                     unsigned         dwsets );
-    virtual int MLMAPROC  Lemmatize( const char*      pszstr, size_t    cchstr,
-                                     SLemmInfoA*      output, size_t    cchout,
-                                     char*            plemma, size_t    clemma,
-                                     SGramInfo*       pgrams, size_t    ngrams,
-                                     unsigned         dwsets );
-    virtual int MLMAPROC  BuildForm( char*            output, size_t    cchout,
-                                     lexeme_t         nlexid, formid_t  idform );
-    virtual int MLMAPROC  FindForms( char*            output, size_t    cchout,
-                                     const char*      pszstr, size_t    cchstr,
-                                     formid_t         idform );
-    virtual int MLMAPROC  CheckHelp( char*            output, size_t    cchout,
-                                     const char*      pszstr, size_t    cchstr );
-    virtual int MLMAPROC  GetWdInfo( unsigned char*   pwindo, lexeme_t  nlexid );
-    virtual int MLMAPROC  EnumWords( IMlmaEnum*       pienum,
-                                     const char*      pszstr, size_t    cchstr );
+    int MLMAPROC  SetLoCase( char*            outstr, size_t    cchout,
+                             const char*      srcstr, size_t    cchsrc ) override;
+    int MLMAPROC  SetUpCase( char*            outstr, size_t    cchout,
+                             const char*      srcstr, size_t    cchsrc ) override;
+    int MLMAPROC  CheckWord( const char*      pszstr, size_t    cchstr,
+                             unsigned         dwsets )                   override;
+    int MLMAPROC  Lemmatize( const char*      pszstr, size_t    cchstr,
+                             SLemmInfoA*      output, size_t    cchout,
+                             char*            plemma, size_t    clemma,
+                             SGramInfo*       pgrams, size_t    ngrams,
+                             unsigned         dwsets )                   override;
+    int MLMAPROC  BuildForm( char*            output, size_t    cchout,
+                             lexeme_t         nlexid, formid_t  idform ) override;
+    int MLMAPROC  FindForms( char*            output, size_t    cchout,
+                             const char*      pszstr, size_t    cchstr,
+                             formid_t         idform )                   override;
+    int MLMAPROC  CheckHelp( char*            output, size_t    cchout,
+                             const char*      pszstr, size_t    cchstr ) override;
+    int MLMAPROC  GetWdInfo( unsigned char*   pwindo, lexeme_t  nlexid ) override;
+    int MLMAPROC  EnumWords( IMlmaEnum*       pienum,
+                             const char*      pszstr, size_t    cchstr ) override;
+    int MLMAPROC  FindMatch( IMlmaMatch*      pienum,
+                             const char*      pszstr, size_t    cchstr ) override;
 
   public:     // construction
     CMlmaMb( unsigned cp = codepages::codepage_1251 ): codepage( cp ) {}
@@ -133,6 +135,8 @@ namespace LIBMORPH_NAMESPACE
                                      const widechar*  pwsstr, size_t    cchstr );
     virtual int MLMAPROC  GetWdInfo( unsigned char*   pwindo, lexeme_t  nlexid );
     virtual int MLMAPROC  EnumWords( IMlmaEnum*       pienum,
+                                     const widechar*  pszstr, size_t    cchstr );
+    virtual int MLMAPROC  FindMatch( IMlmaMatch*      pmatch,
                                      const widechar*  pszstr, size_t    cchstr );
   };
 
@@ -243,7 +247,7 @@ namespace LIBMORPH_NAMESPACE
     CATCH_ALL
       byte_t        lidkey[0x10];
       const byte_t* ofsptr;
-      auto          getofs = []( const byte_t* thedic, const byte_t*, size_t cchstr ) {  return cchstr == 0 ? thedic : nullptr;  };
+      auto          getofs = []( const byte_t* thedic, const fragment& str ) {  return str.empty() ? thedic : nullptr;  };
 
     // No original word form; algo jumps to lexeme block dictionary point by lexeme id
       if ( (ofsptr = LinearScanDict<word16_t, const byte_t*>( getofs, lidstree, { lidkey, lexkeylen( lidkey, nlexid ) } )) != nullptr )
@@ -351,7 +355,7 @@ namespace LIBMORPH_NAMESPACE
     CATCH_ALL
       byte_t        lidkey[0x10];
       const byte_t* ofsptr;
-      auto          getofs = []( const byte_t* thedic, const byte_t*, size_t cchstr ){  return cchstr == 0 ? thedic : nullptr;  };
+      auto          getofs = []( const byte_t* thedic, const fragment& str ){  return str.empty() ? thedic : nullptr;  };
 
     // No original word form; algo jumps to lexeme block dictionary point by lexeme id
       if ( (ofsptr = LinearScanDict<word16_t, const byte_t*>( getofs, lidstree, { lidkey, lexkeylen( lidkey, lexkey ) } )) != nullptr )
@@ -376,6 +380,15 @@ namespace LIBMORPH_NAMESPACE
     CATCH_ALL
       byte_t  locase[0x100];
       char    cpsstr[0x100];
+      auto    reglex = [pienum]( lexeme_t x, int n, const SStrMatch* f )
+        {
+          byte_t  aforms[0x100];
+
+          for ( int i = 0; i != n; ++i )
+            aforms[i] = f[i].id;
+
+          return pienum->RegisterLexeme( x, n, aforms );
+        };
 
     // check string length && check for overflow
       if ( cchstr == (size_t)-1 )
@@ -395,8 +408,37 @@ namespace LIBMORPH_NAMESPACE
       SetLowerCase( (byte_t*)strncpy( (char*)locase, pszstr, cchstr ), cchstr )[cchstr] = 0;
 
     // scan the dictionary
-      return GetWordMatch( locase, cchstr, [pienum]( lexeme_t x, int n, const byte_t* f )
-        {  return pienum->RegisterLexeme( x, n, f );  } );
+      return GetWordMatch( locase, cchstr, reglex );
+    ON_ERRORS( -1 )
+  }
+
+  int   CMlmaMb::FindMatch( IMlmaMatch*  pienum, const char* pszstr, size_t cchstr )
+  {
+    CATCH_ALL
+      byte_t  locase[0x100];
+      char    cpsstr[0x100];
+      auto    reglex = [pienum]( lexeme_t x, int n, const SStrMatch* f )
+        {  return pienum->RegisterLexeme( x, n, f );  };
+
+    // check string length && check for overflow
+      if ( cchstr == (size_t)-1 )
+        for ( cchstr = 0; pszstr[cchstr] != 0; ++cchstr ) (void)NULL;
+      if ( cchstr >= sizeof(locase) )
+        return WORDBUFF_FAILED;
+
+    // modify the codepage
+      if ( codepage != codepages::codepage_1251 )
+      {
+        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
+          return WORDBUFF_FAILED;
+        pszstr = cpsstr;
+      }
+
+    // change the word to the lower case
+      SetLowerCase( (byte_t*)strncpy( (char*)locase, pszstr, cchstr ), cchstr )[cchstr] = 0;
+
+    // scan the dictionary
+      return GetWordMatch( locase, cchstr, reglex );
     ON_ERRORS( -1 )
   }
 
@@ -599,6 +641,18 @@ namespace LIBMORPH_NAMESPACE
       return WORDBUFF_FAILED;
 
     return mlmaMbInstance.EnumWords( pienum, szword, ccword );
+  }
+
+  int   CMlmaWc::FindMatch( IMlmaMatch* pmatch, const widechar* pwsstr, size_t cchstr )
+  {
+    char    szword[0x100];
+    size_t  ccword;
+
+  // get string length and convert to native codepage
+    if ( (ccword = codepages::widetombcs( codepages::codepage_1251, szword, sizeof(szword) - 1, pwsstr, cchstr )) == (size_t)-1 )
+      return WORDBUFF_FAILED;
+
+    return mlmaMbInstance.FindMatch( pmatch, szword, ccword );
   }
 
   struct

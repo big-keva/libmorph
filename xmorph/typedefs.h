@@ -30,6 +30,15 @@ namespace LIBMORPH_NAMESPACE {
   public:
     auto  begin() const -> const byte_t*  {  return str;  }
     auto  end() const -> const byte_t*  {  return str + len;  }
+
+    bool  empty() const {  return len == 0 || str == nullptr;  }
+
+    auto  next() const -> fragment {  return { str + 1, len - 1 };  }
+    auto  size() const -> size_t  {  return len;  }
+
+    auto  operator ++() -> fragment&  {  return ++str, --len, *this;  }
+
+    auto  front() const -> byte_t {  return *str;  }
   };
 
   struct flexinfo

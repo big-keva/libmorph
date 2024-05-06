@@ -47,23 +47,22 @@ namespace LIBMORPH_NAMESPACE {
   template <class sizetype>
   struct  scan_stack
   {
-    const unsigned char*  thestr;
-    size_t                cchstr;
+    fragment              thestr;
     unsigned char         chfind;
     const unsigned char*  thedic;
     sizetype              aflags;
     int                   ccount;
 
   public:     // init
-    scan_stack*     setlevel( const unsigned char* p, const unsigned char* s, size_t l )
+    auto  setlevel( const unsigned char* p, const fragment& s ) -> scan_stack*
       {
         ccount = counter<sizetype>::getlower(
         aflags = counter<sizetype>::getvalue( thedic = p ) );
         thestr = s;
-          chfind = (cchstr = l) > 0 ? *thestr : 0;
+          chfind = (thestr.len) > 0 ? *thestr.str : 0;
         return this;
       }
-    const unsigned char* findchar()
+    auto  findchar() -> const unsigned char*
       {
         while ( ccount-- > 0 )
         {
@@ -74,56 +73,52 @@ namespace LIBMORPH_NAMESPACE {
           if ( chfind == chnext )
             return subdic;
           if ( chfind >  chnext && !counter<sizetype>::hasupper( aflags ) )
-            return 0;
+            return nullptr;
         }
-        return 0;
+        return nullptr;
       }
   };
 
-  struct  search_str
-  {
-    const byte_t* str;
-    size_t        len;
-  };
-
   template <class aflags, class result, class action>
-  result  LinearScanDict( const action& doitem, const byte_t* thedic, const search_str& src )
+  result  LinearScanDict( const action& doitem, const byte_t* thedic, const fragment& src )
   {
     scan_stack<aflags>  astack[0x40];     // never longer words
     scan_stack<aflags>* pstack;
     result              retval;
 
-    for ( (pstack = astack)->setlevel( thedic, src.str, src.len ); pstack >= astack; )
+    for ( (pstack = astack)->setlevel( thedic, src ); pstack >= astack; )
     {
-      const unsigned char*  subdic;
+      auto  subdic = pstack->findchar();
 
-    // check if not found or no more data
-      if ( (subdic = pstack->findchar()) != 0 )
+      // check if not found or no more data
+      if ( subdic == nullptr )
       {
-        pstack = (pstack + 1)->setlevel( subdic, pstack->thestr + 1, pstack->cchstr - 1 );
-        continue;
+        if ( counter<aflags>::hasupper( pstack->aflags ) )
+        {
+          if ( (retval = doitem( pstack->thedic, pstack->thestr )) != (result)0 )
+            return retval;
+        }
+        --pstack;
       }
-
-      if ( counter<aflags>::hasupper( pstack->aflags ) )
-        if ( (retval = doitem( pstack->thedic, pstack->thestr, pstack->cchstr )) != (result)0 )
-          return retval;
-
-      --pstack;
+        else
+      pstack = (pstack + 1)->setlevel( subdic, pstack->thestr.next() );
     }
     return (result)0;
   }
 
   template <class aflags, class result, class action>
-  result  RecursScanDict( const action&         doitem, const unsigned char*  thedic,
-                          const unsigned char*  thestr, size_t                cchstr )
+  result  RecursScanDict(
+    const action&         doitem,
+    const unsigned char*  thedic,
+    const fragment&       thestr )
   {
     auto    uflags = counter<aflags>::getvalue( thedic );
     auto    ncount = counter<aflags>::getlower( uflags );
     result  retval;
 
-    assert( cchstr > 0 );
+    assert( !thestr.empty() );
 
-    for ( auto chfind = *thestr; ncount-- > 0; )
+    for ( auto chfind = *thestr.str; ncount-- > 0; )
     {
       auto  chnext = *thedic++;
       auto  sublen = getserial( thedic );
@@ -131,14 +126,14 @@ namespace LIBMORPH_NAMESPACE {
 
       thedic += sublen;
 
-      if ( chnext == chfind && cchstr > 0 )
-        if ( (retval = RecursScanDict<aflags, result, action>( doitem, subdic, thestr + 1, cchstr - 1 )) != (result)0 )
+      if ( chnext == chfind )
+        if ( (retval = RecursScanDict<aflags, result, action>( doitem, subdic, thestr.next() )) != (result)0 )
           return retval;
 
       if ( chfind >  chnext && !counter<aflags>::hasupper( uflags ) )
         return (result)0;
     }
-    return counter<aflags>::hasupper( uflags ) ? doitem( thedic, thestr, cchstr ) : (result)0;
+    return counter<aflags>::hasupper( uflags ) ? doitem( thedic, thestr ) : (result)0;
   }
 
   template <class aflags, class result, class action>

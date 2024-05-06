@@ -10,20 +10,23 @@ namespace LIBMORPH_NAMESPACE
 {
 
   inline  bool  IsWildcard( byte_t  c )
-    {
-      return c == '*' || c == '?';
-    }
+  {
+    return c == '*' || c == '?';
+  }
 
-  inline  bool  IsAsterisk( const byte_t* p, size_t l )
+  inline  bool  IsAsterisk( const fragment& str )
+  {
+    if ( str.len > 0 )
     {
-      if ( l > 0 && *p++ == '*' )
-      {
-        do --l;
-          while ( l > 0 && *p++ == '*' );
-        return l == 0;
-      }
-      return false;
+      auto  ptr = str.str;
+      auto  end = str.len + ptr;
+
+      while ( ptr != end && *ptr == '*' )
+        ++ptr;
+      return ptr == end;
     }
+    return false;
+  }
 
   /*
     templates pre-declaration
@@ -31,13 +34,17 @@ namespace LIBMORPH_NAMESPACE
   struct  matchArg;
 
   template <class action>
-  int   GetDictMatch( const byte_t*, size_t, const byte_t*, const action& );
+  int   GetDictMatch( const fragment&, const byte_t*,
+    size_t nmatch, action& );
   template <class action>
-  int   GetListMatch( const byte_t*, size_t, const byte_t*, const action& );
+  int   GetListMatch( const fragment&, const byte_t*,
+    size_t nmatch, action& );
   template <class action>
-  bool  GetIntrMatch( const byte_t*, size_t, const byte_t*, size_t, const matchArg&, unsigned, action& );
+  bool  GetIntrMatch( fragment, fragment, const matchArg&, unsigned,
+    size_t nmatch, action& );
   template <class action>
-  bool  GetFlexMatch( const byte_t*, size_t, const byte_t*,         const matchArg&, unsigned, action& );
+  bool  GetFlexMatch( const fragment&, const byte_t*, const matchArg&, unsigned,
+    size_t nmatch, action& );
 
   /*
     GetWordMatch( template, action )
@@ -45,9 +52,9 @@ namespace LIBMORPH_NAMESPACE
     сканер словаря, вызывает action для каждой найденной лексемы
   */
   template <class action>
-  int   GetWordMatch( const byte_t* thestr, size_t  cchstr, const action& _do_it )
+  int   GetWordMatch( const byte_t* thestr, size_t  cchstr, action& _do_it )
   {
-    return GetDictMatch( thestr, cchstr, stemtree, _do_it );
+    return GetDictMatch( { thestr, cchstr }, stemtree, 0, _do_it );
   }
 
   inline  const byte_t* getsubdic( const byte_t*& thedic )
@@ -65,8 +72,10 @@ namespace LIBMORPH_NAMESPACE
     со строкой трассы, ведущей к ней
   */
   template <class action>
-  int   GetDictMatch( const byte_t* thestr, size_t        cchstr,
-                      const byte_t* thedic, const action& _do_it )
+  int   GetDictMatch(
+    const fragment& thestr,
+    const byte_t*   thedic,
+    size_t          nmatch, action& _do_it )
   {
     const byte_t* dicorg = thedic;
     byte_t        bflags = counter<unsigned char>::getvalue( thedic );
@@ -74,26 +83,26 @@ namespace LIBMORPH_NAMESPACE
     byte_t        chfind;
     int           nerror;
 
-    if ( cchstr > 0 )
+    if ( thestr.size() > 0 )
     {
-      switch ( chfind = *thestr )
+      switch ( chfind = *thestr.str )
       {
         // '?' - любой непустой символ; подставить по очереди все символы в строку на позицию шаблона
         //       и продолжить сканирование на вложенных поддеревьях; пустая строка точно в пролёте
         case '?':
           while ( ncount-- > 0 )
-            if ( (nerror = GetDictMatch( thestr + 1, cchstr - 1, getsubdic( thedic ), _do_it )) != 0 )
+            if ( (nerror = GetDictMatch( thestr.next(), getsubdic( thedic ), nmatch + 1, _do_it )) != 0 )
               return nerror;
           break;
 
       // '*' - любая последовательность символов длиной от 0 до ...; для каждого поддерева вызвать
       //       два варианта к каждому возможному поддереву:
         case '*':
-          if ( cchstr > 1 )
-            if ( (nerror = GetDictMatch( thestr + 1, cchstr - 1, dicorg, _do_it )) != 0 ) // zero chars match
+          if ( thestr.size() > 1 )
+            if ( (nerror = GetDictMatch( thestr.next(), dicorg, nmatch, _do_it )) != 0 ) // zero chars match
               return nerror;
           while ( ncount-- > 0 )
-            if ( (nerror = GetDictMatch( thestr, cchstr, getsubdic( thedic ), _do_it )) != 0 ) // more than one char match
+            if ( (nerror = GetDictMatch( thestr, getsubdic( thedic ), nmatch + 1, _do_it )) != 0 ) // more than one char match
               return nerror;
           break;
 
@@ -102,7 +111,7 @@ namespace LIBMORPH_NAMESPACE
           while ( ncount-- > 0 )
             if ( *thedic != chfind )  getsubdic( thedic );
               else
-            if ( (nerror = GetDictMatch( thestr + 1, cchstr - 1, getsubdic( thedic ), _do_it )) != 0 )
+            if ( (nerror = GetDictMatch( thestr.next(), getsubdic( thedic ), nmatch + 1, _do_it )) != 0 )
               return nerror;
           break;
       }
@@ -117,7 +126,7 @@ namespace LIBMORPH_NAMESPACE
   /*
     если есть список лексем, провести там отождествление
   */
-    return counter<unsigned char>::hasupper( bflags ) ? GetListMatch( thestr, cchstr, thedic, _do_it ) : 0;
+    return counter<unsigned char>::hasupper( bflags ) ? GetListMatch( thestr, thedic, nmatch, _do_it ) : 0;
   }
 
   struct  matchArg
@@ -163,48 +172,40 @@ namespace LIBMORPH_NAMESPACE
 
   class fmLister
   {
-    enum
-    {
-      word_bits = sizeof(unsigned) * CHAR_BIT,
-      array_len = 0x100 / word_bits
-    };
     const steminfo& stinfo;
-    unsigned        uforms[array_len];
+    unsigned        aforms[0x100];
 
   public:     // construction
     fmLister( const steminfo& st ): stinfo( st )
-      {
-        for ( auto u = uforms; u < uforms + array_len; )
-          *u++ = 0;
-      }
+    {
+      for ( auto ptr = std::begin( aforms ); ptr != std::end( aforms ); ++ptr )
+        *ptr = (unsigned)-1;
+    }
 
   public:     // operators
-    void  operator () ( word16_t grinfo, byte_t bflags )
+    void  operator () ( word16_t grinfo, byte_t bflags, unsigned lmatch )
       {
-        byte_t  idform = MapWordInfo( (byte_t)stinfo.wdinfo, grinfo, bflags );
-        uforms[idform / word_bits] |= (1 << (idform % word_bits));
+        auto  pmatch = aforms + MapWordInfo( (byte_t)stinfo.wdinfo, grinfo, bflags );
+          *pmatch = std::min( *pmatch, lmatch );
       }
 
   public:     // forms buffer lister
     bool  HasForms() const
       {
-        for ( auto u = uforms; u < uforms + array_len; ++u )
-          if ( *u != 0 )  return true;
+        for ( auto ptr = std::begin( aforms ); ptr != std::end( aforms ); ++ptr )
+          if ( *ptr != (unsigned)-1 )  return true;
         return false;
       }
     template <size_t N>
-    int   GetForms( byte_t (&output)[N] ) const
+    int   GetForms( SStrMatch (&output)[N] ) const
       {
-        byte_t* outptr = output;
-        byte_t* outend = output + N;
+        auto  outptr = output;
+        auto  outend = output + N;
 
-        for ( auto i = 0; i < array_len && outptr < outend; ++i )
-          if ( uforms[i] != 0 )
-          {
-            for ( auto o = 0; o < word_bits; ++o )
-              if ( (uforms[i] & (1 << o)) != 0 )
-                *outptr++ = (byte_t)(i * word_bits + o);
-          }
+        for ( auto ptr = std::begin( aforms ); ptr != std::end( aforms ) && outptr != outend; ++ptr )
+          if ( *ptr != (unsigned)-1 )
+            *outptr++ = { (byte_t)(ptr - std::begin( aforms )), *ptr };
+
         return (int)(outptr - output);
       }
   };
@@ -215,8 +216,7 @@ namespace LIBMORPH_NAMESPACE
     Проводит отождествление шаблона с массивом лексем
   */
   template <class action>
-  int   GetListMatch( const byte_t* thestr, size_t        cchstr,
-                      const byte_t* pstems, const action& _do_it )
+  int   GetListMatch( const fragment& thestr, const byte_t* pstems, size_t nmatch, action& _do_it )
   {
     unsigned  ucount = getserial( pstems );
 
@@ -233,7 +233,7 @@ namespace LIBMORPH_NAMESPACE
       pstems = maargs.Load( pstems );
 
     // cut by character
-      if ( cchstr > 0 && !IsWildcard( chnext = *thestr ) )
+      if ( !thestr.empty() && !IsWildcard( chnext = *thestr.str ) )
       {
         if ( chnext > cupper )  break;
         if ( chnext < clower )  continue;
@@ -242,9 +242,9 @@ namespace LIBMORPH_NAMESPACE
     // нефлективным основам может соответствовать либо пустая строка, либо символ '*'
       if ( (maargs.stinfo.wdinfo & wfFlexes) == 0 || (maargs.stinfo.wdinfo & 0x3f) == 51 )
       {
-        byte_t  formff = 0xff;
+        auto  formff = SStrMatch{ 0xff, (unsigned)nmatch };
 
-        if ( cchstr == 0 || IsAsterisk( thestr, cchstr ) )
+        if ( thestr.empty() || IsAsterisk( thestr ) )
           if ( (nerror = _do_it( nlexid, 1, &formff )) != 0 )
             return nerror;
       }
@@ -253,9 +253,9 @@ namespace LIBMORPH_NAMESPACE
       if ( (maargs.stinfo.wdinfo & wfMixTab) == 0 )
       {
         fmLister  fmlist( maargs.stinfo );
-        byte_t    aforms[0x100];
+        SStrMatch aforms[0x100];
 
-        if ( GetFlexMatch( thestr, cchstr, maargs.ftable(), maargs, (unsigned)-1, fmlist ) )
+        if ( GetFlexMatch( thestr, maargs.ftable(), maargs, (unsigned)-1, nmatch, fmlist ) )
           if ( (nerror = _do_it( nlexid, fmlist.GetForms( aforms ), aforms )) != 0 )
             return nerror;
       }
@@ -266,7 +266,7 @@ namespace LIBMORPH_NAMESPACE
         const byte_t* mixtab = maargs.mtable();   // Собственно таблица
         int           mixcnt = *mixtab++;         // Количество чередований
         int           mindex;
-        byte_t        aforms[0x100];
+        SStrMatch     aforms[0x100];
         int           nforms;
 
         for ( mindex = 0; mindex < mixcnt; ++mindex, mixtab += 1 + (0x0f & *mixtab) )
@@ -275,7 +275,7 @@ namespace LIBMORPH_NAMESPACE
           unsigned      mixlen = 0x0f & *curmix;
           unsigned      powers = *curmix++ >> 4;
 
-          GetIntrMatch( curmix, mixlen, thestr, cchstr, maargs, powers, fmlist );
+          GetIntrMatch( { curmix, mixlen }, thestr, maargs, powers, nmatch, fmlist );
         }
 
         if ( (nforms = fmlist.GetForms( aforms )) > 0 )
@@ -292,64 +292,72 @@ namespace LIBMORPH_NAMESPACE
     сравнение строки чередования с шаблоном
   */
   template <class action>
-  bool  GetIntrMatch( const byte_t*   mixstr, size_t    mixlen,
-                      const byte_t*   thestr, size_t    cchstr,
-                      const matchArg& maargs, unsigned  powers, action& _do_it )
+  bool  GetIntrMatch( fragment mix, fragment str, const matchArg& maargs, unsigned  powers,
+    size_t nmatch, action& _do_it )
   {
   // skip matching parts of string
-    while ( mixlen > 0 && cchstr > 0 && *thestr - *mixstr == 0 )
-      {  --mixlen;  --cchstr;  ++thestr;  ++mixstr;  }
+    while ( !mix.empty() && !str.empty() && str.front() == mix.front() )
+      ++str, ++mix, ++nmatch;
 
   // check the type of stop: matching interch string
-    if ( mixlen == 0 )
-      return GetFlexMatch( thestr, cchstr, maargs.ftable(), maargs, powers, _do_it );
+    if ( mix.empty() )
+      return GetFlexMatch( str, maargs.ftable(), maargs, powers, nmatch, _do_it );
 
   // check if the string is finished or if mismatch
-    if ( cchstr == 0 || !IsWildcard( *thestr ) )
+    if ( str.empty() || !IsWildcard( str.front() ) )
       return false;
 
   // check wildcard type for string match, mixlen > 0
-    if ( *thestr == '?' )
-      return GetIntrMatch( mixstr + 1, mixlen - 1, thestr + 1, cchstr - 1, maargs, powers, _do_it );
+    if ( str.front() == '?' )
+      return GetIntrMatch( mix.next(), str.next(), maargs, powers, nmatch + 1, _do_it );
 
   // for asterisk, check if 0 match
-    GetIntrMatch( mixstr, mixlen, thestr + 1, cchstr - 1, maargs, powers, _do_it );
-    GetIntrMatch( mixstr + 1, mixlen - 1, thestr, cchstr, maargs, powers, _do_it );
+    GetIntrMatch( mix, str.next(), maargs, powers, nmatch, _do_it );
+    GetIntrMatch( mix.next(), str, maargs, powers, nmatch + 1, _do_it );
 
     return _do_it.HasForms();
   }
 
   inline
-  bool  GetPostMatch( const byte_t* thestr, size_t cchstr, const byte_t* szpost, size_t ccpost )
+  bool  GetPostMatch( fragment str, fragment match )
   {
-    if ( szpost == nullptr || ccpost == 0 )
-      return cchstr == 0;
-    while ( cchstr > 0 && ccpost > 0 && *thestr == *szpost )
-      {  --cchstr;  --ccpost;  ++thestr;  ++szpost;  }
-    if ( cchstr == 0 )
-      return ccpost == 0;
-    if ( ccpost == 0 )
-      return IsAsterisk( thestr, cchstr );
-    if ( *thestr == '?' )
-      return GetPostMatch( thestr + 1, cchstr - 1, szpost + 1, ccpost - 1 );
-    if ( *thestr != '*' )
+    if ( match.empty() )
+      return str.empty();
+
+    while ( str.len != 0 && match.len != 0 && str.front() == match.front() )
+      ++str, ++match;
+
+    if ( str.empty() )
+      return match.empty();
+
+    if ( match.empty() )
+      return IsAsterisk( str );
+
+    if ( str.front() == '?' )
+      return GetPostMatch( str.next(), match.next() );
+
+    if ( str.front() != '*' )
       return false;
-    return GetPostMatch( thestr,     cchstr,     szpost + 1, ccpost - 1 )
-        || GetPostMatch( thestr + 1, cchstr - 1, szpost + 1, ccpost - 1 );
+
+    return GetPostMatch( str, match.next() ) || GetPostMatch( str.next(), match.next() );
   }
 
   /*
     ListAllForms() - все формы для всех окончаний, соответствующие mpower
   */
   template <class action>
-  void  ListAllForms( const byte_t*   fttree, const steminfo& stinfo,
-                      unsigned        mpower, action&         _do_it )
+  void  ListAllForms(
+    const byte_t*   fttree,
+    const steminfo& stinfo,
+    unsigned        mpower,
+    size_t          nmatch,
+    action&         _do_it )
   {
     byte_t    bflags = *fttree++;
     int       ncount = bflags & 0x7f;
 
     while ( ncount-- > 0 )
-      ListAllForms( getsubdic( fttree ), stinfo, mpower, _do_it );
+      ListAllForms( getsubdic( fttree ), stinfo, mpower, nmatch + 1, _do_it );
 
     if ( (bflags & 0x80) != 0 )
     {
@@ -362,7 +370,7 @@ namespace LIBMORPH_NAMESPACE
         int       desire = stinfo.GetSwapLevel( grInfo, bflags );
 
         if ( ((stinfo.wdinfo & wfMultiple) == 0 || (grInfo & gfMultiple) != 0) && (mpower & (1 << (desire - 1))) != 0 )
-          _do_it( grInfo, bflags );
+          _do_it( grInfo, bflags, nmatch );
       }
     }
   }
@@ -371,20 +379,19 @@ namespace LIBMORPH_NAMESPACE
     GetFlexMatch() - все формы, соответствующие переданному шаблону
   */
   template <class action>
-  bool  GetFlexMatch( const byte_t*   thestr, size_t          cchstr,
-                      const byte_t*   fttree, const matchArg& maargs,
-                      unsigned        mpower, action&         _do_it )
+  bool  GetFlexMatch( const fragment& thestr, const byte_t* fttree,
+    const matchArg& maargs, unsigned mpower, size_t nmatch, action& _do_it )
   {
     byte_t        bflags = *fttree++;
     int           ncount = bflags & 0x7f;
 
   // check for zero length match on asterisk
-    if ( cchstr > 0 )
+    if ( !thestr.empty() )
     {
-      byte_t  chfind = *thestr;
+      byte_t  chfind = thestr.front();
 
       if ( chfind == '*' )
-        GetFlexMatch( thestr + 1, cchstr - 1, fttree - 1, maargs, mpower, _do_it );
+        GetFlexMatch( thestr.next(), fttree - 1, maargs, mpower, nmatch, _do_it );
 
       while ( ncount-- > 0 )
       {
@@ -396,16 +403,19 @@ namespace LIBMORPH_NAMESPACE
       // check character find type: wildcard, pattern or regular
         if ( chfind == '?' || chnext == chfind )
         {
-          GetFlexMatch( thestr + 1, cchstr - 1, subdic, maargs, mpower, _do_it );
+          GetFlexMatch( thestr.next(), subdic, maargs, mpower, nmatch + 1, _do_it );
         }
           else
         if ( chfind == '*' )
         {
-          if ( cchstr == 1 )  ListAllForms( subdic, maargs.stinfo, mpower, _do_it );
+          if ( thestr.size() == 1 )
+          {
+            ListAllForms( subdic, maargs.stinfo, mpower, nmatch + 1, _do_it );
+          }
             else
           {
-            GetFlexMatch( thestr + 1, cchstr - 1, subdic, maargs, mpower, _do_it );
-            GetFlexMatch( thestr + 0, cchstr - 0, subdic, maargs, mpower, _do_it );
+            GetFlexMatch( thestr.next(), subdic, maargs, mpower, nmatch, _do_it );
+            GetFlexMatch( thestr,        subdic, maargs, mpower, nmatch, _do_it );
           }
         }
       }
@@ -417,7 +427,7 @@ namespace LIBMORPH_NAMESPACE
       fttree += sublen;
     }
 
-    if ( (bflags & 0x80) != 0 && GetPostMatch( thestr, cchstr, maargs.szpost, maargs.ccpost ) )
+    if ( (bflags & 0x80) != 0 && GetPostMatch( thestr, { maargs.szpost, maargs.ccpost } ) )
     {
       int   nforms = getserial( fttree );
 
@@ -428,7 +438,7 @@ namespace LIBMORPH_NAMESPACE
         int       desire = maargs.stinfo.GetSwapLevel( grInfo, bflags );
 
         if ( ((maargs.stinfo.wdinfo & wfMultiple) == 0 || (grInfo & gfMultiple) != 0) && (mpower & (1 << (desire - 1))) != 0 )
-          _do_it( grInfo, bflags );
+          _do_it( grInfo, bflags, nmatch );
       }
     }
     return _do_it.HasForms();
