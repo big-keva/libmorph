@@ -1,7 +1,9 @@
 # pragma once
 # if !defined( __plaintable_h__ )
 # define __plaintable_h__
-# include "serialize.h"
+# include "mtc/serialize.h"
+# include <algorithm>
+# include <cstdint>
 # include <cstddef>
 
 namespace libmorph
@@ -41,10 +43,10 @@ namespace plaintab  {
         l.push_back( g );
     }
 
-  inline  word16_t  getword16( const byte_t*& p )
+  inline  uint16_t  getword16( const uint8_t*& p )
   {
-    byte_t    blower = *p++;
-    word16_t  bupper = *p++;
+    uint8_t   blower = *p++;
+    uint16_t  bupper = *p++;
 
     return blower | (bupper << 8);
   }

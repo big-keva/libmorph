@@ -1,7 +1,7 @@
 # pragma once
 # if !defined( __dumppage_h__ )
 # define __dumppage_h__
-# include "serialize.h"
+# include "mtc/serialize.h"
 # include <stdexcept>
 # include <cstdarg>
 # include <cstring>
@@ -99,7 +99,7 @@ namespace libmorph
           if ( !outdir.empty() && strchr( "/\\", outdir.back() ) == nullptr )
             sslash = "/";
 
-          stpath = outdir + sslash + (szname.empty() ? vaname : szname) + ".cpp";
+          stpath = outdir + sslash + (szname.empty() ? vaname : szname);
 
           if ( (lpfile = fopen( stpath.c_str(), "wt" )) == NULL )
             throw std::runtime_error( "coult not create file '" + stpath + "'" );

@@ -128,10 +128,18 @@ void  buildmorph<resolver>::CreateDict( const std::vector<const char*>& dicset )
 
 // dump word tree
   libmorph::BinaryDumper().
-    Namespace( nspace ).OutDir( outdir ).Header( sLicense ).Dump( "stemtree", stemtree );
+    Namespace( nspace )
+      .Header( sLicense )
+      .OutDir( outdir )
+      .Output( "stemtree.cpp" )
+      .Dump( "stemtree", stemtree );
 
   libmorph::BinaryDumper().
-    Namespace( nspace ).OutDir( outdir ).Header( sLicense ).Dump( "lidstree", lidstree );
+    Namespace( nspace )
+      .Header( sLicense )
+      .OutDir( outdir )
+      .Output( "lidstree.cpp" )
+      .Dump( "lidstree", lidstree );
 }
 
 template <class resolver>
