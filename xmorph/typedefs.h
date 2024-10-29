@@ -1,10 +1,10 @@
-# if !defined( __typedefs_h__ )
-# define __typedefs_h__
+# if !defined( __libmorph_typedefs_h__ )
+# define __libmorph_typedefs_h__
+# include <algorithm>
+# include <cstdint>
 # include <cstddef>
 
-# if defined( LIBMORPH_NAMESPACE )
-namespace LIBMORPH_NAMESPACE {
-# endif  // LIBMORPH_NAMESPACE
+namespace libmorph {
 
 // Define common types used in the analyser
 # if !defined( __byte_t_defined__ )
@@ -24,27 +24,35 @@ namespace LIBMORPH_NAMESPACE {
 
   struct fragment
   {
-    const byte_t* str;
-    size_t        len;
+    const uint8_t*  str;
+    size_t          len;
 
   public:
-    auto  begin() const -> const byte_t*  {  return str;  }
-    auto  end() const -> const byte_t*  {  return str + len;  }
+    auto  begin() const -> const uint8_t*  {  return str;  }
+    auto  end() const -> const uint8_t*  {  return str + len;  }
 
     bool  empty() const {  return len == 0 || str == nullptr;  }
 
-    auto  next() const -> fragment {  return { str + 1, len - 1 };  }
     auto  size() const -> size_t  {  return len;  }
 
     auto  operator ++() -> fragment&  {  return ++str, --len, *this;  }
 
-    auto  front() const -> byte_t {  return *str;  }
+    auto  front() const -> uint8_t {  return *str;  }
+
+    auto  next() const -> fragment {  return { str + 1, len - 1 };  }
+    auto  left( size_t n ) -> fragment  {  return { str, std::min( len, n ) };  }
+    auto  right( size_t n ) -> fragment  {  return { str + len - std::min( len, n ), std::min( len, n ) };  }
   };
 
   struct flexinfo
   {
-    word16_t  gramm;
-    byte_t    flags;
+    uint16_t  gramm;
+    uint8_t   flags;
+
+  public:
+    bool  operator == ( const flexinfo& f ) const {  return gramm == f.gramm && flags == f.flags;  }
+    bool  operator != ( const flexinfo& f ) const {  return !(*this == f);  }
+    
   };
 
   template <class T, size_t N>
@@ -53,9 +61,9 @@ namespace LIBMORPH_NAMESPACE {
     return (size_t)N;
   }
 
-  inline  unsigned  getserial( const byte_t*& p )
+  inline  unsigned  getserial( const uint8_t*& p )
   {
-    byte_t    bfetch = *p++;
+    uint8_t   bfetch = *p++;
     unsigned  serial = bfetch & ~0x80;
     int       nshift = 1;
 
@@ -64,31 +72,29 @@ namespace LIBMORPH_NAMESPACE {
     return serial;
   }
 
-  inline  word16_t  getword16( const byte_t*& p )
+  inline  uint16_t  getword16( const uint8_t*& p )
   {
-    byte_t    blower = *p++;
-    word16_t  bupper = *p++;
+    uint8_t   blower = *p++;
+    uint16_t  bupper = *p++;
 
     return blower | (bupper << 8);
   }
 
-  inline  size_t    lexkeylen( byte_t* p, unsigned nlexid )
+  inline  size_t    lexkeylen( uint8_t* p, unsigned nlexid )
   {
-    byte_t* o = p;
+    auto  o( p );
 
-    if ( (nlexid & ~0x000000ff) == 0 )  { *p++ = (byte_t)nlexid;  }
+    if ( (nlexid & ~0x000000ff) == 0 )  { *p++ = (uint8_t)nlexid;  }
       else
-    if ( (nlexid & ~0x0000ffff) == 0 )  { *p++ = (byte_t)(nlexid >> 8); *p++ = (byte_t)nlexid;  }
+    if ( (nlexid & ~0x0000ffff) == 0 )  { *p++ = (uint8_t)(nlexid >> 8); *p++ = (uint8_t)nlexid;  }
       else
-    if ( (nlexid & ~0x00ffffff) == 0 )  { *p++ = (byte_t)(nlexid >> 16);  *p++ = (byte_t)(nlexid >> 8); *p++ = (byte_t)nlexid;  }
+    if ( (nlexid & ~0x00ffffff) == 0 )  { *p++ = (uint8_t)(nlexid >> 16);  *p++ = (uint8_t)(nlexid >> 8); *p++ = (uint8_t)nlexid;  }
       else
-    {  *p++ = (byte_t)(nlexid >> 24);  *p++ = (byte_t)(nlexid >> 16);  *p++ = (byte_t)(nlexid >> 8); *p++ = (byte_t)nlexid;  }
+    {  *p++ = (uint8_t)(nlexid >> 24);  *p++ = (uint8_t)(nlexid >> 16);  *p++ = (uint8_t)(nlexid >> 8); *p++ = (uint8_t)nlexid;  }
 
     return p - o;
   }
 
-# if defined( LIBMORPH_NAMESPACE )
-}
-# endif  // LIBMORPH_NAMESPACE
+} // end namespace
 
-# endif  // __typedefs_h__
+# endif  // !__libmorph_typedefs_h__

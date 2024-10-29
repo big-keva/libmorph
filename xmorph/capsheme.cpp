@@ -1,30 +1,25 @@
 # include "capsheme.h"
+# include <cstdint>
 
-namespace LIBMORPH_NAMESPACE
+namespace libmorph
 {
-  # define SCHEME_UNDEFINED 0     // ����� ������������� �� ����������
-  # define SCHEME_ALL_SMALL 1     // ��� �����- ��������
-  # define SCHEME_FIRST_CAP 2     // ������ ����� - ���������
-  # define SCHEME_WORD_CAPS 3     // ��� ���������
-  # define SCHEME_FIRST_WAS 4     // ������ ����� ���� ���������
-  # define SCHEME_ERROR_CAP 5     // ��������� �������������
-  # define SCHEME_OVERFLOW  6
-
-  # define CT_CAPITAL  0
-  # define CT_REGULAR  1
-  # define CT_DLMCHAR  2         // ����������� - �����
-  # define CT_INVALID  3
-
-  extern unsigned char capStateMatrix[6][4];
-  extern unsigned char charTypeMatrix[256];
-
-  template <class chartype>
-  inline  unsigned  CharType( chartype c )
+  const unsigned char (&CapScheme::capStateMatrix)[6][4] =
   {
-    return charTypeMatrix[(unsigned char)c];
-  }
+    { first_was, all_small, error_cap, error_cap },
+    { error_cap, all_small, all_small, error_cap },
+    { error_cap, first_cap, first_cap, error_cap },
+    { word_caps, error_cap, word_caps, error_cap },
+    { word_caps, first_cap, word_caps, error_cap },
+    { error_cap, error_cap, error_cap, error_cap }
+  };
 
-  unsigned GetCapScheme( unsigned char* output, size_t  outlen, const char*  srctop, size_t srclen )
+  //=====================================================================
+  // Функция вычисляет схему капитализации всего слова, его длину и
+  // создает образ слова, переведенный в нижний регистр
+  //=====================================================================
+  auto  CapScheme::Get(
+    unsigned char* output, size_t outlen,
+    const char*    srctop, size_t srclen ) const -> unsigned
   {
     unsigned char*  outend = output + outlen;
     const char*     srcend;
@@ -32,15 +27,15 @@ namespace LIBMORPH_NAMESPACE
     int             cdefis;
     bool            bvalid;
 
-    if ( srclen == (unsigned)-1 ) for ( srcend = srctop; *srcend != '\0'; ++srcend ) (void)0;
+    if ( srclen == (size_t)-1 ) for ( srcend = srctop; *srcend != '\0'; ++srcend ) (void)0;
       else srcend = srctop + srclen;
 
     for ( cdefis = 0, scheme = 0, bvalid = true; srctop < srcend && output < outend; )
     {
-      unsigned  subcap = SCHEME_UNDEFINED;
+      unsigned  subcap = undefined;
       unsigned  chtype;
 
-      while ( srctop < srcend && output < outend && (chtype = CharType( *srctop )) != CT_DLMCHAR )
+      while ( srctop < srcend && output < outend && (chtype = charTypeMatrix[(uint8_t)*srctop]) != CT_DLMCHAR )
       {
         subcap = capStateMatrix[subcap][chtype];
           *output++ = toLoCaseMatrix[(unsigned char)*srctop++];
@@ -49,7 +44,7 @@ namespace LIBMORPH_NAMESPACE
       if ( output >= outend )
         return (unsigned)-1;
 
-      bvalid &= ((subcap = capStateMatrix[subcap][CT_DLMCHAR]) != SCHEME_ERROR_CAP);
+      bvalid &= ((subcap = capStateMatrix[subcap][CT_DLMCHAR]) != error_cap);
         scheme |= (subcap - 1) << (cdefis << 1);
 
       if ( srctop != srcend )
@@ -57,7 +52,7 @@ namespace LIBMORPH_NAMESPACE
         if ( output >= outend )
           return (unsigned)-1;
 
-        if ( CharType( *output++ = *srctop++ ) == CT_DLMCHAR )  ++cdefis;
+        if ( charTypeMatrix[uint8_t( *output++ = *srctop++ )] == CT_DLMCHAR )  ++cdefis;
           else return (unsigned)-1;
       }
     }
@@ -67,6 +62,65 @@ namespace LIBMORPH_NAMESPACE
 
     return (((unsigned)(output + outlen - outend)) << 16) | ((cdefis + 1) << 8) | (bvalid ? scheme : 0xff);
   }
+
+  //=====================================================================
+  // Функция приводит слово к нужной схеме капитализации, т. е. к той,
+  // которая передана в качестве cSheme. Предполагается, что слово подано
+  // в нижнем регистре, так как именно таким образом организован словарь.
+  //=====================================================================
+  auto  CapScheme::Set( unsigned char* str, size_t len, uint8_t psp ) const -> unsigned char*
+  {
+    auto  strorg = str;
+    auto  minCap = pspMinCapValue[psp];
+    auto  scheme = uint16_t{};
+    int   nparts = 1;
+
+  // first check length and get part count
+    if ( len == (size_t)-1 )
+    {
+      for ( len = 0; str[len] != 0; ++len )
+        nparts += charTypeMatrix[str[len]] == CT_DLMCHAR;
+    }
+      else
+    {
+      for ( auto beg = str, end = beg + len; beg != end; ++beg )
+        nparts += charTypeMatrix[*beg] == CT_DLMCHAR;
+    }
+
+  // Определить собственно схему капитализации
+    switch ( nparts )
+    {
+      case 1:
+        scheme = minCap;
+        break;
+      case 2:
+        scheme = minCap | (minCap << 2);
+        break;
+      case 3:
+        scheme = minCap | (minCap << 4) | ((minCap & 0x02) << 2);
+        break;
+      default:
+        scheme = 0;
+    }
+
+  // приложить схему капитализации к строке
+    for ( ; nparts-- > 0 && *str != '\0'; scheme >>= 2 )
+    {
+      unsigned  strcap = scheme & 0x03;   // Возможные значения схемы капитализации - 0 (a), 1 (Aa) или 2 (AA)
+
+      for ( ; *str != '\0' && charTypeMatrix[*str] != CT_DLMCHAR; strcap &= ~0x01, ++str )
+        *str = strcap ? toUpCaseMatrix[*str] : *str;
+
+      str += (charTypeMatrix[*str] == CT_DLMCHAR ? 1 : 0);
+    }
+    return strorg;
+  }
+
+# if 0
+  # define CT_CAPITAL  0
+  # define CT_REGULAR  1
+  # define CT_DLMCHAR  2         // Разделитель - дефис
+  # define CT_INVALID  3
 
 # if defined( unit_test )
 # include <string.h>
@@ -125,18 +179,8 @@ namespace LIBMORPH_NAMESPACE
 
 # endif  // unit_test
 
-  unsigned char capStateMatrix[6][4] =
-  {
-    { SCHEME_FIRST_WAS, SCHEME_ALL_SMALL, SCHEME_ERROR_CAP, SCHEME_ERROR_CAP },
-    { SCHEME_ERROR_CAP, SCHEME_ALL_SMALL, SCHEME_ALL_SMALL, SCHEME_ERROR_CAP },
-    { SCHEME_ERROR_CAP, SCHEME_FIRST_CAP, SCHEME_FIRST_CAP, SCHEME_ERROR_CAP },
-    { SCHEME_WORD_CAPS, SCHEME_ERROR_CAP, SCHEME_WORD_CAPS, SCHEME_ERROR_CAP },
-    { SCHEME_WORD_CAPS, SCHEME_FIRST_CAP, SCHEME_WORD_CAPS, SCHEME_ERROR_CAP },
-    { SCHEME_ERROR_CAP, SCHEME_ERROR_CAP, SCHEME_ERROR_CAP, SCHEME_ERROR_CAP }
-  };
-
-  // ������ ������ ����������� ����� ������������� ��� ���� ������������������
-  // ����� ����: 0 - ��� ��������, 1 - ������ ���������, 2 - ��� ���������
+  // Массив задает минимальные схемы капитализации для всех зарегистрированных
+  // типов слов: 0 - все строчные, 1 - первая прописная, 2 - все прописные
   unsigned      pspMinCapValue[] =
   {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -144,50 +188,6 @@ namespace LIBMORPH_NAMESPACE
     0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0
   };
-
-  //=====================================================================
-  // ������� �������� ����� � ������ ����� �������������, �. �. � ���,
-  // ������� �������� � �������� cSheme. ��������������, ��� ����� ������
-  // � ������ ��������, ��� ��� ������ ����� ������� ����������� �������.
-  //=====================================================================
-  char*   SetCapScheme( char* pszstr, unsigned  scheme )
-  {
-    char* strorg = pszstr;
-    int   nparts;
-    
-    for ( nparts = scheme >> 8; nparts-- > 0 && *pszstr != '\0'; scheme >>= 2 )
-    {
-      unsigned  strcap = scheme & 0x03;   // ������� ����� ������������� ��������� - 0 (a), 1 (Aa) ��� 2 (AA)
-
-      for ( ; *pszstr != '\0' && CharType( *pszstr ) != CT_DLMCHAR; strcap &= ~0x01, ++pszstr )
-        *pszstr = strcap ? (char)toUpCaseMatrix[(unsigned char)*pszstr] : *pszstr;
-
-      pszstr += (CharType( *pszstr ) == CT_DLMCHAR ? 1 : 0);
-    }
-    return strorg;
-  }
-
-  unsigned  GetMinScheme( unsigned minCap, const char* lpword, unsigned nparts )
-  {
-  // ���� �� ������ ���������� ������ �����, ��������� ��� ����������
-    if ( nparts == 0 && lpword != 0 )
-      for ( nparts = 1; *lpword != '\0'; ++lpword ) nparts += (CharType( *lpword ) == CT_DLMCHAR);
-    if ( nparts == 0 )
-      nparts = 1;
-
-  // ���������� ���������� ����� �������������
-    switch ( nparts )
-    {
-      case 1:
-        return 0x0100 | minCap;
-      case 2:
-        return 0x0200 | minCap | (minCap << 2);
-      case 3:
-        return 0x0300 | minCap | (minCap << 4) | ((minCap & 0x02) << 2);
-      default:
-        return 0x0100;
-    }
-  }
 
   unsigned char*  SetLowerCase( unsigned char* pszstr, size_t cchstr/*= (size_t)-1*/ )
   {
@@ -202,5 +202,5 @@ namespace LIBMORPH_NAMESPACE
 
     return pszorg;
   }
-
-} // end namespace
+# endif
+} // end lubmorph namespace

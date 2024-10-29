@@ -1,7 +1,7 @@
-# if !defined( _capsheme_h_ )
-# define _capsheme_h_
-# include <namespace.h>
-# include <stddef.h>
+# if !defined( __libmorph_capsheme_h__)
+# define __libmorph_capsheme_h__
+# include <cstddef>
+# include <cstdint>
 
 // For better compatibility and neighbour usage of different morphological
 // modules in one UNIX application all the objects are packed to the
@@ -16,17 +16,63 @@
 // При этом значение схемы 0 означает нелегальную схему
 //=====================================================================
 
-namespace LIBMORPH_NAMESPACE
-{
-  unsigned        GetCapScheme( unsigned char*  output, size_t      outlen,
-                                const char*     srctop, size_t      srclen = (size_t)-1 );
-  unsigned        GetMinScheme( unsigned        minCap, const char* lpword = 0, unsigned nparts = 0 );
-  char*           SetCapScheme( char*           pszstr, unsigned    scheme );
-  unsigned char*  SetLowerCase( unsigned char*  pszstr, size_t      cchstr = (size_t)-1 );
+namespace libmorph {
 
-  extern  unsigned char charTypeMatrix[256];
-  extern  unsigned char toLoCaseMatrix[256];
-  extern  unsigned char toUpCaseMatrix[256];
+  class CapScheme
+  {
+    enum: unsigned char
+    {
+      undefined = 0,    // Схема капитализации не определена
+      all_small = 1,    // Все буквы- строчные
+      first_cap = 2,    // Первая буква - заглавная
+      word_caps = 3,    // Все заглавные
+      first_was = 4,    // Первая буква была заглавной
+      error_cap = 5     // Ошибочная капитализация
+    };
+
+    const unsigned char*  charTypeMatrix;
+    const unsigned char*  toLoCaseMatrix;
+    const unsigned char*  toUpCaseMatrix;
+    const unsigned char*  pspMinCapValue;
+
+    static
+    const unsigned char (&capStateMatrix)[6][4];
+
+  public:
+    CapScheme(
+      const unsigned char* charType,
+      const unsigned char* toLoCase,
+      const unsigned char* toUpCase,
+      const unsigned char* minValue ):
+        charTypeMatrix( charType ),
+        toLoCaseMatrix( toLoCase ),
+        toUpCaseMatrix( toUpCase ),
+        pspMinCapValue( minValue )  {}
+
+  public:
+    enum: unsigned char
+    {
+      CT_CAPITAL = 0,
+      CT_REGULAR = 1,
+      CT_DLMCHAR = 2,        // Разделитель - дефис
+      CT_INVALID = 3,
+    };
+
+  public:
+    template <size_t N>
+    auto  Get( unsigned char (&out)[N],
+       const char* src, size_t len = (size_t)-1 ) const -> unsigned;
+    auto  Get( unsigned char* out, size_t cch,
+      const char*  src, size_t len = (size_t)-1 ) const -> unsigned;
+    auto  Set( unsigned char* str, size_t len,
+       uint8_t  psp ) const -> unsigned char*;
+  };
+
+  // CapScheme inline implementation
+
+  template <size_t N>
+  auto  CapScheme::Get( unsigned char (&out)[N], const char* src, size_t len ) const -> unsigned
+    {  return Get( out, N, src, len );  }
 
   inline  bool  IsGoodShemeMin2( unsigned scheme )
   {
@@ -58,4 +104,4 @@ namespace LIBMORPH_NAMESPACE
 
 } // namespace
 
-# endif // _capsheme_h_
+# endif // !__libmorph_capsheme_h__

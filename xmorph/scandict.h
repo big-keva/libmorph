@@ -1,86 +1,137 @@
-# if !defined( __scandict_h__ )
-# define  __scandict_h__
+# if !defined( __libmorph_scandict_h__ )
+# define  __libmorph_scandict_h__
 # include "typedefs.h"
-# include <assert.h>
-# include <limits.h>
-# include <stddef.h>
+# include <cstring>
+# include <cstddef>
+# include <cstdint>
+# include <climits>
+# include <cassert>
 
-# if defined( LIBMORPH_NAMESPACE )
-namespace LIBMORPH_NAMESPACE {
-# endif  // LIBMORPH_NAMESPACE
+# if !defined( wfPostSt )
+#   define  wfPostSt    0x8000        /* Stem has post-text definition          */
+# endif
 
-  template <class T>
-  struct loader
+namespace libmorph {
+
+  class Counters
   {
-    static T  get( const unsigned char*& )  {}
+  protected:
+    static  auto  getvalue( unsigned char*, const unsigned char*& s ) -> unsigned char
+    {
+      return *s++;
+    }
+
+    static  auto  getvalue( unsigned short*, const unsigned char*& s ) -> unsigned short
+    {
+      unsigned char   blower = *s++;
+      unsigned short  bupper = *s++;
+      return blower | (bupper << 8);
+    }
+
+    template <class countype>
+    struct counter
+    {
+      static  bool      hasupper( countype a )
+        {  return (a & (1 << (sizeof(countype) * CHAR_BIT - 1))) != 0;  }
+      static  int       getlower( countype a )
+        {  return a & ~(1 << (sizeof(countype) * CHAR_BIT - 1));  }
+      static  countype  getvalue( const unsigned char*& s )
+        {  return Counters::getvalue( (countype*)nullptr, s );  }
+    };
   };
 
-  template <>
-  struct loader<unsigned char>
+  class   Flat final: public Counters
   {
-    static  unsigned char get( const unsigned char*& s )
-      {  return *s++;  }
-  };
+    template <class collector>  class LookupList;
+    template <class collector>  class SelectView;
 
-  template <>
-  struct loader<unsigned short>
-  {
-    static unsigned short get( const unsigned char*& s )
-      {
-        unsigned char   blower = *s++;
-        unsigned short  bupper = *s++;
-        return blower | (bupper << 8);
-      }
-  };
+    template <class sizetype>
+    struct  scan_stack
+    {
+      fragment              thestr;
+      unsigned char         chfind;
+      const unsigned char*  thedic;
+      sizetype              aflags;
+      int                   ccount;
 
-  template <class countype>
-  struct counter
-  {
-    static  bool      hasupper( countype a )
-      {  return (a & (1 << (sizeof(countype) * CHAR_BIT - 1))) != 0;  }
-    static  int       getlower( countype a )
-      {  return a & ~(1 << (sizeof(countype) * CHAR_BIT - 1));  }
-    static  countype  getvalue( const unsigned char*& s )
-      {  return loader<countype>::get( s );  }
-  };
-
-  template <class sizetype>
-  struct  scan_stack
-  {
-    fragment              thestr;
-    unsigned char         chfind;
-    const unsigned char*  thedic;
-    sizetype              aflags;
-    int                   ccount;
-
-  public:     // init
-    auto  setlevel( const unsigned char* p, const fragment& s ) -> scan_stack*
-      {
-        ccount = counter<sizetype>::getlower(
-        aflags = counter<sizetype>::getvalue( thedic = p ) );
-        thestr = s;
-          chfind = (thestr.len) > 0 ? *thestr.str : 0;
-        return this;
-      }
-    auto  findchar() -> const unsigned char*
-      {
-        while ( ccount-- > 0 )
+    public:     // init
+      auto  setlevel( const unsigned char* p, const fragment& s ) -> scan_stack*
         {
-          unsigned char         chnext = *thedic++;
-          unsigned              sublen = getserial( thedic );
-          const unsigned char*  subdic = thedic;  thedic += sublen;
-
-          if ( chfind == chnext )
-            return subdic;
-          if ( chfind >  chnext && !counter<sizetype>::hasupper( aflags ) )
-            return nullptr;
+          ccount = counter<sizetype>::getlower(
+          aflags = counter<sizetype>::getvalue( thedic = p ) );
+          thestr = s;
+            chfind = (thestr.len) > 0 ? *thestr.str : 0;
+          return this;
         }
-        return nullptr;
+      auto  findchar() -> const unsigned char*
+        {
+          while ( ccount-- > 0 )
+          {
+            unsigned char         chnext = *thedic++;
+            unsigned              sublen = getserial( thedic );
+            const unsigned char*  subdic = thedic;  thedic += sublen;
+
+            if ( chfind == chnext )
+              return subdic;
+            if ( chfind >  chnext && !counter<sizetype>::hasupper( aflags ) )
+              return nullptr;
+          }
+          return nullptr;
+        }
+    };
+
+  public:
+   /*
+    * Tree( ... )
+    *
+    * Сканер древесного словаря в поисках словоформы. Нерекурсивный обход дерева
+    * с вызовом алгоритма-параметра для найденного узла.
+    */
+    template <class aflags, class action, class result = decltype((*(action*)0)(nullptr, {}))> static
+    auto  ScanTree( const action& doitem, const byte_t* thedic, const fragment& src ) -> result;
+
+    template <class collector> static
+    auto  ScanList( const collector& c ) -> LookupList<collector>
+      {  return LookupList<collector>( c );  }
+
+    template <class collector> static
+    auto  ViewList( const collector& c, const uint8_t* p ) -> SelectView<collector>
+      {  return SelectView<collector>( c, p );  }
+
+    template <class aflags, class action, class result = decltype((*(action*)0)(nullptr, {}) )> static
+    auto  GetTrack( const action&   doitem,
+                    const uint8_t*  thedic,
+                          uint8_t*  ptrack,
+                          size_t    ltrack,
+                    const uint8_t*  dicpos ) -> result
+    {
+      aflags  uflags = counter<aflags>::getvalue( thedic );
+      int     ncount = counter<aflags>::getlower( uflags );
+
+      while ( ncount-- > 0 )
+      {
+        auto  chnext = *thedic++;
+        auto  sublen = getserial( thedic );
+        auto  subdic = thedic;  thedic += sublen;
+        int   nerror;
+
+        if ( dicpos == nullptr || (dicpos >= subdic && dicpos <= thedic) )
+        {
+          ptrack[ltrack] = chnext;
+
+          if ( (nerror = GetTrack<aflags, action, result>( doitem, subdic, ptrack, ltrack + 1, dicpos )) != 0 )
+            return nerror;
+        }
       }
+      return counter<aflags>::hasupper( uflags ) ? doitem( thedic, { ptrack, ltrack } ) : (result)0;
+    }
+
   };
 
-  template <class aflags, class result, class action>
-  result  LinearScanDict( const action& doitem, const byte_t* thedic, const fragment& src )
+  // Flat::ScanTree
+
+  template <class aflags, class action, class result>
+  result  Flat::ScanTree( const action& doitem, const byte_t* thedic, const fragment& src )
   {
     scan_stack<aflags>  astack[0x40];     // never longer words
     scan_stack<aflags>* pstack;
@@ -106,68 +157,97 @@ namespace LIBMORPH_NAMESPACE {
     return (result)0;
   }
 
-  template <class aflags, class result, class action>
-  result  RecursScanDict(
-    const action&         doitem,
-    const unsigned char*  thedic,
-    const fragment&       thestr )
+  // Flat::ScanList
+
+  template <class collector>
+  class  Flat::LookupList
   {
-    auto    uflags = counter<aflags>::getvalue( thedic );
-    auto    ncount = counter<aflags>::getlower( uflags );
-    result  retval;
+    const collector&  output;
 
-    assert( !thestr.empty() );
+  public:     // initialization
+    LookupList( const collector& a ): output( a ) {}
 
-    for ( auto chfind = *thestr.str; ncount-- > 0; )
+  public:     // scaner
+    int   operator ()( const uint8_t* pstems, const fragment& thestr ) const
     {
-      auto  chnext = *thedic++;
-      auto  sublen = getserial( thedic );
-      auto  subdic = thedic;
+      auto  ucount = getserial( pstems );
 
-      thedic += sublen;
-
-      if ( chnext == chfind )
-        if ( (retval = RecursScanDict<aflags, result, action>( doitem, subdic, thestr.next() )) != (result)0 )
-          return retval;
-
-      if ( chfind >  chnext && !counter<aflags>::hasupper( uflags ) )
-        return (result)0;
-    }
-    return counter<aflags>::hasupper( uflags ) ? doitem( thedic, thestr ) : (result)0;
-  }
-
-  template <class aflags, class result, class action>
-  result  RecursGetTrack( action&               doitem,
-                          const unsigned char*  thedic,
-                          unsigned char*        ptrack,
-                          unsigned              ltrack,
-                          const unsigned char*  dicpos = NULL )
-  {
-    aflags    uflags = counter<aflags>::getvalue( thedic );
-    int       ncount = counter<aflags>::getlower( uflags );
-
-    while ( ncount-- > 0 )
-    {
-      unsigned char         chnext = *thedic++;
-      unsigned              sublen = getserial( thedic );
-      const unsigned char*  subdic;
-      int                   nerror;
-
-      thedic = (subdic = thedic) + sublen;
-
-      if ( dicpos == NULL || (dicpos >= subdic && dicpos <= thedic) )
+      while ( ucount-- > 0 )
       {
-        ptrack[ltrack] = chnext;
+        auto  chrmin = *pstems++;
+        auto  chrmax = *pstems++;
+        auto  nlexid = getserial( pstems );
+        auto  oclass = getword16( pstems );
+        auto  suffix = fragment{ nullptr, 0 };
+        auto  ccflex = thestr.len;
+        int   nerror;
 
-        if ( (nerror = RecursGetTrack<aflags, result, action>( doitem, subdic, ptrack, ltrack + 1, dicpos )) != 0 )
+      // check postfix
+        if ( (oclass & wfPostSt) != 0 )
+        {
+          pstems += (suffix = { pstems + 1, *pstems }).len + 1;
+
+          if ( suffix.len > ccflex )
+            continue;
+
+          if ( memcmp( thestr.end() - suffix.len, suffix.str, suffix.len ) != 0 )
+            continue;
+
+          ccflex -= suffix.len;
+        }
+
+      // оценить, может ли хотя бы потенциально такое окончание быть у основ начиная с этой и далее
+        if ( ccflex > 0 )
+        {
+          if ( *thestr.str > chrmax ) break;
+          if ( *thestr.str < chrmin ) continue;
+        }
+
+      // check capitalization scheme
+        if ( (nerror = output( nlexid, oclass & 0x7fff, fragment{ thestr.str, ccflex }, suffix )) != 0 )
           return nerror;
       }
+      return 0;
     }
-    return counter<aflags>::hasupper( uflags ) ? doitem( thedic, ptrack, ltrack ) : (result)0;
-  }
+  };
 
-# if defined( LIBMORPH_NAMESPACE )
-}  // LIBMORPH_NAMESPACE
-# endif  // LIBMORPH_NAMESPACE
+  // Flat::SelectView
 
-# endif  // __scandict_h__
+  template <class collector>
+  class  Flat::SelectView
+  {
+    const collector&  output;
+    const uint8_t*    dicpos;
+
+  public:     // initialization
+    SelectView( const collector& a, const uint8_t* p ):
+      output( a ), dicpos( p )  {}
+
+  public:     // scaner
+    int   operator () ( const uint8_t* pstems, const fragment& thestr ) const
+    {
+      auto  ucount = getserial( pstems );
+
+      while ( ucount-- > 0 )
+      {
+        auto  thepos = pstems;
+        auto  nlexid = getserial( pstems += 2 );
+        auto  oclass = getword16( pstems );
+        auto  suffix = fragment{};
+
+      // check postfix
+        if ( (oclass & wfPostSt) != 0 ) pstems += (suffix = { pstems + 1, *pstems }).len + 1;
+          else suffix = { nullptr, 0 };
+
+      // check match
+        if ( thepos == dicpos )
+          return output( nlexid, oclass & ~wfPostSt, thestr, suffix );
+      }
+
+      return 0;
+    }
+  };
+
+}  // end namespace
+
+# endif  // !__libmorph_scandict_h__
