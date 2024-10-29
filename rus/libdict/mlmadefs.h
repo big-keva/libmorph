@@ -25,17 +25,25 @@
       Phone: +7(495)648-4058, +7(926)513-2991
 
 ******************************************************************************/
-# if !defined( _mlmadefs_h_ )
-# define _mlmadefs_h_
+# if !defined( __libmorph_rus_mlmadefs_h__ )
+# define __libmorph_rus_mlmadefs_h__
 
 // Определить кроссплатформенные типы данных
 # include "../include/mlma1049.h"
-# include "../../xmorph/typedefs.h"
+# include "xmorph/capsheme.h"
+# include "xmorph/typedefs.h"
 
-# if defined( LIBMORPH_NAMESPACE )
-namespace LIBMORPH_NAMESPACE
-{
-# endif   // LIBMORPH_NAMESPACE
+namespace libmorphrus {
+  extern unsigned char  flexTree[];
+  extern unsigned char  mxTables[];
+  extern unsigned char  mixTypes[];
+  extern unsigned char  classmap[];
+  extern unsigned char  stemtree[];
+  extern unsigned char  lidstree[];
+}
+
+namespace libmorph {
+namespace rus {
 
   # define ffNNext       0x80              /* Nesessary-next flex-item level         */
   # define ffONext       0x40              /* Optional-next flex-item level          */
@@ -44,16 +52,7 @@ namespace LIBMORPH_NAMESPACE
   # define wfMixTab   0x4000       /* Stem has mix-table reference           */
   # define wfFlexes   0x2000       /* Stem has flex-table reference          */
 
-  // Глобальные данные, которые никто не трогает
-
-  extern unsigned char  flexTree[];
-  extern unsigned char  mxTables[];
-  extern unsigned char  mixTypes[];
-  extern unsigned char  classmap[];
-  extern unsigned char  stemtree[];
-  extern unsigned char  lidstree[];
-
-  extern  unsigned      pspMinCapValue[];
+  extern const unsigned char  pspMinCapValue[];
 
   // Макроопределения для вычисления легальной ступени чередования
 
@@ -113,56 +112,6 @@ namespace LIBMORPH_NAMESPACE
       (((GramInfo) == gfCompared) ? 3 :       \
        (((GramInfo) == ((1 << 9) | gfShortOne)) ? 2 : 1))
 
-  // stem access class
-
-  struct  steminfo
-  {
-    word16_t        wdinfo;
-    word16_t        tfoffs;
-    word16_t        mtoffs;
-
-  public:     // init
-    steminfo( const byte_t* pclass = NULL )
-      {
-        if ( pclass != NULL )
-          Load( pclass );
-      }
-    steminfo& Load( const byte_t* pclass )
-      {
-        wdinfo = getword16( pclass );
-        tfoffs = (wdinfo & wfFlexes) != 0 || (wdinfo & 0x3f) == 51 ? getword16( pclass ) : 0;
-        mtoffs = (wdinfo & wfMixTab) != 0 ? getword16( pclass ) : 0;
-        return *this;
-      }
-    unsigned      MinCapScheme() const
-      {
-        return pspMinCapValue[wdinfo & 0x3f];
-      }
-    const byte_t* GetFlexTable() const
-      {
-        return tfoffs != 0 && (wdinfo & 0x3f) != 51 ? (tfoffs << 0x0004) + flexTree : NULL;
-      }
-    const byte_t* GetSwapTable() const
-      {
-        return mtoffs != 0 ? mtoffs + mxTables : NULL;
-      }
-    int           GetSwapLevel( word16_t grinfo, byte_t bflags ) const
-      {
-        switch ( mixTypes[wdinfo & 0x3F] )
-        {
-          case 1:   return GetVerbMixPower( wdinfo, grinfo );
-          case 2:   return MascNotAnimMixPower( grinfo );
-          case 3:   return MascAnimateMixPower( grinfo );
-          case 4:   return MascMixedMixPower( grinfo, bflags );
-          case 5:   return FemnNotAnimMixPower( grinfo );
-          case 6:   return FemnAnimateMixPower( grinfo );
-          case 7:   return FemnMixedMixPower( grinfo, bflags );
-          case 8:   return GetAdjectivMixPower( grinfo );
-          default:  return 1;
-        }
-      }
-  };
-
   // Некоторые полезные функции, выясняющие часть речи
 
   inline  bool  IsVerb( word16_t wbInfo )
@@ -182,38 +131,88 @@ namespace LIBMORPH_NAMESPACE
     return (grInfo & gfVerbForm) == vfVerbActive || (grInfo & gfVerbForm) == vfVerbPassiv;
   }
 
-  //=====================================================================
-  // Meth: GetNormalInfo
-  // Функция строит грамматическую информацию о нормальной форме слова,
-  // используя тип этого слова, грамматическую информацию об отождествлении
-  // и настройки поиска и нормализации.
-  // Нормальной формой считается:
-  // Для существительных - именительный падеж единственного числа;
-  // Для прилагательных - именительный падеж мужского рода;
-  // Для глаголов - инфинитив (или причастная форма - по настройкам).
-  //=====================================================================
-  inline word16_t GetNormalInfo( word16_t wbInfo,
-                                 word16_t grInfo,
-                                 unsigned nFlags )
+  // stem access class
+
+  struct  steminfo
   {
-    word16_t  nfInfo = 0;
+    word16_t        wdinfo;
+    word16_t        tfoffs;
+    word16_t        mtoffs;
 
-    if ( IsVerb( wbInfo ) )
-    {
-      nfInfo = vtInfinitiv;
-      if ( ( nFlags & nfAdjVerbs ) && IsParticiple( grInfo ) )
-        nfInfo = (word16_t)((grInfo & (gfVerbTime|gfVerbForm)) | (1 << 9));
-    }
-      else
-    if ( IsAdjective( wbInfo ) )
-      nfInfo = 1 << 9;
-    if ( (wbInfo & wfMultiple) != 0 )
-      nfInfo |= gfMultiple;
-    return nfInfo;
-  }
+  public:     // init
+    steminfo( uint16_t offset = (uint16_t)-1 )
+      {
+        if ( offset != (uint16_t)-1 )
+          Load( (const uint8_t*)libmorphrus::classmap + offset );
+      }
+    steminfo( uint16_t winfo, uint16_t foffs, uint16_t moffs ):
+      wdinfo( winfo ),
+      tfoffs( foffs ),
+      mtoffs( moffs ) {}
+    steminfo& Load( const byte_t* pclass )
+      {
+        wdinfo = getword16( pclass );
+        tfoffs = (wdinfo & wfFlexes) != 0 || (wdinfo & 0x3f) == 51 ? getword16( pclass ) : 0;
+        mtoffs = (wdinfo & wfMixTab) != 0 ? getword16( pclass ) : 0;
+        return *this;
+      }
+    unsigned      MinCapScheme() const
+      {
+        return pspMinCapValue[wdinfo & 0x3f];
+      }
+    const byte_t* GetFlexTable() const
+      {
+        return tfoffs != 0 && (wdinfo & 0x3f) != 51 ? (tfoffs << 0x0004) + libmorphrus::flexTree : NULL;
+      }
+    const byte_t* GetSwapTable() const
+      {
+        return mtoffs != 0 ? mtoffs + libmorphrus::mxTables : NULL;
+      }
+    int           GetSwapLevel( word16_t grinfo, byte_t bflags ) const
+      {
+        switch ( libmorphrus::mixTypes[wdinfo & 0x3F] )
+        {
+          case 1:   return GetVerbMixPower( wdinfo, grinfo );
+          case 2:   return MascNotAnimMixPower( grinfo );
+          case 3:   return MascAnimateMixPower( grinfo );
+          case 4:   return MascMixedMixPower( grinfo, bflags );
+          case 5:   return FemnNotAnimMixPower( grinfo );
+          case 6:   return FemnAnimateMixPower( grinfo );
+          case 7:   return FemnMixedMixPower( grinfo, bflags );
+          case 8:   return GetAdjectivMixPower( grinfo );
+          default:  return 1;
+        }
+      }
+    //=====================================================================
+    // Meth: GetNormalInfo
+    // Функция строит грамматическую информацию о нормальной форме слова,
+    // используя тип этого слова, грамматическую информацию об отождествлении
+    // и настройки поиска и нормализации.
+    // Нормальной формой считается:
+    // Для существительных - именительный падеж единственного числа;
+    // Для прилагательных - именительный падеж мужского рода;
+    // Для глаголов - инфинитив (или причастная форма - по настройкам).
+    //=====================================================================
+    flexinfo      FindDictForm( const flexinfo& grinfo, unsigned dwsets ) const
+      {
+        if ( IsVerb( wdinfo ) )
+        {
+          if ( (dwsets & nfAdjVerbs) != 0 && IsParticiple( grinfo.gramm ) )
+            return { uint16_t((grinfo.gramm & (gfVerbTime|gfVerbForm)) | (1 << 9)), afAnimated| afNotAlive };
+          else
+            return { vtInfinitiv, afAnimated| afNotAlive };
+        }
+          else
+        {
+          uint16_t nfinfo = (IsAdjective( wdinfo ) ? (1 << 9) : 0)
+            | ((wdinfo & wfMultiple) != 0 ? gfMultiple : 0);
 
-# if defined( LIBMORPH_NAMESPACE )
-} // end namespace
-# endif   // LIBMORPH_NAMESPACE
+          return { nfinfo, afAnimated | afNotAlive };
+        }
+      }
 
-# endif // _mlmadefs_h_
+  };
+
+}} // end namespace
+
+# endif // __libmorph_rus_mlmadefs_h__

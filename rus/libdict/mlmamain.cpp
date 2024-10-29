@@ -25,17 +25,18 @@
       Phone: +7(495)648-4058, +7(926)513-2991
 
 ******************************************************************************/
+# include "xmorph/wildscan.h"
+# include "xmorph/charlist.h"
 # include "../include/mlma1049.h"
-# include <namespace.h>
+# include "../codepages.hpp"
+# include "../chartype.h"
 # include "mlmadefs.h"
-# include "../../xmorph/scandict.h"
-# include "../../xmorph/capsheme.h"
-# include "../../xmorph/scanlist.h"
-# include "../../xmorph/wildscan.h"
-# include "../../xmorph/lemmatiz.h"
-# include "moonycode/codes.h"
-# include <stdlib.h>
-# include <string.h>
+# include "scanClass.hpp"
+# include "wildClass.hpp"
+# include "lemmatize.hpp"
+# include "buildform.hpp"
+# include <cstdlib>
+# include <cstring>
 # include <errno.h>
 
 # if !defined( _WIN32_WCE )
@@ -46,8 +47,16 @@
   # define  ON_ERRORS( code )
 # endif  // ! _WIN32_WCE
 
-namespace LIBMORPH_NAMESPACE
-{
+namespace libmorph {
+namespace rus {
+
+  CapScheme capitals( charTypeMatrix, toLoCaseMatrix, toUpCaseMatrix, pspMinCapValue );
+
+  struct anyway_ok
+  {
+    template <class ... args>
+    int  operator()( args... ) const  {  return 1;  }
+  };
 
   inline  int     igncasecmp( const char* s1, const char* s2 )
   {
@@ -59,6 +68,7 @@ namespace LIBMORPH_NAMESPACE
     return rc;
   }
 
+
   //
   // the new api - IMlma interface class
   //
@@ -67,32 +77,32 @@ namespace LIBMORPH_NAMESPACE
     int MLMAPROC  Attach() override {  return 0;  }
     int MLMAPROC  Detach() override {  return 0;  }
 
-    int MLMAPROC  SetLoCase( char*            outstr, size_t    cchout,
-                             const char*      srcstr, size_t    cchsrc ) override;
-    int MLMAPROC  SetUpCase( char*            outstr, size_t    cchout,
-                             const char*      srcstr, size_t    cchsrc ) override;
-    int MLMAPROC  CheckWord( const char*      pszstr, size_t    cchstr,
-                             unsigned         dwsets )                   override;
-    int MLMAPROC  Lemmatize( const char*      pszstr, size_t    cchstr,
-                             SLemmInfoA*      output, size_t    cchout,
-                             char*            plemma, size_t    clemma,
-                             SGramInfo*       pgrams, size_t    ngrams,
-                             unsigned         dwsets )                   override;
-    int MLMAPROC  BuildForm( char*            output, size_t    cchout,
-                             lexeme_t         nlexid, formid_t  idform ) override;
-    int MLMAPROC  FindForms( char*            output, size_t    cchout,
-                             const char*      pszstr, size_t    cchstr,
-                             formid_t         idform )                   override;
-    int MLMAPROC  CheckHelp( char*            output, size_t    cchout,
-                             const char*      pszstr, size_t    cchstr ) override;
-    int MLMAPROC  GetWdInfo( unsigned char*   pwindo, lexeme_t  nlexid ) override;
-    int MLMAPROC  EnumWords( IMlmaEnum*       pienum,
-                             const char*      pszstr, size_t    cchstr ) override;
-    int MLMAPROC  FindMatch( IMlmaMatch*      pienum,
-                             const char*      pszstr, size_t    cchstr ) override;
+    int MLMAPROC  CheckWord( const char*    pszstr, size_t    cchstr,
+                             unsigned       dwsets )                   override;
+    int MLMAPROC  Lemmatize( const char*    pszstr, size_t    cchstr,
+                             SLemmInfoA*    output, size_t    cchout,
+                             char*          plemma, size_t    clemma,
+                             SGramInfo*     pgrams, size_t    ngrams,
+                             unsigned       dwsets )                   override;
+    int MLMAPROC  BuildForm( char*          output, size_t    cchout,
+                             lexeme_t       nlexid, formid_t  idform ) override;
+    int MLMAPROC  FindForms( char*          output, size_t    cchout,
+                             const char*    pszstr, size_t    cchstr,
+                             formid_t       idform, unsigned  dwsets ) override;
+    int MLMAPROC  CheckHelp( char*          output, size_t    cchout,
+                             const char*    pszstr, size_t    cchstr ) override;
+    int MLMAPROC  GetWdInfo( unsigned char* pwindo, lexeme_t  nlexid ) override;
+    int MLMAPROC  FindMatch( IMlmaMatch*    pienum,
+                             const char*    pszstr, size_t    cchstr ) override;
 
   public:     // construction
     CMlmaMb( unsigned cp = codepages::codepage_1251 ): codepage( cp ) {}
+
+  protected:
+    template <size_t N>
+    int           GetJocker( uint8_t (&)[N], const char*, size_t ) const;
+    template <size_t N>
+    unsigned      ToCanonic( uint8_t (&)[N], const char*, size_t ) const;
 
   protected:  // codepage
     unsigned  codepage;
@@ -114,30 +124,26 @@ namespace LIBMORPH_NAMESPACE
 
   struct  CMlmaWc: public IMlmaWc
   {
-    virtual int MLMAPROC  Attach() {  return 0;  }
-    virtual int MLMAPROC  Detach() {  return 0;  }
+    int MLMAPROC  Attach() override {  return 0;  }
+    int MLMAPROC  Detach() override {  return 0;  }
 
-    virtual int MLMAPROC  SetLoCase( widechar*        pwsstr, size_t    cchstr );
-    virtual int MLMAPROC  SetUpCase( widechar*        pwsstr, size_t    cchstr );
-    virtual int MLMAPROC  CheckWord( const widechar*  pszstr, size_t    cchstr,
-                                     unsigned         dwsets );
-    virtual int MLMAPROC  Lemmatize( const widechar*  pszstr, size_t    cchstr,
-                                     SLemmInfoW*      output, size_t    cchout,
-                                     widechar*        plemma, size_t    clemma,
-                                     SGramInfo*       pgrams, size_t    ngrams,
-                                     unsigned         dwsets );
-    virtual int MLMAPROC  BuildForm( widechar*        output, size_t    cchout,
-                                     lexeme_t         nlexid, byte_t    idform );
-    virtual int MLMAPROC  FindForms( widechar*        output, size_t    cchout,
-                                     const widechar*  pwsstr, size_t    cchstr,
-                                     unsigned char    idform );
-    virtual int MLMAPROC  CheckHelp( widechar*        output, size_t    cchout,
-                                     const widechar*  pwsstr, size_t    cchstr );
-    virtual int MLMAPROC  GetWdInfo( unsigned char*   pwindo, lexeme_t  nlexid );
-    virtual int MLMAPROC  EnumWords( IMlmaEnum*       pienum,
-                                     const widechar*  pszstr, size_t    cchstr );
-    virtual int MLMAPROC  FindMatch( IMlmaMatch*      pmatch,
-                                     const widechar*  pszstr, size_t    cchstr );
+    int MLMAPROC  CheckWord( const widechar*  pszstr, size_t    cchstr,
+                             unsigned         dwsets )  override;
+    int MLMAPROC  Lemmatize( const widechar*  pszstr, size_t    cchstr,
+                             SLemmInfoW*      output, size_t    cchout,
+                             widechar*        plemma, size_t    clemma,
+                             SGramInfo*       pgrams, size_t    ngrams,
+                             unsigned         dwsets )  override;
+    int MLMAPROC  BuildForm( widechar*        output, size_t    cchout,
+                             lexeme_t         nlexid, formid_t  idform )  override;
+    int MLMAPROC  FindForms( widechar*        output, size_t    cchout,
+                             const widechar*  pwsstr, size_t    cchstr,
+                             unsigned char    idform, unsigned  dwsets )  override;
+    int MLMAPROC  CheckHelp( widechar*        output, size_t    cchout,
+                             const widechar*  pwsstr, size_t    cchstr )  override;
+    int MLMAPROC  GetWdInfo( unsigned char*   pwindo, lexeme_t  nlexid )  override;
+    int MLMAPROC  FindMatch( IMlmaMatch*      pmatch,
+                             const widechar*  pszstr, size_t    cchstr )  override;
   };
 
   CMlmaMb mlmaMbInstance;
@@ -145,208 +151,182 @@ namespace LIBMORPH_NAMESPACE
 
   // CMlmaMb implementation
 
-  int   CMlmaMb::SetLoCase( char*       outstr, size_t  cchout,
-                            const char* srcstr, size_t  cchsrc )
-  {
-    CATCH_ALL
-      return codepages::strtolower( codepage, outstr, cchout, srcstr, cchsrc );
-    ON_ERRORS( -1 )
-  }
-
-  int   CMlmaMb::SetUpCase( char*       outstr, size_t  cchout,
-                            const char* srcstr, size_t  cchsrc )
-  {
-    CATCH_ALL
-      return codepages::strtoupper( codepage, outstr, cchout, srcstr, cchsrc );
-    ON_ERRORS( -1 )
-  }
-
   int   CMlmaMb::CheckWord( const char* pszstr, size_t  cchstr, unsigned  dwsets )
   {
     CATCH_ALL
-      byte_t      locase[256];
-      char        cpsstr[256];
-      doCheckWord scheck( locase, dwsets );
+      uint8_t locase[256];
+      auto    scheme = ToCanonic( locase, pszstr, cchstr );
 
     // check source string and length
-      if ( pszstr == nullptr )
+      if ( scheme == (unsigned)-1 || scheme == 0 )
+        return scheme == (unsigned)-1 ? WORDBUFF_FAILED : 0;
+
+    // get capitalization scheme; if it is invalid, do not pass time to analyses
+      if ( uint8_t(scheme) == 0xff && (dwsets & sfIgnoreCapitals) == 0 )
         return 0;
 
-      if ( cchstr == (size_t)-1 )
-        for ( cchstr = 0; pszstr[cchstr] != 0; ++cchstr ) (void)NULL;
-
-    // check for overflow
-      if ( cchstr >= sizeof(locase) )
-        return WORDBUFF_FAILED;
-
-    // modify the codepage
-      if ( codepage != codepages::codepage_1251 )
-      {
-        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
-          return WORDBUFF_FAILED;
-        pszstr = cpsstr;
-      }
-
-    // get capitalization scheme
-      scheck.scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr ) & 0x0000ffff;
-
     // fill scheck structure
-      return LinearScanDict<byte_t, int>( listLookup<doCheckWord, steminfo>( scheck ),
-        stemtree, { locase, cchstr } );
+      return Flat::ScanTree<uint8_t>( Flat::ScanList( MakeClassMatch( anyway_ok() )
+        .SetCapitalization( uint16_t(scheme) )
+        .SetSearchSettings( dwsets ) ),
+      libmorphrus::stemtree, { locase, scheme >> 16 } );
     ON_ERRORS( -1 )
   }
 
   int   CMlmaMb::Lemmatize( const char* pszstr, size_t  cchstr,
-                            SLemmInfoA* plemma, size_t  clemma,
-                            char*       pforms, size_t  cforms,
-                            SGramInfo*  pgrams, size_t  cgrams, unsigned  dwsets )
+                            SLemmInfoA* plemma, size_t  llemma,
+                            char*       pforms, size_t  lforms,
+                            SGramInfo*  pgrams, size_t  lgrams, unsigned  dwsets )
   {
     CATCH_ALL
-      byte_t      locase[256];
-      char        cpsstr[256];
-      unsigned    scheme;
-      doLemmatize lemact( locase, dwsets, codepage );
+      uint8_t locase[256];
+      auto    scheme = ToCanonic( locase, pszstr, cchstr );
+      int     nerror;
 
     // check source string and length
-      if ( pszstr == nullptr || cchstr == 0 )
+      if ( scheme == (unsigned)-1 || scheme == 0 )
+        return scheme == (unsigned)-1 ? WORDBUFF_FAILED : 0;
+
+    // get capitalization scheme; if it is invalid, do not pass time to analyses
+      if ( uint8_t(scheme) == 0xff && (dwsets & sfIgnoreCapitals) == 0 )
         return 0;
 
-      if ( cchstr == (size_t)-1 )
-        for ( cchstr = 0; pszstr[cchstr] != 0; ++cchstr ) (void)NULL;
+    // create lemmatizer object
+      auto  lemmatize = Lemmatizer( capitals,
+        { plemma, llemma },
+        { pforms, lforms, codepage },
+        { pgrams, lgrams }, locase, dwsets );
 
-    // check for utf8 or multibyte
-      if ( codepage != codepages::codepage_1251 )
-      {
-        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
-          return WORDBUFF_FAILED;
-        if ( (scheme = GetCapScheme( locase, sizeof(locase), cpsstr, cchstr )) == (unsigned)-1 )
-          return WORDBUFF_FAILED;
-      }
-        else
-      {
-        if ( cchstr > sizeof(locase) )
-          return WORDBUFF_FAILED;
-        if ( (scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr )) == (unsigned)-1 )
-          return WORDBUFF_FAILED;
-      }
+      nerror = Flat::ScanTree<uint8_t>( Flat::ScanList( MakeClassMatch( lemmatize )
+        .SetCapitalization( scheme & 0xffff )
+        .SetSearchSettings( dwsets ) ),
+      libmorphrus::stemtree, { locase, scheme >> 16 } );
 
-    // fill other fields
-      lemact.elemma = (lemact.plemma = plemma) + clemma;
-      lemact.eforms = (lemact.pforms = pforms) + cforms;
-      lemact.egrams = (lemact.pgrams = pgrams) + cgrams;
-      lemact.scheme = scheme & 0x0000ffff;
-
-    // call dictionary scanner
-      return LinearScanDict<byte_t, int>( listLookup<doLemmatize, steminfo>( lemact ), stemtree, { locase, cchstr } ) < 0 ?
-        lemact.nerror : (int)lemact.nlemma;
+      return nerror < 0 ? nerror : lemmatize;
     ON_ERRORS( -1 )
   }
 
-  int   CMlmaMb::BuildForm( char* output, size_t  cchout, lexeme_t  nlexid, formid_t  idform )
+  int   CMlmaMb::BuildForm( char* output, size_t cchout, lexeme_t nlexid, formid_t idform )
   {
     CATCH_ALL
-      byte_t        lidkey[0x10];
-      const byte_t* ofsptr;
-      auto          getofs = []( const byte_t* thedic, const fragment& str ) {  return str.empty() ? thedic : nullptr;  };
+      uint8_t         lidkey[0x10];
+      const uint8_t*  ofsptr;
+      auto            getofs = []( const byte_t* thedic, const fragment& str ) {  return str.empty() ? thedic : nullptr;  };
+
+    // check the arguments
+      if ( output == nullptr || cchout == 0 )
+        return ARGUMENT_FAILED;
 
     // No original word form; algo jumps to lexeme block dictionary point by lexeme id
-      if ( (ofsptr = LinearScanDict<word16_t, const byte_t*>( getofs, lidstree, { lidkey, lexkeylen( lidkey, nlexid ) } )) != nullptr )
+      if ( (ofsptr = Flat::ScanTree<uint16_t>( getofs, libmorphrus::lidstree, { lidkey, lexkeylen( lidkey, nlexid ) } )) != nullptr )
       {
-        const byte_t* dicpos = stemtree + getserial( ofsptr );
-        byte_t        szstem[0x80];
-        doBuildForm   abuild( szstem, 0, codepage );
-        listTracer<doBuildForm, steminfo> tracer( abuild, szstem, dicpos );
+        auto    dicpos = libmorphrus::stemtree + getserial( ofsptr );
+        byte_t  szstem[0x80];
+        int     nerror;
 
-        abuild.outend = (abuild.output = output) + cchout;
-        abuild.grinfo = 0;
-        abuild.bflags = 0;
-        abuild.idform = idform;
+      // fill other fields
+        auto  buildform = FormBuild( { output, cchout, codepage }, capitals,
+          nlexid, idform, szstem );
 
-        return RecursGetTrack<byte_t, int>( tracer, stemtree, szstem, 0, dicpos ) >= 0 ?
-          abuild.rcount : abuild.nerror;
+        nerror = Flat::GetTrack<uint8_t>( Flat::ViewList( MakeBuildClass( buildform ), dicpos ),
+          libmorphrus::stemtree, szstem, 0, dicpos );
+
+        return nerror < 0 ? nerror : buildform;
       }
       return 0;
     ON_ERRORS( -1 )
   }
 
-  int   CMlmaMb::FindForms( char* output, size_t  cchout, const char* pszstr, size_t  cchstr, formid_t idform )
+  int   CMlmaMb::FindForms(
+    char*       output, size_t    cchout,
+    const char* pszstr, size_t    cchstr,
+    formid_t    idform, unsigned  dwsets )
   {
     CATCH_ALL
-      byte_t      locase[256];
-      char        cpsstr[256];
-      unsigned    scheme;
-      doBuildForm abuild( locase, 0, codepage );
+      uint8_t locase[256];
+      auto    scheme = ToCanonic( locase, pszstr, cchstr );
+      int     nerror;
+
+    // check the arguments
+      if ( output == nullptr || cchout == 0 )
+        return ARGUMENT_FAILED;
 
     // check source string and length
-      if ( pszstr == nullptr || cchstr == 0 )
+      if ( scheme == (unsigned)-1 || scheme == 0 )
+        return scheme == (unsigned)-1 ? WORDBUFF_FAILED : 0;
+
+    // get capitalization scheme; if it is invalid, do not pass time to analyses
+      if ( uint8_t(scheme) == 0xff && (dwsets & sfIgnoreCapitals) == 0 )
         return 0;
 
-      if ( cchstr == (size_t)-1 )
-        for ( cchstr = 0; pszstr[cchstr] != 0; ++cchstr ) (void)NULL;
+    // create form builder
+      auto  buildform = FormBuild( { output, cchout, codepage }, capitals,
+        0x0000, idform, locase );
 
-    // check for utf8 or multibyte
-      if ( codepage != codepages::codepage_1251 )
-      {
-        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
-          return WORDBUFF_FAILED;
-        if ( (scheme = GetCapScheme( locase, sizeof(locase), cpsstr, cchstr )) == (unsigned)-1 )
-          return WORDBUFF_FAILED;
-      }
-        else
-      {
-        if ( cchstr > sizeof(locase) )
-          return WORDBUFF_FAILED;
-        if ( (scheme = GetCapScheme( locase, sizeof(locase), pszstr, cchstr )) == (unsigned)-1 )
-          return WORDBUFF_FAILED;
-      }
+      nerror = Flat::ScanTree<uint8_t>( Flat::ScanList( MakeClassMatch( buildform )
+        .SetCapitalization( uint16_t(scheme) )
+        .SetSearchSettings( dwsets ) ),
+      libmorphrus::stemtree, { locase, scheme >> 16 } );
 
-      abuild.outend = (abuild.output = output) + cchout;
-      abuild.grinfo = 0;
-      abuild.bflags = 0;
-      abuild.idform = idform;
-      abuild.scheme = scheme & 0x0000ffff;
-
-      return LinearScanDict<byte_t, int>( listLookup<doBuildForm, steminfo>( abuild ), stemtree, { locase, cchstr } ) < 0 ?
-        abuild.nerror : (int)abuild.rcount;
+      return nerror < 0 ? nerror : buildform;
     ON_ERRORS( -1 )
   }
 
+ /*
+  * CheckHelp( output, cchout, pszstr, cchstr )
+  *
+  * Реализация через FindMatch( ... ) требует предварительной обработки шаблона к форме
+  * 'либо одна звёздочка в конце, либо один знак вопроса где угодно'
+  */
   int   CMlmaMb::CheckHelp( char* output, size_t  cchout, const char* pszstr, size_t  cchstr )
   {
     CATCH_ALL
-      byte_t  locase[256];
-      char    cpsstr[256];
-      int     nchars;
+      uint8_t locase[256];
+      uint8_t smatch[256];
+      auto    scheme = ToCanonic( locase, pszstr, cchstr );
+      size_t  qtrpos;       // позиция квантора в строке
+      size_t  keylen;       // длина поискового ключа
+      Charset achars;
+      int     nerror;
 
     // check source string and length
-      if ( pszstr == nullptr )
-        return 0;
+      if ( scheme == (unsigned)-1 || scheme == 0 )
+        return scheme == (unsigned)-1 ? WORDBUFF_FAILED : 0;
 
-      if ( cchstr == (size_t)-1 )
-        for ( cchstr = 0; pszstr[cchstr] != 0; ++cchstr ) (void)NULL;
+    // check output buffer
+      if ( output == nullptr || cchout == 0 )
+        return ARGUMENT_FAILED;
 
-    // check for overflow
-      if ( cchstr >= sizeof(locase) )
-        return WORDBUFF_FAILED;
-
-    // modify the codepage
-      if ( codepage != codepages::codepage_1251 )
+    // провериьт наличие и рассчитать позицию квантора
+      for ( auto  hasqtr = keylen = (qtrpos = size_t(-1)) + 1; keylen != (scheme >> 16); )
       {
-        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
-          return WORDBUFF_FAILED;
-        pszstr = cpsstr;
+        auto  chnext = locase[keylen++];
+
+        if ( chnext == '*' )
+        {
+          qtrpos = keylen - 1;
+          break;
+        }
+          else
+        if ( chnext == '?' )
+        {
+          if ( hasqtr++ == 0 )  qtrpos = keylen - 1;
+            else return ARGUMENT_FAILED;
+        }
       }
 
-    // change the word to the lower case
-      memcpy( locase, pszstr, cchstr );
-        locase[cchstr] = '\0';
-      SetLowerCase( locase );
+    // проверить наличие кванторов
+      if ( qtrpos != size_t(-1) && keylen != 0 )  locase[keylen] = '\0';
+        else return 0;
 
     // scan the dictionary
-      if ( (nchars = (int)WildScan( (byte_t*)cpsstr, cchout, locase, cchstr )) <= 0 )
-        return nchars;
+      if ( (nerror = Wild::ScanTree<uint8_t>(
+        MakeModelMatch( [&]( lexeme_t, const uint8_t* str, size_t len, const SGramInfo& )
+          {  return achars( qtrpos < len ? str[qtrpos] : uint8_t(0) ), 0;  } ),
+        libmorphrus::stemtree, { locase, scheme >> 16 }, smatch, 0 )) != 0 )
+      return nerror;
 
-      return (int)codepages::mbcstombcs( codepage, output, cchout, codepages::codepage_1251, cpsstr, nchars );
+      return achars( MbcsCoder( output, cchout, codepage ).object() );
     ON_ERRORS( -1 )
   }
 
@@ -358,88 +338,117 @@ namespace LIBMORPH_NAMESPACE
       auto          getofs = []( const byte_t* thedic, const fragment& str ){  return str.empty() ? thedic : nullptr;  };
 
     // No original word form; algo jumps to lexeme block dictionary point by lexeme id
-      if ( (ofsptr = LinearScanDict<word16_t, const byte_t*>( getofs, lidstree, { lidkey, lexkeylen( lidkey, lexkey ) } )) != nullptr )
+      if ( (ofsptr = Flat::ScanTree<word16_t>( getofs, libmorphrus::lidstree, { lidkey, lexkeylen( lidkey, lexkey ) } )) != nullptr )
       {
-        const byte_t* dicpos = stemtree + getserial( ofsptr ) + 2; /* 2 => clower && cupper */
+        const byte_t* dicpos = libmorphrus::stemtree + getserial( ofsptr ) + 2; /* 2 => clower && cupper */
         lexeme_t      nlexid = getserial( dicpos );
         word16_t      oclass = getword16( dicpos );
         steminfo      stinfo;
 
         if ( nlexid != lexkey )
-          return -2;
+          return LIDSBUFF_FAILED;
 
-        *pwinfo = stinfo.Load( classmap + (oclass & 0x7fff) ).wdinfo & 0x3f;
+        *pwinfo = stinfo.Load( libmorphrus::classmap + (oclass & 0x7fff) ).wdinfo & 0x3f;
           return 1;
       }
       return 0;
     ON_ERRORS( -1 )
   }
 
-  int   CMlmaMb::EnumWords( IMlmaEnum*  pienum, const char* pszstr, size_t cchstr )
+  int   CMlmaMb::FindMatch( IMlmaMatch*  pmatch, const char* pszstr, size_t cchstr )
   {
     CATCH_ALL
-      byte_t  locase[0x100];
-      char    cpsstr[0x100];
-      auto    reglex = [pienum]( lexeme_t x, int n, const SStrMatch* f )
+      uint8_t   locase[256];
+      char      cpsstr[256];
+      uint8_t   sforms[256 * 32];
+      uint8_t*  pforms;
+      SStrMatch amatch[256];
+      size_t    nmatch;
+      lexeme_t  lastId = 0;
+      int       nerror;
+      auto      reglex = [&](
+        lexeme_t          nlexid,
+        const uint8_t*    string,
+        size_t            length,
+        const SGramInfo&  grinfo )
+      {
+        if ( nlexid != lastId )
         {
-          byte_t  aforms[0x100];
+          if ( lastId != 0 )
+            pmatch->RegisterLexeme( lastId, nmatch, amatch );
+          lastId = nlexid;
+          pforms = sforms;
+          nmatch = 0;
+        }
 
-          for ( int i = 0; i != n; ++i )
-            aforms[i] = f[i].id;
+        amatch[nmatch++] = { strncpy( (char*)pforms, (const char*)string, length ), length, grinfo.idForm };
+          pforms += length + 1;
 
-          return pienum->RegisterLexeme( x, n, aforms );
-        };
+        return 0;
+      };
 
-    // check string length && check for overflow
+    // check output buffer
+      if ( pmatch == nullptr )
+        return ARGUMENT_FAILED;
+
+    // check template defined
+      if ( pszstr == nullptr )
+        return ARGUMENT_FAILED;
+
+    // check length defined
       if ( cchstr == (size_t)-1 )
         for ( cchstr = 0; pszstr[cchstr] != 0; ++cchstr ) (void)NULL;
+
+    // check length defined
+      if ( cchstr == 0 )
+        return 0;
+
+    // check for overflow
       if ( cchstr >= sizeof(locase) )
         return WORDBUFF_FAILED;
 
     // modify the codepage
       if ( codepage != codepages::codepage_1251 )
       {
-        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
+        if ( (cchstr = ToInternal( cpsstr, codepage, pszstr, cchstr )) == (size_t)-1 )
           return WORDBUFF_FAILED;
         pszstr = cpsstr;
       }
 
     // change the word to the lower case
-      SetLowerCase( (byte_t*)strncpy( (char*)locase, pszstr, cchstr ), cchstr )[cchstr] = 0;
+      capitals.Get( locase, pszstr, cchstr );
+        locase[cchstr] = '\0';
 
     // scan the dictionary
-      return GetWordMatch( locase, cchstr, reglex );
+      if ( (nerror = Wild::ScanTree<uint8_t>( MakeModelMatch( reglex ),
+        libmorphrus::stemtree, { locase, cchstr }, (uint8_t*)cpsstr, 0 )) != 0 )
+      return nerror;
+
+      return lastId != 0 ? pmatch->RegisterLexeme( lastId, nmatch, amatch ) : 0;
     ON_ERRORS( -1 )
   }
 
-  int   CMlmaMb::FindMatch( IMlmaMatch*  pienum, const char* pszstr, size_t cchstr )
+  template <size_t N>
+  auto  CMlmaMb::ToCanonic( uint8_t (& output)[N], const char* pszstr, size_t cchstr ) const -> unsigned
   {
-    CATCH_ALL
-      byte_t  locase[0x100];
-      char    cpsstr[0x100];
-      auto    reglex = [pienum]( lexeme_t x, int n, const SStrMatch* f )
-        {  return pienum->RegisterLexeme( x, n, f );  };
+    char  mbsstr[N];
 
-    // check string length && check for overflow
-      if ( cchstr == (size_t)-1 )
-        for ( cchstr = 0; pszstr[cchstr] != 0; ++cchstr ) (void)NULL;
-      if ( cchstr >= sizeof(locase) )
-        return WORDBUFF_FAILED;
+    if ( pszstr == nullptr )
+      return 0;
 
-    // modify the codepage
-      if ( codepage != codepages::codepage_1251 )
-      {
-        if ( (cchstr = codepages::mbcstombcs( codepages::codepage_1251, cpsstr, sizeof(cpsstr), codepage, pszstr, cchstr )) == (size_t)-1 )
-          return WORDBUFF_FAILED;
-        pszstr = cpsstr;
-      }
+    if ( cchstr == (size_t)-1 )
+      for ( cchstr = 0; pszstr[cchstr] != 0; ++cchstr ) (void)NULL;
 
-    // change the word to the lower case
-      SetLowerCase( (byte_t*)strncpy( (char*)locase, pszstr, cchstr ), cchstr )[cchstr] = 0;
+    if ( cchstr == 0 )
+      return 0;
 
-    // scan the dictionary
-      return GetWordMatch( locase, cchstr, reglex );
-    ON_ERRORS( -1 )
+    if ( codepage != codepages::codepage_1251 )
+    {
+      if ( (cchstr = ToInternal( mbsstr, codepage, pszstr, cchstr )) != (size_t)-1 )  pszstr = mbsstr;
+        else return (unsigned)-1;
+    }
+
+    return capitals.Get( output, pszstr, cchstr );
   }
 
   // CMlmaCp implementation
@@ -463,26 +472,6 @@ namespace LIBMORPH_NAMESPACE
 
   // CMlmaWc wrapper implementation
 
-  int   CMlmaWc::SetLoCase( widechar* pwsstr, size_t  cchstr )
-  {
-    if ( cchstr == (size_t)-1 )
-      for ( cchstr = 0; pwsstr[cchstr] != 0; ++cchstr ) (void)NULL;
-
-    CATCH_ALL
-      return codepages::strtolower( (widechar*)pwsstr, cchstr, (const widechar*)pwsstr, cchstr ), 0;
-    ON_ERRORS( -1 )
-  }
-                               
-  int   CMlmaWc::SetUpCase( widechar* pwsstr, size_t  cchstr )
-  {
-    if ( cchstr == (size_t)-1 )
-      for ( cchstr = 0; pwsstr[cchstr] != 0; ++cchstr ) (void)NULL;
-
-    CATCH_ALL
-      return codepages::strtoupper( (widechar*)pwsstr, cchstr, (const widechar*)pwsstr, cchstr ), 0;
-    ON_ERRORS( -1 )
-  }
-                               
   int   CMlmaWc::CheckWord( const widechar* pwsstr, size_t  cchstr, unsigned  dwsets )
   {
     char    szword[0x100];
@@ -567,8 +556,10 @@ namespace LIBMORPH_NAMESPACE
     return fcount;
   }
 
-  int   CMlmaWc::FindForms(       widechar* output, size_t  cchout,
-                            const widechar* pwsstr, size_t  cchstr, formid_t  idform )
+  int   CMlmaWc::FindForms(
+    widechar*       output, size_t    cchout,
+    const widechar* pwsstr, size_t    cchstr,
+    formid_t        idform, unsigned  dwsets )
   {
     char    szword[98];
     char    szform[98];
@@ -583,7 +574,7 @@ namespace LIBMORPH_NAMESPACE
 
   // build the form
     if ( (fcount = mlmaMbInstance.FindForms( szform, cchout <= sizeof(szform) - 1 ?
-      cchout : sizeof(szform) - 1, szword, ccword, idform )) <= 0 )
+      cchout : sizeof(szform) - 1, szword, ccword, idform, dwsets )) <= 0 )
         return fcount;
 
   // convert
@@ -624,23 +615,6 @@ namespace LIBMORPH_NAMESPACE
   int   CMlmaWc::GetWdInfo( unsigned char* pwinfo, lexeme_t nlexid )
   {
     return mlmaMbInstance.GetWdInfo( pwinfo, nlexid );
-  }
-
-  /*
-    CMlmaWc::EnumWords()
-
-    Convert unicode string to 1251 && pass to ultibyte native interface
-  */
-  int   CMlmaWc::EnumWords( IMlmaEnum*  pienum, const widechar* pwsstr, size_t cchstr )
-  {
-    char    szword[0x100];
-    size_t  ccword;
-
-  // get string length and convert to native codepage
-    if ( (ccword = codepages::widetombcs( codepages::codepage_1251, szword, sizeof(szword) - 1, pwsstr, cchstr )) == (size_t)-1 )
-      return WORDBUFF_FAILED;
-
-    return mlmaMbInstance.EnumWords( pienum, szword, ccword );
   }
 
   int   CMlmaWc::FindMatch( IMlmaMatch* pmatch, const widechar* pwsstr, size_t cchstr )
@@ -685,9 +659,9 @@ namespace LIBMORPH_NAMESPACE
     { codepages::codepage_utf8, "utf8" }
   };
 
-}
+}}
 
-using namespace LIBMORPH_NAMESPACE;
+using namespace libmorph::rus;
 
 int   MLMAPROC        mlmaruLoadMbAPI( IMlmaMb**  ptrAPI )
 {

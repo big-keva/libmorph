@@ -43,8 +43,9 @@
 #   define  mlma_strmatch_defined
     typedef struct
     {
-      formid_t  id;
-      unsigned  cc;
+      const char* sz;
+      size_t      cc;
+      formid_t    id;
     } SStrMatch;
 # endif // mlma_strmatch_defined
 
@@ -54,6 +55,8 @@
 #   define LIDSBUFF_FAILED -2
 #   define GRAMBUFF_FAILED -3
 #   define WORDBUFF_FAILED -4
+#   define ARGUMENT_FAILED -5
+#   define BUFFER_OVERFLOW -6
 # endif
 
 # if !defined( mlma_search_flags_defined )
@@ -252,15 +255,6 @@
 # if !defined( mlma_interface_defined )
 # define  mlma_interface_defined
 
-  MLMA_INTERFACE( IMlmaEnum )
-    MLMA_METHOD( Attach )( MLMA_VOID ) MLMA_PURE;
-    MLMA_METHOD( Detach )( MLMA_VOID ) MLMA_PURE;
-
-    MLMA_METHOD( RegisterLexeme )( MLMA_THIS
-      lexeme_t  nlexid,
-      int       nforms, const formid_t* pforms ) MLMA_PURE;
-  MLMA_END;
-
   MLMA_INTERFACE( IMlmaMatch )
     MLMA_METHOD( Attach )( MLMA_VOID ) MLMA_PURE;
     MLMA_METHOD( Detach )( MLMA_VOID ) MLMA_PURE;
@@ -274,12 +268,6 @@
     MLMA_METHOD( Attach )( MLMA_VOID ) MLMA_PURE;
     MLMA_METHOD( Detach )( MLMA_VOID ) MLMA_PURE;
 
-    MLMA_METHOD( SetLoCase )( MLMA_THIS
-      char*           outstr, size_t  cchout,
-      const char*     srcstr, size_t  cchsrc )  MLMA_PURE;
-    MLMA_METHOD( SetUpCase )( MLMA_THIS
-      char*           outstr, size_t  cchout,
-      const char*     srcstr, size_t  cchsrc )  MLMA_PURE;
     MLMA_METHOD( CheckWord )( MLMA_THIS
       const char*     pszstr, size_t  cchstr,
       unsigned        dwsets                  ) MLMA_PURE;
@@ -295,15 +283,12 @@
     MLMA_METHOD( FindForms )( MLMA_THIS
       char*           output, size_t    cchout,
       const char*     pszstr, size_t    cchstr,
-                              formid_t  idform ) MLMA_PURE;
+      formid_t        idform, unsigned  dwsets ) MLMA_PURE;
     MLMA_METHOD( CheckHelp )( MLMA_THIS
       char*           output, size_t    cchout,
       const char*     pszstr, size_t    cchstr ) MLMA_PURE;
     MLMA_METHOD( GetWdInfo )( MLMA_THIS
       unsigned char*  pwinfo, lexeme_t  nlexid ) MLMA_PURE;
-    MLMA_METHOD( EnumWords )( MLMA_THIS
-      IMlmaEnum*      pienum,
-      const char*     pszstr, size_t    cchstr ) MLMA_PURE;
     MLMA_METHOD( FindMatch )( MLMA_THIS
       IMlmaMatch*     pienum,
       const char*     pszstr, size_t    cchstr ) MLMA_PURE;
@@ -311,51 +296,99 @@
 # if defined( __cplusplus )
     using string_t = std::basic_string<char>;
 
-    template <size_t N>
-    int   BuildForm( char (&output)[N], lexeme_t nlexid, formid_t idform )
-      {  return BuildForm( output, N, nlexid, idform );  }
+protected:
+    template <class T>
+    struct  outbuf
+    {
+      T*      t;
+      size_t  l;
 
-    template <size_t N>
-    int   FindForms( char (&output)[N], const char* pszstr, size_t cchstr, formid_t idform )
-      {  return FindForms( output, N, pszstr, cchstr, idform );  }
+    public:
+      outbuf(): t( nullptr ), l( 0 ) {}
+      template <size_t N>
+      outbuf( T (&p)[N] ): t( p ), l( N ) {}
+      outbuf( T* p, size_t n ): t( p ), l( n ) {}
+    };
+
+    struct  inword
+    {
+      const char* t;
+      size_t      l;
+
+    public:
+      inword( const char* s, size_t n = (size_t)-1 ):
+        t( s ), l( n )  {}
+    };
+
+public:
+    int   Lemmatize(
+      const inword&             pszstr,
+      const outbuf<SLemmInfoA>& alemms,
+      const outbuf<char>&       aforms,
+      const outbuf<SGramInfo>&  agrams, unsigned  dwsets = 0 )
+    {
+      return Lemmatize(
+        pszstr.t, pszstr.l,
+        alemms.t, alemms.l,
+        aforms.t, aforms.l,
+        agrams.t, agrams.l, dwsets );
+    }
+
+    int   BuildForm(
+      const outbuf<char>& output,
+      lexeme_t            nlexid,
+      formid_t            idform )
+    {
+      return BuildForm( output.t, output.l, nlexid, idform );
+    }
 
     auto  BuildForm( lexeme_t nlexid, formid_t idform ) -> std::vector<string_t>
-      {
-        char  buffer[0x100];
-        auto  output = std::vector<string_t>();
-        int   nforms = BuildForm( buffer, nlexid, idform );
+    {
+      char  buffer[0x100];
+      auto  output = std::vector<string_t>();
+      int   nforms = BuildForm( buffer, nlexid, idform );
 
-        for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
-          output.emplace_back( buffer );
+      for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
+        output.emplace_back( strptr );
 
-        return output;
-      }
+      return output;
+    }
 
-    auto  FindForms( const char* pszstr, size_t cchstr, formid_t idform ) -> std::vector<string_t>
-      {
-        char  buffer[0x100];
-        auto   output = std::vector<string_t>();
-        int    nforms = FindForms( buffer, pszstr, cchstr, idform );
+    int   FindForms(
+      const outbuf<char>& output,
+      const inword&       szword,
+      formid_t            idform,
+      unsigned            dwsets = 0 )
+    {
+      return FindForms( output.t, output.l, szword.t, szword.l, idform, dwsets );
+    }
 
-        for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
-          output.emplace_back( buffer );
+    auto  FindForms(
+      const inword& szword,
+      formid_t      idform,
+      unsigned      dwsets = 0 ) -> std::vector<string_t>
+    {
+      char  buffer[0x100];
+      auto  output = std::vector<string_t>();
+      int   nforms = FindForms( buffer, szword, idform, dwsets );
 
-        return output;
-      }
+      for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
+        output.emplace_back( strptr );
 
-    auto  FindForms( const string_t& pszstr, formid_t idform ) -> std::vector<string_t>
-      {  return FindForms( pszstr.c_str(), pszstr.length(), idform );  }
+      return output;
+    }
 
-    template <size_t N>
-    int   CheckHelp( char (&output)[N], const widechar* pwsstr, size_t cchstr = (size_t)-1 )
-      {  return CheckHelp( output, N, pwsstr, cchstr );  }
+    int   CheckHelp(
+      const outbuf<char>& output,
+      const inword&       pszstr )
+    {
+      return CheckHelp( output.t, output.l, pszstr.t, pszstr.l );
+    }
 
-    template <size_t N, class Trait, class Alloc>
-    int   CheckHelp( char (&output)[N], const std::basic_string<widechar, Trait, Alloc>& str )
-      {  return CheckHelp( output, N, str.c_str(), str.length() );  }
-
-    int   EnumWords( IMlmaEnum* pienum, const string_t& pszstr )
-      {  return EnumWords( pienum, pszstr.c_str(), pszstr.length() );  }
+    int   FindMatch( IMlmaMatch* pmatch, const inword& pszstr )
+    {
+      return FindMatch( pmatch, pszstr.t, pszstr.l );
+    }
 # endif
   MLMA_END;
 
@@ -363,10 +396,6 @@
     MLMA_METHOD( Attach )( MLMA_VOID ) MLMA_PURE;
     MLMA_METHOD( Detach )( MLMA_VOID ) MLMA_PURE;
 
-    MLMA_METHOD( SetLoCase )( MLMA_THIS
-      widechar*       pszstr, size_t    cchstr )  MLMA_PURE;
-    MLMA_METHOD( SetUpCase )( MLMA_THIS
-      widechar*       pwsstr, size_t    cchstr )  MLMA_PURE;
     MLMA_METHOD( CheckWord )( MLMA_THIS
       const widechar* pszstr, size_t    cchstr,
       unsigned        dwsets                    ) MLMA_PURE;
@@ -382,15 +411,12 @@
     MLMA_METHOD( FindForms )( MLMA_THIS
       widechar*       output, size_t    cchout,
       const widechar* pszstr, size_t    cchstr,
-                              formid_t  idform ) MLMA_PURE;
+      formid_t        idform, unsigned  dwsets ) MLMA_PURE;
     MLMA_METHOD( CheckHelp )( MLMA_THIS
       widechar*       output, size_t    cchout,
       const widechar* pwsstr, size_t    cchstr ) MLMA_PURE;
     MLMA_METHOD( GetWdInfo )( MLMA_THIS
       unsigned char*  pwinfo, lexeme_t  nlexid ) MLMA_PURE;
-    MLMA_METHOD( EnumWords )( MLMA_THIS
-      IMlmaEnum*      pienum,
-      const widechar* pszstr, size_t    cchstr ) MLMA_PURE;
     MLMA_METHOD( FindMatch )( MLMA_THIS
       IMlmaMatch*     pienum,
       const widechar* pszstr, size_t    cchstr ) MLMA_PURE;
@@ -402,15 +428,33 @@
     int   BuildForm( widechar (&output)[N], lexeme_t nlexid, formid_t idform )
       {  return BuildForm( output, N, nlexid, idform );  }
 
-    template <size_t N>
-    int   FindForms( widechar (&output)[N], const widechar* pszstr, size_t cchstr, formid_t idform )
-      {  return FindForms( output, N, pszstr, cchstr, idform );  }
-
     auto  BuildForm( lexeme_t nlexid, formid_t idform ) -> std::vector<string_t>
+    {
+      widechar  buffer[0x100];
+      auto      output = std::vector<string_t>();
+      int       nforms = BuildForm( buffer, nlexid, idform );
+
+      for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
+        output.emplace_back( buffer );
+
+      return output;
+    }
+
+    template <size_t N>
+    int   FindForms( widechar (&output)[N],
+      const widechar* pszstr, size_t    cchstr,
+      formid_t        idform, unsigned  dwsets = 0 )
+    {
+      return FindForms( output, N, pszstr, cchstr, idform, dwsets );
+    }
+
+    auto  FindForms(
+      const widechar* pszstr, size_t    cchstr,
+      formid_t        idform, unsigned  dwsets = 0 ) -> std::vector<string_t>
       {
         widechar  buffer[0x100];
         auto      output = std::vector<string_t>();
-        int       nforms = BuildForm( buffer, nlexid, idform );
+        int       nforms = FindForms( buffer, pszstr, cchstr, idform, dwsets );
 
         for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
           output.emplace_back( buffer );
@@ -418,20 +462,8 @@
         return output;
       }
 
-    auto  FindForms( const widechar* pszstr, size_t cchstr, formid_t idform ) -> std::vector<string_t>
-      {
-        widechar  buffer[0x100];
-        auto      output = std::vector<string_t>();
-        int       nforms = FindForms( buffer, pszstr, cchstr, idform );
-
-        for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
-          output.emplace_back( buffer );
-
-        return output;
-      }
-
-    auto  FindForms( const string_t& pszstr, formid_t idform ) -> std::vector<string_t>
-      {  return FindForms( pszstr.c_str(), pszstr.length(), idform );  }
+    auto  FindForms( const string_t& pszstr, formid_t idform, unsigned dwsets = 0 ) -> std::vector<string_t>
+      {  return FindForms( pszstr.c_str(), pszstr.length(), idform, dwsets );  }
 
     template <size_t N>
     int   CheckHelp( widechar (&output)[N], const widechar* pwsstr, size_t cchstr = (size_t)-1 )
@@ -441,8 +473,6 @@
     int   CheckHelp( widechar (&output)[N], const std::basic_string<widechar, Trait, Alloc>& str )
       {  return CheckHelp( output, N, str.c_str(), str.length() );  }
 
-    int   EnumWords( IMlmaEnum* pienum, const string_t& pszstr )
-      {  return EnumWords( pienum, pszstr.c_str(), pszstr.length() );  }
 # endif
 
   MLMA_END;
