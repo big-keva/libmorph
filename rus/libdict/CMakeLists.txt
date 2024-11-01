@@ -1,15 +1,29 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(LIBMORPHRUS)
+project(RUS_DICT
+  VERSION 3.0.1
+  DESCRIPTION "Dictionary-based morphological analyser for Russian"
+  LANGUAGES CXX)
 
-set(Namespace	libmorphrus)
+if (DEFINED MORPHRUS_BUILD_SHARED_LIBS)
+  if (MORPHRUS_BUILD_SHARED_LIBS)
+    set(MORPHRUS_BUILD_AS_SHARED_LIBRARY "build libmorphrus as .so" ON)
+  endif()
+elseif(BUILD_SHARED_LIBS)
+  if (NOT DEFINED MORPHRUS_BUILD_SHARED_LIBS OR MORPHRUS_BUILD_SHARED_LIBS)
+    set(MORPHRUS_BUILD_AS_SHARED_LIBRARY "build libmorphrus as .so" ON)
+  endif()
+endif()
 
-set(DicCPP  dictree/classmap.cpp
-            dictree/stemtree.cpp
-            dictree/lidstree.cpp
-            dictree/flexTree.cpp
-            dictree/mixTypes.cpp
-            dictree/mxTables.cpp)
+set(Namespace libmorphrus)
+
+set(DicCPP
+  dictree/classmap.cpp
+  dictree/stemtree.cpp
+  dictree/lidstree.cpp
+  dictree/flexTree.cpp
+  dictree/mixTypes.cpp
+  dictree/mxTables.cpp)
 
 add_compile_options(-W -Wall -Wextra)
 
@@ -26,51 +40,32 @@ set (IntrTab tmp/interchg.bmx)
 set (IntrIdx tmp/interchg.sym)
 set (IntrSrc ${MORPHRUS_SOURCE_DIR}/tables/mtables.mx)
 
-if (BUILD_SHARED_LIBS)
+if (MORPHRUS_BUILD_AS_SHARED_LIBRARY)
   set(SYMBOLS_FILE ${PROJECT_SOURCE_DIR}/morphrus.unix.def)
   set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Wl,-retain-symbols-file -Wl,${SYMBOLS_FILE}")
-  set(LIBRARY_TYPE SHARED)
-endif(BUILD_SHARED_LIBS)
 
-add_library(morphrus ${LIBRARY_TYPE}
-	mlmamain.cpp
-	buildform.cpp
-	lemmatize.cpp
-	${LIBMORPH_SOURCE_DIR}/xmorph/capsheme.cpp
-	${LIBMORPH_SOURCE_DIR}/xmorph/buildforms.cpp
-  	${MORPHRUS_SOURCE_DIR}/chartype.cpp
-	${DicCPP})
-target_link_libraries(morphrus moonycode)
+  add_library(morphrus SHARED
+    mlmamain.cpp
+    buildform.cpp
+    lemmatize.cpp
+    ${LIBMORPH_SOURCE_DIR}/xmorph/capsheme.cpp
+    ${LIBMORPH_SOURCE_DIR}/xmorph/buildforms.cpp
+    ${MORPHRUS_SOURCE_DIR}/chartype.cpp
+    ${DicCPP})
 
-if (build-php)
-  include(../cmake/FindPHP.cmake)
+  target_link_libraries(morphrus moonycode)
 
-  if (NOT PHP_FOUND)
-    message( SEND_ERROR "No PHP-devel found" )
-    return()
-  endif()
+else()
 
-  include_directories( ${PHP_INCLUDE_DIRS} )
+  add_library(morphrus STATIC
+    mlmamain.cpp
+    buildform.cpp
+    lemmatize.cpp
+    ${LIBMORPH_SOURCE_DIR}/xmorph/capsheme.cpp
+    ${LIBMORPH_SOURCE_DIR}/xmorph/buildforms.cpp
+    ${MORPHRUS_SOURCE_DIR}/chartype.cpp
+    ${DicCPP})
 
-  set(CMAKE_CXX_FLAGS "-Wno-unused-parameter")
-  set(CMAKE_CXX_FLAGS "-DZEND_DEBUG=0")
-  set(CMAKE_CXX_FLAGS "-DCOMPILE_DL_PHPMORPHRUS=1")
-
-#  add_library(morphrus-php SHARED
-  add_executable(morphrus-php
-      php/phpapi.cpp
-
-      libdict/chartype.cpp
-      libdict/mlmamain.cpp
-      ${libmorph_SOURCE_DIR}/xmorph/capsheme.cpp
-      ${libmorph_SOURCE_DIR}/xmorph/lemmatiz.cpp
-      ${libmorph_SOURCE_DIR}/xmorph/wildscan.cpp
-      ${DicCPP}
-  )
-
-  target_link_libraries(morphrus-php
-    moonycode
-  )
 endif()
 
 add_custom_command(OUTPUT ${DicCPP}

@@ -1,9 +1,17 @@
 cmake_minimum_required(VERSION 3.5)
 project(LIBMORPH)
 
-option(BUILD_STATIC_LIBS "Build static library" ON)
-option(BUILD_SHARED_LIBS "Build shared library" OFF)
-option(build-php "Build shared library" OFF)
+if (NOT DEFINED CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin CACHE PATH "Single Directory for all")
+endif()
+
+if (NOT DEFINED CMAKE_LIBRARY_OUTPUT_DIRECTORY)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib CACHE PATH "Single Directory for all")
+endif()
+
+if (NOT DEFINED CMAKE_ARCHIVE_OUTPUT_DIRECTORY)
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib CACHE PATH "Single Directory for all")
+endif()
 
 # Enable C & C++.
 set(CMAKE_C_STANDARD 11)
@@ -15,10 +23,6 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	add_compile_options(-O0)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
-else()
-	add_compile_options(-O3)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 endif()
 
 include_directories(
@@ -43,5 +47,4 @@ add_executable(tfc
   tfc/ftable.cpp
   tfc/gramap.cpp
   tfc/tfc.cpp)
-
 target_link_libraries(tfc moonycode)
