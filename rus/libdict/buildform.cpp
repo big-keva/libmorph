@@ -17,6 +17,8 @@ namespace rus {
     const fragment& prefix,
     const fragment& suffix )
   {
+    auto  ptflex = (const uint8_t*){};
+
     if ( stinfo.mtoffs != 0 )
     {
       auto    mixtab = stinfo.GetSwapTable();
@@ -45,14 +47,14 @@ namespace rus {
       return 0;
     }
       else
-    if ( stinfo.tfoffs == 0 )
+    if ( (ptflex = stinfo.GetFlexTable()) == nullptr )
     {
       return output.append( (const char*)prefix.begin(), prefix.size() )
         && output.append( (const char*)suffix.begin(), suffix.size() )
         && output.append( '\0' ) ? 1 : -1;
     }
       else
-    return GetFlexForms( output, stinfo.GetFlexTable(), fxinfo, prefix, suffix );
+    return GetFlexForms( output, ptflex, fxinfo, prefix, suffix );
   }
 
  /*
