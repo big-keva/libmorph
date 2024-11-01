@@ -119,7 +119,7 @@ class AllForms
 
   static  bool  form_is_less( const formInfo& f1, const formInfo& f2 )
   {
-    return f1.iform < f2.iform || f1.iform == f2.iform && strcmp( f1.pform, f2.pform ) < 0;
+    return f1.iform < f2.iform || (f1.iform == f2.iform && strcmp( f1.pform, f2.pform ) < 0);
   }
 
 public:
@@ -145,8 +145,6 @@ public:
   bool  Cover( const AllForms& ) const;
 
 public:     // operators
-  auto  operator = ( const AllForms& lc ) -> AllForms&
-    {  return pforms = lc.pforms, *this;  }
   bool  operator < ( const AllForms& lc ) const
   {
     auto  mbeg = begin();
@@ -624,7 +622,7 @@ int   main()
   fprintf( stdout,
     "{\n"
     "  \"created\": %u,\n"
-    "  \"classes\": [\n", sorter.size() );
+    "  \"classes\": [\n", (unsigned)sorter.size() );
 
   for ( size_t i = 0; i != sorter.size(); ++i )
   {
@@ -639,7 +637,7 @@ int   main()
       "\t\t\"spf\": ",
         sorter[i]->first.first,
         codepages::mbcstombcs( codepages::codepage_utf8, codepages::codepage_1251, std::get<2>( sorter[i]->second ) ).c_str(),
-        std::get<0>( sorter[i]->second ), i );
+        std::get<0>( sorter[i]->second ), (unsigned)i );
 
     for ( auto& chars: std::get<1>( sorter[i]->second ) )
     {
