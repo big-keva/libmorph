@@ -1,4 +1,5 @@
 # if !defined( _mlma1049_h_ )
+# if !defined( _mlma1049_h_ )
 # define _mlma1049_h_
 
 # if defined( _WIN32 )

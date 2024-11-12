@@ -89,6 +89,19 @@
         if ( pgrams != nullptr && ngrams != 0 )
           pgrams = (gramma = { pgrams, pgrams + ngrams }).data();
       }
+      SStemInfo( SStemInfo&& s ): SStemInfoA( s ),
+        normal( std::move( s.normal ) ),
+        gramma( std::move( s.gramma ) )
+      {
+        if ( plemma != nullptr )
+          plemma = normal.c_str();
+        if ( pgrams != nullptr )
+          pgrams = gramma.data();
+      }
+
+    private:
+      SStemInfo( const SStemInfo& ) = delete;
+      auto  operator = ( const SStemInfo& ) = delete;
 
     protected:
       string_t                normal;   // the normal form
@@ -227,6 +240,19 @@
         if ( pgrams != nullptr && ngrams != 0 )
           pgrams = (gramma = { pgrams, pgrams + ngrams }).data();
       }
+      SStemInfo( SStemInfo&& s ): SStemInfoW( s ),
+        normal( std::move( s.normal ) ),
+        gramma( std::move( s.gramma ) )
+      {
+        if ( plemma != nullptr )
+          plemma = normal.c_str();
+        if ( pgrams != nullptr )
+          pgrams = gramma.data();
+      }
+
+    private:
+      SStemInfo( const SStemInfo& ) = delete;
+      auto  operator = ( const SStemInfo& ) = delete;
 
     protected:
       string_t                normal;   // the normal form
