@@ -320,7 +320,14 @@ protected:
         t( s ), l( n )  {}
     };
 
-public:
+  public:
+    auto  GetWdInfo( lexeme_t nlexid ) -> uint8_t
+    {
+      uint8_t wdinfo;
+
+      return GetWdInfo( &wdinfo, nlexid ) > 0 ? wdinfo : 0;
+    }
+
     int   Lemmatize(
       const inword&             pszstr,
       const outbuf<SLemmInfoA>& alemms,
@@ -424,9 +431,58 @@ public:
 # if defined( __cplusplus )
     using string_t = std::basic_string<widechar>;
 
-    template <size_t N>
-    int   BuildForm( widechar (&output)[N], lexeme_t nlexid, formid_t idform )
-      {  return BuildForm( output, N, nlexid, idform );  }
+  protected:
+    template <class T>
+    struct  outbuf
+    {
+      T*      t;
+      size_t  l;
+
+    public:
+      outbuf(): t( nullptr ), l( 0 ) {}
+      template <size_t N>
+      outbuf( T (&p)[N] ): t( p ), l( N ) {}
+      outbuf( T* p, size_t n ): t( p ), l( n ) {}
+    };
+
+    struct  inword
+    {
+      const widechar* t;
+      size_t          l;
+
+    public:
+      inword( const widechar* s, size_t n = (size_t)-1 ):
+        t( s ), l( n )  {}
+    };
+
+  public:
+    auto  GetWdInfo( lexeme_t nlexid ) -> uint8_t
+    {
+      uint8_t wdinfo;
+
+      return GetWdInfo( &wdinfo, nlexid ) > 0 ? wdinfo : 0;
+    }
+
+    int   Lemmatize(
+      const inword&             pwsstr,
+      const outbuf<SLemmInfoW>& alemms,
+      const outbuf<widechar>&   aforms,
+      const outbuf<SGramInfo>&  agrams, unsigned  dwsets = 0 )
+    {
+      return Lemmatize(
+        pwsstr.t, pwsstr.l,
+        alemms.t, alemms.l,
+        aforms.t, aforms.l,
+        agrams.t, agrams.l, dwsets );
+    }
+
+    int   BuildForm(
+      const outbuf<widechar>& output,
+      lexeme_t                nlexid,
+      formid_t                idform )
+    {
+      return BuildForm( output.t, output.l, nlexid, idform );
+    }
 
     auto  BuildForm( lexeme_t nlexid, formid_t idform ) -> std::vector<string_t>
     {
@@ -435,44 +491,46 @@ public:
       int       nforms = BuildForm( buffer, nlexid, idform );
 
       for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
-        output.emplace_back( buffer );
+        output.emplace_back( strptr );
 
       return output;
     }
 
-    template <size_t N>
-    int   FindForms( widechar (&output)[N],
-      const widechar* pszstr, size_t    cchstr,
-      formid_t        idform, unsigned  dwsets = 0 )
+    int   FindForms(
+      const outbuf<widechar>& output,
+      const inword&           szword,
+      formid_t                idform,
+      unsigned                dwsets = 0 )
     {
-      return FindForms( output, N, pszstr, cchstr, idform, dwsets );
+      return FindForms( output.t, output.l, szword.t, szword.l, idform, dwsets );
     }
 
     auto  FindForms(
-      const widechar* pszstr, size_t    cchstr,
-      formid_t        idform, unsigned  dwsets = 0 ) -> std::vector<string_t>
-      {
-        widechar  buffer[0x100];
-        auto      output = std::vector<string_t>();
-        int       nforms = FindForms( buffer, pszstr, cchstr, idform, dwsets );
+      const inword& szword,
+      formid_t      idform,
+      unsigned      dwsets = 0 ) -> std::vector<string_t>
+    {
+      widechar  buffer[0x100];
+      auto      output = std::vector<string_t>();
+      int       nforms = FindForms( buffer, szword, idform, dwsets );
 
-        for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
-          output.emplace_back( buffer );
+      for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
+        output.emplace_back( strptr );
 
-        return output;
-      }
+      return output;
+    }
 
-    auto  FindForms( const string_t& pszstr, formid_t idform, unsigned dwsets = 0 ) -> std::vector<string_t>
-      {  return FindForms( pszstr.c_str(), pszstr.length(), idform, dwsets );  }
+    int   CheckHelp(
+      const outbuf<widechar>& output,
+      const inword&           pszstr )
+    {
+      return CheckHelp( output.t, output.l, pszstr.t, pszstr.l );
+    }
 
-    template <size_t N>
-    int   CheckHelp( widechar (&output)[N], const widechar* pwsstr, size_t cchstr = (size_t)-1 )
-      {  return CheckHelp( output, N, pwsstr, cchstr );  }
-
-    template <size_t N, class Trait, class Alloc>
-    int   CheckHelp( widechar (&output)[N], const std::basic_string<widechar, Trait, Alloc>& str )
-      {  return CheckHelp( output, N, str.c_str(), str.length() );  }
-
+    int   FindMatch( IMlmaMatch* pmatch, const inword& pszstr )
+    {
+      return FindMatch( pmatch, pszstr.t, pszstr.l );
+    }
 # endif
 
   MLMA_END;
