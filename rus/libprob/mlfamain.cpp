@@ -41,8 +41,6 @@
 namespace libmorph {
 namespace rus {
 
-  CapScheme capitals( charTypeMatrix, toLoCaseMatrix, toUpCaseMatrix, pspMinCapValue );
-
   //
   // the new api - IMlma interface class
   //
@@ -132,7 +130,9 @@ namespace rus {
         return 0;
 
     // create lemmatize collector
-      auto  lemmatizer = libfuzzy::rus::Lemmatizer( capitals,
+      auto  lemmatizer = libfuzzy::rus::Lemmatizer( CapScheme(
+          charTypeMatrix, toLoCaseMatrix,
+          toUpCaseMatrix, pspMinCapValue ),
         { plemma, clemma },
         { pforms, cforms, codepage },
         { pgrams, cgrams },
@@ -167,7 +167,9 @@ namespace rus {
       if ( scheme == (unsigned)-1 || scheme == 0 )
         return scheme == (unsigned)-1 ? WORDBUFF_FAILED : 0;
 
-      return libfuzzy::rus::Buildform( capitals, { output, cchout, codepage } )
+      return libfuzzy::rus::Buildform( CapScheme(
+          charTypeMatrix, toLoCaseMatrix,
+          toUpCaseMatrix, pspMinCapValue ), { output, cchout, codepage } )
         ( locase, scheme >> 8, nclass, idform );
     }
     catch ( const std::invalid_argument& ) {  return ARGUMENT_FAILED;  }
@@ -194,7 +196,9 @@ namespace rus {
         else return (unsigned)-1;
     }
 
-    return capitals.Get( output, pszstr, cchstr );
+    return CapScheme(
+      charTypeMatrix, toLoCaseMatrix,
+      toUpCaseMatrix, pspMinCapValue ).Get( output, pszstr, cchstr );
   }
 
   // CMlmaCp implementation
@@ -249,7 +253,7 @@ namespace rus {
       {
         *output++ = {
           mbstem->ccstem, mbstem->nclass,
-          mbstem->pgrams != nullptr ? plemma + (mbstem->plemma - szlemm) : nullptr,
+          mbstem->plemma != nullptr ? plemma + (mbstem->plemma - szlemm) : nullptr,
           mbstem->pgrams, mbstem->ngrams, mbstem->weight };
       }
 
