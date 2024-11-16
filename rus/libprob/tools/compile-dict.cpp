@@ -155,8 +155,17 @@ int   main( int argc, char* argv[] )
     auto  clscnt = cls.get_int32( "cnt", 0 );
     auto  supset = cls.get_array_zmap( "spf" );
     auto  inflex = cls.get_array_zmap( "flx" );
+    auto  smodel = codepages::mbcstombcs(
+      codepages::codepage_1251,
+      codepages::codepage_utf8, cls.get_charstr( "mod", "" ) );
     auto  supref = std::vector<prefix>();
-    auto  lclass = std::vector<FlexNode>();
+    auto  flexet = std::vector<FlexNode>();
+
+    if ( smodel.empty() )
+    {
+      smodel = codepages::widetombcs(
+        codepages::codepage_1251, cls.get_widestr( "mod", {} ) );
+    }
 
   // check valid class
     if ( supset == nullptr || supset->empty() )
@@ -228,7 +237,7 @@ int   main( int argc, char* argv[] )
       if ( ccflex > sizeof(szflex) - 2 )
         return fprintf( stderr, "inflexion too long, recompile with increased INFLEX_LEN constant\n" ), EINVAL;
 
-      lclass.emplace_back( (uint8_t)idform,
+      flexet.emplace_back( (uint8_t)idform,
         szflex,
         ccflex );
 
@@ -255,7 +264,10 @@ int   main( int argc, char* argv[] )
   // store class itself
     clsmap.resize( clsmap.size() + 1 );
 
-    ::Serialize( ::Serialize( &clsmap.back(), partSp ), lclass );
+    ::Serialize( ::Serialize( ::Serialize( &clsmap.back(),
+      partSp ),
+      flexet ),
+      smodel );
   }
 
   libmorph::BinaryDumper  dumper;
