@@ -21,6 +21,9 @@ namespace rus {
       outend( end ) {}
     MbcsCoder( char* beg, size_t len, unsigned enc ):
       MbcsCoder( beg, beg + len, enc ) {}
+    template <size_t N>
+    MbcsCoder( char (&buf)[N], unsigned enc ):
+      MbcsCoder( buf, N, enc )  {}
 
     auto  object() -> MbcsCoder&  {  return *this;  }
 
