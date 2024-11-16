@@ -279,6 +279,17 @@ TestItEasy::RegisterFunc  testmorphrus( []()
               agrams, sfIgnoreCapitals ) == 1 );
           REQUIRE( std::string( aforms ) == "Комсомольск-на-Амуре" );
         }
+        SECTION( "cxx wrapper also provides lexemes" )
+        {
+          auto  lemmas = mlma->Lemmatize( "простой" );
+
+          if ( REQUIRE( lemmas.size() == 3 ) )
+          {
+            REQUIRE( std::string( lemmas[0].plemma ) == "простой" );
+            REQUIRE( std::string( lemmas[1].plemma ) == "простоять" );
+            REQUIRE( std::string( lemmas[2].plemma ) == "простой" );
+          }
+        }
       }
       SECTION( "BuildForm" )
       {
@@ -326,6 +337,17 @@ TestItEasy::RegisterFunc  testmorphrus( []()
         {
           REQUIRE( mlma->BuildForm( aforms, lKTONIBUD, 1 ) == 1 );
           REQUIRE( std::string( aforms ) == "кого-нибудь" );
+        }
+
+        SECTION( "it uses swapping suffixes in names" )
+        {
+          REQUIRE( mlma->BuildForm( 183140, 0 ).front() == "Яшка" );
+          REQUIRE( mlma->BuildForm( 183140, 11 ).front() == "Яшек" );
+
+          REQUIRE( mlma->BuildForm( 186913, 0 ).front() == "Филатовна" );
+          REQUIRE( mlma->BuildForm( 186913, 11 ).front() == "Филатовен" );
+          REQUIRE( mlma->BuildForm( 186946, 0 ).front() == "Саввична" );
+          REQUIRE( mlma->BuildForm( 186946, 11 ).front() == "Саввичен" );
         }
       }
 
