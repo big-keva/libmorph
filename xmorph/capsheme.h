@@ -48,6 +48,11 @@ namespace libmorph {
         toLoCaseMatrix( toLoCase ),
         toUpCaseMatrix( toUpCase ),
         pspMinCapValue( minValue )  {}
+    CapScheme( const CapScheme& cs ):
+        charTypeMatrix( cs.charTypeMatrix ),
+        toLoCaseMatrix( cs.toLoCaseMatrix ),
+        toUpCaseMatrix( cs.toUpCaseMatrix ),
+        pspMinCapValue( cs.pspMinCapValue )  {}
 
   public:
     enum: unsigned char
