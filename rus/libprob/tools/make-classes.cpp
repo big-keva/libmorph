@@ -210,8 +210,15 @@ auto  AllForms::Build(
     if ( nbuilt == 0 && forbeg != std::end( forced ) && idform == *forbeg )
       return {};
 
-    for ( ; nbuilt-- > 0; bufptr += strlen( bufptr ) + 1 )
+    while ( nbuilt-- > 0 )
+    {
       pforms[nforms++] = { idform, bufptr };
+
+      while ( (*bufptr = codepages::chartolower( codepages::codepage_1251, *bufptr )) != 0 )
+        ++bufptr;
+
+      ++bufptr;
+    }
 
     forbeg += forbeg != std::end( forced ) && idform == *forbeg ? 1 : 0;
     altbeg += altbeg != std::end( altern ) && idform == *altbeg ? 1 : 0;
