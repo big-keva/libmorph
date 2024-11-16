@@ -20,7 +20,7 @@
     Commercial license is available upon request.
 
     Contacts:
-      email: keva@meta.ua, keva@rambler.ru
+      email: hige.keva@gmail.com, keva@rambler.ru
       Skype: big_keva
       Phone: +7(495)648-4058, +7(926)513-2991
 
@@ -59,15 +59,23 @@ namespace rus {
     int MLMAPROC  Detach() override {  return 1;  }
 
   public:     // overridables
+    int MLMAPROC  GetWdInfo(
+      unsigned char*  pwinfo, unsigned uclass ) override;
+    int MLMAPROC  GetSample(
+      char*         sample, size_t    samlen,
+      unsigned      uclass ) override;
     int MLMAPROC  Lemmatize(
-      const char* pszstr, size_t    cchstr,
-      SStemInfoA* output, size_t    cchout,
-      char*       plemma, size_t    clemma,
-      SGramInfo*  pgrams, size_t    ngrams, unsigned  dwsets )  override;
+      const char*   pszstr, size_t    cchstr,
+      SStemInfoA*   output, size_t    cchout,
+      char*         plemma, size_t    clemma,
+      SGramInfo*    pgrams, size_t    ngrams, unsigned  dwsets )  override;
     int MLMAPROC  BuildForm(
-      char*       output, size_t    cchout,
-      const char* lpstem, size_t    ccstem,
-      unsigned    nclass, formid_t  idform ) override;
+      char*         output, size_t    cchout,
+      const char*   lpstem, size_t    ccstem,
+      unsigned      nclass, formid_t  idform ) override;
+    int MLMAPROC  FindMatch(
+      IMatchStemMb* pmatch,
+      const char*   pszstr, size_t    cchstr ) override;
 
   protected:
     template <size_t N>
@@ -95,6 +103,11 @@ namespace rus {
     int MLMAPROC  Detach()  override  {  return 1;  }
 
   public:     // overridables
+    int MLMAPROC  GetWdInfo(
+      unsigned char*  pwinfo, unsigned uclass ) override;
+    int MLMAPROC  GetSample(
+      widechar*     sample, size_t      samlen,
+      unsigned      uclass ) override;
     int MLMAPROC  Lemmatize(
       const widechar* pszstr, size_t    cchstr,
       SStemInfoW*     output, size_t    cchout,
@@ -104,11 +117,66 @@ namespace rus {
       widechar*       output, size_t    cchout,
       const widechar* lpstem, size_t    ccstem,
       unsigned        nclass, formid_t  idform ) override;
+    int MLMAPROC  FindMatch(
+      IMlmaMatch* pmatch,
+      const widechar* pszstr, size_t    cchstr ) override;
 
   };
 
   CMlfaMb mlfaMbInstance;
   CMlfaWc mlfaWcInstance;
+
+  int   CMlfaMb::GetWdInfo(
+    unsigned char*  pwinfo, unsigned uclass )
+  {
+    try
+    {
+      if ( pwinfo == nullptr )
+        return ARGUMENT_FAILED;
+      ::FetchFrom( libfuzzy::rus::GetClass( uclass ), *pwinfo );
+        return 1;
+    }
+    catch ( const std::invalid_argument& )
+    {
+      return ARGUMENT_FAILED;
+    }
+  }
+
+  int   CMlfaMb::GetSample(
+    char*     sample,
+    size_t    samlen,
+    unsigned  uclass )
+  {
+    if ( sample == nullptr || samlen == 0 )
+      return ARGUMENT_FAILED;
+
+    try
+    {
+      uint8_t partSp;
+      int     fcount;
+      auto    pclass =
+        ::FetchFrom(
+        ::FetchFrom( libfuzzy::rus::GetClass( uclass ), partSp ), fcount );
+
+      while ( fcount-- > 0 )
+      {
+        uint8_t idform;
+        uint8_t ccflex;
+
+        pclass = ::FetchFrom( ::FetchFrom( pclass, idform ), ccflex );
+          pclass += ccflex;
+      }
+
+      pclass = ::FetchFrom( pclass, fcount );
+
+      return ToCodepage( codepage, sample, samlen, pclass, fcount ) == (size_t)-1 ?
+        LEMMBUFF_FAILED : 1;
+    }
+    catch ( const std::invalid_argument& )
+    {
+      return ARGUMENT_FAILED;
+    }
+  }
 
   int   CMlfaMb::Lemmatize(
     const char* pszstr, size_t  cchstr,
@@ -176,6 +244,98 @@ namespace rus {
     catch ( ... ) {  return -1;  }
   }
 
+  int   CMlfaMb::FindMatch( IMatchStemMb* pmatch, const char* pszstr, size_t  cchstr )
+  {
+    CATCH_ALL
+      uint8_t   locase[256];
+      uint8_t   strbuf[256];
+      auto      scheme = ToCanonic( locase, pszstr, cchstr );
+      auto      aforms = std::vector<char>( 0x100 * 0x100 * 2 );
+      char*     pforms = aforms.data();
+
+      char      slemma[256];
+      size_t    clemma = (size_t)-1;
+
+      unsigned  cclass = 0;
+
+      SStrMatch amatch[256];
+      size_t    cmatch = 0;
+
+      int       nerror;
+      auto      fflush = [&]()
+      {
+        char    encode[256];
+        size_t  cbytes = 0;
+        uint8_t partsp;
+
+        for ( auto p = slemma, e = slemma + clemma; p != e; ++p )
+          cbytes += libmorph::rus::ToCodepage( codepage, encode + cbytes, sizeof(encode) - cbytes, p, 1 );
+
+        pmatch->Add( encode, clemma, cbytes, cclass, cmatch, amatch );
+      };
+      auto      reglex = [&](
+        const fragment& szstem,
+        const fragment& szflex,
+        unsigned        uclass,
+        unsigned        uoccur,
+        uint8_t         idform )
+      {
+        char  szform[256];
+        auto  ccstem = (size_t)(szstem.size() + 2);     // длина текущей основы
+        auto  outptr = std::copy( szstem.begin(), szstem.end(), szform );
+//        auto  flprob =
+
+        for ( auto  srcbeg = szflex.end() - 1; srcbeg >= szflex.begin(); )
+          *outptr++ = *srcbeg--;
+
+      // check stem and class match to previous call
+        if ( uclass != cclass || ccstem != clemma || memcmp( szform, slemma, ccstem ) != 0 )
+        {
+          if ( cclass != 0 )
+            fflush();
+
+          memcpy( slemma, szform,
+            clemma = ccstem );
+          cclass = uclass;
+          pforms = aforms.data();
+          cmatch = 0;
+        }
+
+      // append stem form
+        amatch[cmatch] =
+          {
+            sz: pforms,
+            cc: ToCodepage( codepage, pforms, aforms.data() + aforms.size() - pforms, szform, outptr - szform ),
+            id: idform,
+          };
+        pforms += amatch[cmatch++].cc + 1;
+        return 0;
+      };
+
+    // check output buffer
+      if ( pmatch == nullptr )
+        return ARGUMENT_FAILED;
+
+    // check template defined
+      if ( pszstr == nullptr )
+        return ARGUMENT_FAILED;
+
+    // check source string and length
+      if ( scheme == (unsigned)-1 || scheme == 0 )
+        return scheme == (unsigned)-1 ? WORDBUFF_FAILED : 0;
+
+    // scan the dictionary
+      if ( (nerror = libfuzzy::rus::patricia::WildScan( reglex, (const char*)libfuzzyrus::ReverseDict, strbuf, 0,
+        locase + (scheme >> 16) - 1, scheme >> 16 )) != 0 )
+          return nerror;
+
+      if ( cclass != 0 )
+        fflush();
+
+      return 0;
+    ON_ERRORS( -1 )
+  }
+
   template <size_t N>
   auto  CMlfaMb::ToCanonic( uint8_t (& output)[N], const char* pszstr, size_t cchstr ) const -> unsigned
   {
@@ -221,6 +381,26 @@ namespace rus {
   }
 
   // CMlfaWc wrapper implementation
+
+  int   CMlfaWc::GetWdInfo(
+    unsigned char*  pwinfo, unsigned uclass )
+  {
+    return mlfaMbInstance.GetWdInfo( pwinfo, uclass );
+  }
+
+  int   CMlfaWc::GetSample(
+    widechar*       sample, size_t  samlen,
+    unsigned        uclass )
+  {
+    char  buffer[256];
+    int   nerror;
+
+    if ( (nerror = mlfaMbInstance.GetSample( buffer, samlen, uclass )) <= 0 )
+      return nerror;
+
+    return ToWidechar( sample, samlen, buffer ) == (size_t)-1 ?
+      LEMMBUFF_FAILED : 1;
+  }
 
   int   CMlfaWc::Lemmatize(
     const widechar* pwsstr, size_t  cchstr,
@@ -308,6 +488,20 @@ namespace rus {
     return fcount;
   }
 
+  int   CMlfaWc::FindMatch( IMlmaMatch* pmatch,
+    const widechar* pwsstr, size_t  cchstr )
+  {
+    /*
+    char        szword[0xf0];
+    size_t      ccword;
+
+  // get string length and convert to native codepage
+    if ( (ccword = ToInternal( szword, pwsstr, cchstr )) == (size_t)-1 )
+      return WORDBUFF_FAILED;
+
+    */return 0;//mlfaMbInstance.FindMatch( pmatch, szword, ccword );
+  }
+
   struct
   {
     unsigned    idcodepage;
@@ -378,54 +572,3 @@ int   MLMAPROC  mlfaruLoadWcAPI( IMlfaWc**  ptrAPI )
   *ptrAPI = (IMlfaWc*)&mlfaWcInstance;
     return 0;
 }
-/*
-int   main()
-{
-  IMlfaMb*  mb;
-
-  mlfaruLoadCpAPI( &mb, "utf-8" );
-
-  auto  s = std::string( "закоржевский" );
-
-  SStemInfoA  astems[32];
-  char        lemmas[0x200];
-  SGramInfo   grinfo[64];
-  int         nbuilt = mb->Lemmatize( s, astems, lemmas, grinfo, sfIgnoreCapitals );
-
-  for ( int i = 0; i != nbuilt; ++i )
-  {
-    auto  prefix = "\t";
-
-    auto  slemma = codepages::mbcstowide( codepages::codepage_utf8, astems[i].plemma );
-      slemma.insert( slemma.begin() + astems[i].ccstem, '|' );
-
-    fprintf( stdout, "%6.4f  %-2u  %-4u  %-30s", astems[i].weight, astems[i].pgrams->wdInfo,
-      astems[i].nclass,
-      codepages::widetombcs( codepages::codepage_utf8, slemma ).c_str() );
-
-    for ( auto g = astems[i].pgrams, e = astems[i].ngrams + g; g != e; ++g )
-    {
-      fprintf( stdout, "%s%u", prefix, g->idForm );
-      prefix = ", ";
-    }
-    fputc( '\n', stdout );
-  }
-
-  for ( auto i = 0; i != 256; ++i )
-  {
-    auto  aforms = mb->BuildForm( astems[1], (formid_t)i );
-
-    if ( !aforms.empty() )
-    {
-      fprintf( stdout, "\t%u", i );
-
-      for ( auto& s: aforms )
-        fprintf( stdout, "\t%s", s.c_str() );
-
-      fprintf( stdout, "\n" );
-    }
-  }
-
-  return 0;
-}
-*/
