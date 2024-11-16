@@ -354,7 +354,7 @@ namespace rus {
       uint8_t   sforms[256 * 32];
       uint8_t*  pforms;
       SStrMatch amatch[256];
-      size_t    nmatch;
+      size_t    nmatch = 0;
       lexeme_t  lastId = 0;
       int       nerror;
       auto      reglex = [&](

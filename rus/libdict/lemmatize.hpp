@@ -55,7 +55,7 @@ namespace rus {
       size_t            ngrams ) const;
 
   protected:
-            const CapScheme&    casing;       // capitalization scheme tool
+            const CapScheme     casing;       // capitalization scheme tool
     mutable target<SLemmInfoA>  plemms;       // the output buffer for descriptions
     mutable MbcsCoder           pforms;       // the buffer for the forms
     mutable target<SGramInfo>   pgrams;       // the buffer for grammar descriptions
