@@ -92,10 +92,7 @@ namespace rus {
       // добавить новую лемму
         astems[nbuilt++] = { (unsigned)clemma + 2, uclass,
           pforms.getptr(),
-          pgrams.cur, 0, float( log( uoccur )
-//          * PartOfSpeachProb[TableEntryOffset[partsp]]
-          // вероятность появления такой части речи
-          * sin( atan( 0.4 * (cchstr - clemma) ) ) ) };   // глубина сканирования окончания*/
+          pgrams.cur, 0, float( log( uoccur ) / log( 10000 ) * sin( atan( 0.4 * (cchstr - clemma) ) ) ) };   // глубина сканирования окончания*/
 
       // если требуется восстановить нормальные формы слов, построить её
         if ( pforms.getptr() != nullptr )
@@ -120,16 +117,8 @@ namespace rus {
 
       if ( pstems.beg != nullptr )
       {
-        double  sum = 0.0;
-
         if ( nbuilt > pstems.lim - pstems.cur )
           return LEMMBUFF_FAILED;
-
-        for ( auto stem = astems; stem != astems + nbuilt; ++stem )
-          sum += stem->weight;
-
-        for ( auto stem = astems; stem != astems + nbuilt; ++stem )
-          stem->weight /= sum;
 
         std::sort( astems, astems + nbuilt, []( const SStemInfoA& s1, const SStemInfoA& s2 )
           {  return s1.weight > s2.weight;  } );
