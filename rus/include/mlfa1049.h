@@ -36,79 +36,68 @@
 # if !defined( mlfa_interface_defined )
 # define  mlfa_interface_defined
 
+  MLMA_INTERFACE( IMatchStemMb )
+    MLMA_METHOD( Attach )( MLMA_VOID ) MLMA_PURE;
+    MLMA_METHOD( Detach )( MLMA_VOID ) MLMA_PURE;
+
+    MLMA_METHOD( Add )( MLMA_THIS
+      const char* plemma,
+      size_t      clemma,
+      size_t      cchstr,
+      unsigned    uclass,
+      size_t      nforms, const SStrMatch* pforms ) MLMA_PURE;
+  MLMA_END;
+
   MLMA_INTERFACE( IMlfaMb )
     MLMA_METHOD( Attach )( MLMA_VOID ) MLMA_PURE;
     MLMA_METHOD( Detach )( MLMA_VOID ) MLMA_PURE;
 
+    MLMA_METHOD( GetWdInfo )( MLMA_THIS
+      unsigned char*  pwinfo, unsigned  uclass ) MLMA_PURE;
+    MLMA_METHOD( GetSample )( MLMA_THIS
+      char*           sample, size_t    buflen,
+      unsigned        uclass ) MLMA_PURE;
     MLMA_METHOD( Lemmatize )( MLMA_THIS
-                              const char*   pszstr, size_t    cchstr,
-                              SStemInfoA*   pstems, size_t    clexid,
-                              char*         plemma, size_t    clemma,
-                              SGramInfo*    pgrams, size_t    ngrams,
-                              unsigned      dwsets ) MLMA_PURE;
+      const char*     pszstr, size_t    cchstr,
+      SStemInfoA*     pstems, size_t    clexid,
+      char*           plemma, size_t    clemma,
+      SGramInfo*      pgrams, size_t    ngrams,
+      unsigned        dwsets ) MLMA_PURE;
     MLMA_METHOD( BuildForm )( MLMA_THIS
-                              char*         output, size_t    cchout,
-                              const char*   lpstem, size_t    ccstem,
-                              unsigned      nclass, formid_t  idform ) MLMA_PURE;
+      char*           output, size_t    cchout,
+      const char*     lpstem, size_t    ccstem,
+      unsigned        nclass, formid_t  idform ) MLMA_PURE;
+    MLMA_METHOD( FindMatch )( MLMA_THIS
+      IMatchStemMb*   pienum,
+      const char*     pszstr, size_t    cchstr ) MLMA_PURE;
+
 # if defined( __cplusplus )
-    using string_t = std::basic_string<char>;
-
-  protected:
     template <class T>
-    struct  outbuf
-    {
-      T*      t;
-      size_t  l;
-
-    public:
-      outbuf(): t( nullptr ), l( 0 ) {}
-      template <size_t N>
-      outbuf( T (&p)[N] ): t( p ), l( N ) {}
-      outbuf( T* p, size_t n ): t( p ), l( n ) {}
-    };
-
-    struct  inword
-    {
-      const char* t;
-      size_t      l;
-
-    public:
-      inword( const string_t& s ):
-        t( s.c_str() ), l( s.length() ) {}
-      inword( const char* s, size_t n = (size_t)-1 ):
-        t( s ), l( n )  {}
-    };
+    using outbuf = MlmaTraits<char>::outbuf<T>;
+    using inword = MlmaTraits<char>::inword;
+    using string = MlmaTraits<char>::string;
 
   public:
-    struct  SStemInfo: public SStemInfoA
+
+    auto  GetWdInfo( lexeme_t nlexid ) -> uint8_t
     {
-      SStemInfo( const SStemInfoA& s ): SStemInfoA( s )
-      {
-        if ( plemma != nullptr )
-          plemma = (normal = plemma).c_str();
-        if ( pgrams != nullptr && ngrams != 0 )
-          pgrams = (gramma = { pgrams, pgrams + ngrams }).data();
-      }
-      SStemInfo( SStemInfo&& s ): SStemInfoA( s ),
-        normal( std::move( s.normal ) ),
-        gramma( std::move( s.gramma ) )
-      {
-        if ( plemma != nullptr )
-          plemma = normal.c_str();
-        if ( pgrams != nullptr )
-          pgrams = gramma.data();
-      }
+      uint8_t wdinfo;
 
-    private:
-      SStemInfo( const SStemInfo& ) = delete;
-      auto  operator = ( const SStemInfo& ) = delete;
+      return GetWdInfo( &wdinfo, nlexid ) > 0 ? wdinfo : (uint8_t)-1;
+    }
 
-    protected:
-      string_t                normal;   // the normal form
-      std::vector<SGramInfo>  gramma;   // the grams buffer
-    };
+    int   GetSample( const outbuf<char>& sample, unsigned uclass )
+    {
+      return GetSample( sample.t, sample.l, uclass );
+    }
 
-  public:
+    auto  GetSample( unsigned uclass ) -> string
+    {
+      char  sample[64];
+
+      return GetSample( sample, uclass ) > 0 ? sample : "";
+    }
+
     int   Lemmatize(
       const inword&             pszstr,
       const outbuf<SStemInfoA>& alemms,
@@ -122,7 +111,7 @@
         agrams.t, agrams.l, dwsets );
     }
 
-    auto  Lemmatize( const inword& pszstr, unsigned dwsets = 0 ) -> std::vector<SStemInfo>
+    auto  Lemmatize( const inword& pszstr, unsigned dwsets = 0 ) -> std::vector<SLemmInfo<SStemInfoA>>
     {
       SStemInfoA  astems[0x20];
       char        aforms[0x200];
@@ -131,7 +120,7 @@
 
       if ( nbuilt >= 0 )
       {
-        auto  output = std::vector<SStemInfo>();
+        auto  output = std::vector<SLemmInfo<SStemInfoA>>();
 
         while ( nbuilt-- > 0 )
           output.push_back( astems[output.size()] );
@@ -167,10 +156,10 @@
     }
 
     auto  BuildForm(
-      const inword& plemma, unsigned nclass, formid_t idform ) -> std::vector<string_t>
+      const inword& plemma, unsigned nclass, formid_t idform ) -> std::vector<std::basic_string<char>>
     {
       char  buffer[0x100];
-      auto  output = std::vector<string_t>();
+      auto  output = std::vector<std::basic_string<char>>();
       int   nforms = BuildForm( buffer, plemma, nclass, idform );
 
       for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
@@ -179,11 +168,15 @@
       return output;
     }
 
-    auto  BuildForm( const SStemInfoA& stinfo, formid_t idform ) -> std::vector<string_t>
+    auto  BuildForm( const SStemInfoA& stinfo, formid_t idform ) -> std::vector<std::basic_string<char>>
     {
       return BuildForm( { stinfo.plemma, stinfo.ccstem }, stinfo.nclass, idform );
     }
 
+    int   FindMatch( IMatchStemMb* pmatch, const inword& pszstr )
+    {
+      return FindMatch( pmatch, pszstr.t, pszstr.l );
+    }
 # endif
   MLMA_END;
 
@@ -191,75 +184,51 @@
     MLMA_METHOD( Attach )( MLMA_VOID ) MLMA_PURE;
     MLMA_METHOD( Detach )( MLMA_VOID ) MLMA_PURE;
 
+    MLMA_METHOD( GetWdInfo )( MLMA_THIS
+      unsigned char*  pwinfo, unsigned  uclass ) MLMA_PURE;
+    MLMA_METHOD( GetSample )( MLMA_THIS
+      widechar*       sample, size_t    buflen,
+      unsigned        uclass ) MLMA_PURE;
     MLMA_METHOD( Lemmatize )( MLMA_THIS
-                              const widechar* pszstr, size_t    cchstr,
-                              SStemInfoW*     pstems, size_t    clexid,
-                              widechar*       plemma, size_t    clemma,
-                              SGramInfo*      pgrams, size_t    ngrams,
-                              unsigned        dwsets ) MLMA_PURE;
+      const widechar* pszstr, size_t    cchstr,
+      SStemInfoW*     pstems, size_t    clexid,
+      widechar*       plemma, size_t    clemma,
+      SGramInfo*      pgrams, size_t    ngrams,
+      unsigned        dwsets ) MLMA_PURE;
     MLMA_METHOD( BuildForm )( MLMA_THIS
-                              widechar*       output, size_t    cchout,
-                              const widechar* lpstem, size_t    ccstem,
-                              unsigned        nclass, formid_t  idform ) MLMA_PURE;
+      widechar*       output, size_t    cchout,
+      const widechar* lpstem, size_t    ccstem,
+      unsigned        nclass, formid_t  idform ) MLMA_PURE;
+    MLMA_METHOD( FindMatch )( MLMA_THIS
+      IMlmaMatch*     pienum,
+      const widechar* pszstr, size_t    cchstr ) MLMA_PURE;
 # if defined( __cplusplus )
-    using string_t = std::basic_string<widechar>;
-
-  protected:
     template <class T>
-    struct  outbuf
-    {
-      T*      t;
-      size_t  l;
-
-    public:
-      outbuf(): t( nullptr ), l( 0 ) {}
-      template <size_t N>
-      outbuf( T (&p)[N] ): t( p ), l( N ) {}
-      outbuf( T* p, size_t n ): t( p ), l( n ) {}
-    };
-
-    struct  inword
-    {
-      const widechar* t;
-      size_t          l;
-
-    public:
-      inword( const string_t& s ):
-        t( s.c_str() ), l( s.length() ) {}
-      inword( const widechar* s, size_t n = (size_t)-1 ):
-        t( s ), l( n )  {}
-    };
+    using outbuf = MlmaTraits<char>::outbuf<T>;
+    using inword = MlmaTraits<widechar>::inword;
+    using string = MlmaTraits<widechar>::string;
 
   public:
-    struct  SStemInfo: public SStemInfoW
+
+    auto  GetWdInfo( lexeme_t nlexid ) -> uint8_t
     {
-      SStemInfo( const SStemInfoW& s ): SStemInfoW( s )
-      {
-        if ( plemma != nullptr )
-          plemma = (normal = plemma).c_str();
-        if ( pgrams != nullptr && ngrams != 0 )
-          pgrams = (gramma = { pgrams, pgrams + ngrams }).data();
-      }
-      SStemInfo( SStemInfo&& s ): SStemInfoW( s ),
-        normal( std::move( s.normal ) ),
-        gramma( std::move( s.gramma ) )
-      {
-        if ( plemma != nullptr )
-          plemma = normal.c_str();
-        if ( pgrams != nullptr )
-          pgrams = gramma.data();
-      }
+      uint8_t wdinfo;
 
-    private:
-      SStemInfo( const SStemInfo& ) = delete;
-      auto  operator = ( const SStemInfo& ) = delete;
+      return GetWdInfo( &wdinfo, nlexid ) > 0 ? wdinfo : 0;
+    }
 
-    protected:
-      string_t                normal;   // the normal form
-      std::vector<SGramInfo>  gramma;   // the grams buffer
-    };
+    int   GetSample( const outbuf<widechar>& sample, unsigned uclass )
+    {
+      return GetSample( sample.t, sample.l, uclass );
+    }
 
-  public:
+    auto  GetSample( unsigned uclass ) -> string
+    {
+      widechar  sample[64];
+
+      return GetSample( sample, uclass ) > 0 ? sample : string{};
+    }
+
     int   Lemmatize(
       const inword&             pszstr,
       const outbuf<SStemInfoW>& alemms,
@@ -273,7 +242,7 @@
         agrams.t, agrams.l, dwsets );
     }
 
-    auto  Lemmatize( const inword& pszstr, unsigned dwsets = 0 ) -> std::vector<SStemInfo>
+    auto  Lemmatize( const inword& pszstr, unsigned dwsets = 0 ) -> std::vector<SLemmInfo<SStemInfoW>>
     {
       SStemInfoW  astems[0x20];
       widechar    aforms[0x200];
@@ -282,7 +251,7 @@
 
       if ( nbuilt >= 0 )
       {
-        auto  output = std::vector<SStemInfo>();
+        auto  output = std::vector<SLemmInfo<SStemInfoW>>();
 
         while ( nbuilt-- > 0 )
           output.push_back( astems[output.size()] );
@@ -318,10 +287,10 @@
     }
 
     auto  BuildForm(
-      const inword& plemma, unsigned nclass, formid_t idform ) -> std::vector<string_t>
+      const inword& plemma, unsigned nclass, formid_t idform ) -> std::vector<string>
     {
       widechar  buffer[0x100];
-      auto      output = std::vector<string_t>();
+      auto      output = std::vector<string>();
       int       nforms = BuildForm( buffer, plemma, nclass, idform );
 
       for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
@@ -330,9 +299,14 @@
       return output;
     }
 
-    auto  BuildForm( const SStemInfoW& stinfo, formid_t idform ) -> std::vector<string_t>
+    auto  BuildForm( const SStemInfoW& stinfo, formid_t idform ) -> std::vector<string>
     {
       return BuildForm( { stinfo.plemma, stinfo.ccstem }, stinfo.nclass, idform );
+    }
+
+    int   FindMatch( IMlmaMatch* pmatch, const inword& pszstr )
+    {
+      return FindMatch( pmatch, pszstr.t, pszstr.l );
     }
 
 # endif // __cplusplus
