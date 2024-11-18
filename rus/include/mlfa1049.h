@@ -48,6 +48,18 @@
       size_t      nforms, const SStrMatch* pforms ) MLMA_PURE;
   MLMA_END;
 
+  MLMA_INTERFACE( IMatchStemWc )
+    MLMA_METHOD( Attach )( MLMA_VOID ) MLMA_PURE;
+    MLMA_METHOD( Detach )( MLMA_VOID ) MLMA_PURE;
+
+    MLMA_METHOD( Add )( MLMA_THIS
+      const widechar* plemma,
+      size_t          clemma,
+      size_t          cchstr,
+      unsigned        uclass,
+      size_t          nforms, const SStrMatch* pforms ) MLMA_PURE;
+  MLMA_END;
+
   MLMA_INTERFACE( IMlfaMb )
     MLMA_METHOD( Attach )( MLMA_VOID ) MLMA_PURE;
     MLMA_METHOD( Detach )( MLMA_VOID ) MLMA_PURE;
@@ -200,7 +212,7 @@
       const widechar* lpstem, size_t    ccstem,
       unsigned        nclass, formid_t  idform ) MLMA_PURE;
     MLMA_METHOD( FindMatch )( MLMA_THIS
-      IMlmaMatch*     pienum,
+      IMatchStemWc*   pienum,
       const widechar* pszstr, size_t    cchstr ) MLMA_PURE;
 # if defined( __cplusplus )
     template <class T>
@@ -304,7 +316,7 @@
       return BuildForm( { stinfo.plemma, stinfo.ccstem }, stinfo.nclass, idform );
     }
 
-    int   FindMatch( IMlmaMatch* pmatch, const inword& pszstr )
+    int   FindMatch( IMatchStemWc* pmatch, const inword& pszstr )
     {
       return FindMatch( pmatch, pszstr.t, pszstr.l );
     }
