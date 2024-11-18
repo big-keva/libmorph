@@ -174,6 +174,8 @@ TestItEasy::RegisterFunc  testmorphrus( []()
 
     if ( !REQUIRE( mlfaruLoadCpAPI( &mlfaMb, "utf8" ) == 0 ) )
       abort();
+    if ( !REQUIRE( mlfaruLoadWcAPI( &mlfaWc ) == 0 ) )
+      abort();
 
     SECTION( "GetWdInfo" )
     {
@@ -242,9 +244,7 @@ TestItEasy::RegisterFunc  testmorphrus( []()
           REQUIRE_NOTHROW( l2 = mlfaMb->Lemmatize( "частосту" ) );
 
           if ( REQUIRE( !l1.empty() ) && REQUIRE( !l2.empty() ) )
-          {
             REQUIRE( (l1 & l2).size() != 0 );
-          }
 
           REQUIRE_NOTHROW( l1 = mlfaMb->Lemmatize( "командировочка" ) );
           REQUIRE_NOTHROW( l2 = mlfaMb->Lemmatize( "командировочку" ) );
@@ -257,6 +257,40 @@ TestItEasy::RegisterFunc  testmorphrus( []()
             REQUIRE( (l1 & l2).size() != 0 );
             REQUIRE( (l2 & l3).size() != 0 );
             REQUIRE( (l3 & l1).size() != 0 );
+          }
+        }
+        SECTION( "∙ Mbcs and Wcs api provide same classes and forms" )
+        {
+          auto  l1 = decltype(mlfaMb->Lemmatize( "" ))();
+          auto  l2 = decltype(mlfaWc->Lemmatize( nullptr ))();
+
+          REQUIRE_NOTHROW( l1 = mlfaMb->Lemmatize( "частосто" ) );
+          REQUIRE_NOTHROW( l2 = mlfaWc->Lemmatize( codepages::mbcstowide( codepages::codepage_utf8, "частосто" ) ) );
+
+          if ( REQUIRE( !l1.empty() )
+            && REQUIRE( !l2.empty() )
+            && REQUIRE( l1.size() == l2.size() ) )
+          {
+            for ( auto i = 0; i != l1.size(); ++i )
+            {
+              REQUIRE( l1[i].nclass == l2[i].nclass );
+              REQUIRE( l1[i].ccstem == l2[i].ccstem );
+              REQUIRE( l1[i].ngrams == l2[i].ngrams );
+            }
+          }
+          REQUIRE_NOTHROW( l1 = mlfaMb->Lemmatize( "частосту", sfIgnoreCapitals ) );
+          REQUIRE_NOTHROW( l2 = mlfaWc->Lemmatize( codepages::mbcstowide( codepages::codepage_utf8, "частосту" ), sfIgnoreCapitals ) );
+
+          if ( REQUIRE( !l1.empty() )
+            && REQUIRE( !l2.empty() )
+            && REQUIRE( l1.size() == l2.size() ) )
+          {
+            for ( auto i = 0; i != l1.size(); ++i )
+            {
+              REQUIRE( l1[i].nclass == l2[i].nclass );
+              REQUIRE( l1[i].ccstem == l2[i].ccstem );
+              REQUIRE( l1[i].ngrams == l2[i].ngrams );
+            }
           }
         }
       }
