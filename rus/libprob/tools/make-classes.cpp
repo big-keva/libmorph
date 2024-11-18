@@ -430,9 +430,7 @@ void  LoadDict( ClassMap& mclass, IMlmaMb& morpho, const std::initializer_list<s
           break;
       // Для существительных - взять только полные парадигмы нативного типа склонения
         case 7:  case 8: case 9:
-          if ( (aforms = AllForms::Build( morpho, nlexid, { 0, 1, 2, 5, 6, 10, 11, 12, 15, 16 } )).empty()
-            && (aforms = AllForms::Build( morpho, nlexid, { 0, 1, 2, 5, 6 } ))                    .empty() )
-                aforms = AllForms::Build( morpho, nlexid, {                10, 11, 12, 15, 16 } );
+          aforms = AllForms::Build( morpho, nlexid, { 0, 1, 2, 5, 6, 10, 11, 12, 15, 16 } );
           aforms.Xpand( {
             { 0, 3 }, { 1, 4 }, { 10, 13 }, { 11, 14 } } );
           partSp = 7 | (partSp & wfMultiple);
@@ -442,9 +440,7 @@ void  LoadDict( ClassMap& mclass, IMlmaMb& morpho, const std::initializer_list<s
       // и неодуш; для слияния парадигм отображаем все женские рода в 13 (жен.) и расширяем
       // винительный ед. и винительный мн.
         case 13: case 14: case 15:
-          if ( (aforms = AllForms::Build( morpho, nlexid, { 0, 1, 2, 3, 5, 6, 10, 11, 12, 15, 16 } )).empty()
-            && (aforms = AllForms::Build( morpho, nlexid, { 0, 1, 2, 3, 5, 6 } ))                    .empty() )
-                aforms = AllForms::Build( morpho, nlexid, {                   10, 11, 12, 15, 16 } );
+          aforms = AllForms::Build( morpho, nlexid, { 0, 1, 2, 3, 5, 6, 10, 11, 12, 15, 16 } );
           aforms.Xpand( {
             { 3, 4 }, { 10, 13 }, { 11, 14 } } );
           partSp = 13 | (partSp & wfMultiple);
@@ -453,9 +449,7 @@ void  LoadDict( ClassMap& mclass, IMlmaMb& morpho, const std::initializer_list<s
       // Средний род -= аналогично женскому, тиражирование винительного в единственном числе
       // и именительного-родительного во множественном
         case 16: case 17: case 18:
-          if ( (aforms = AllForms::Build( morpho, nlexid, { 0, 1, 2, 3, 5, 6, 10, 11, 12, 15, 16 } )).empty()
-            && (aforms = AllForms::Build( morpho, nlexid, { 0, 1, 2, 3, 5, 6 } ))                    .empty() )
-                aforms = AllForms::Build( morpho, nlexid, {                   10, 11, 12, 15, 16 } );
+          aforms = AllForms::Build( morpho, nlexid, { 0, 1, 2, 3, 5, 6, 10, 11, 12, 15, 16 } );
           aforms.Xpand( {
             { 3, 4 }, { 10, 13 }, { 11, 14 } } );
           partSp = 16 | (partSp & wfMultiple);
