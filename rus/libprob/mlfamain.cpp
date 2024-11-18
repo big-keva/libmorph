@@ -98,6 +98,29 @@ namespace rus {
 
   class CMlfaWc: public IMlfaWc
   {
+    class MatchTranslate: public IMatchStemMb
+    {
+      int MLMAPROC  Attach()  override  {  return 0;  }
+      int MLMAPROC  Detach()  override  {  return 1;  }
+
+    public:
+      MatchTranslate( IMatchStemWc* to ):
+        imatch( to )  {}
+      auto  ptr() -> IMatchStemMb*
+        {  return this;  }
+    public:
+      int MLMAPROC Add(
+        const char* plemma,
+        size_t      clemma,
+        size_t      cchstr,
+        unsigned    uclass,
+        size_t      nforms, const SStrMatch* pforms ) override;
+
+    protected:
+      IMatchStemWc* imatch;
+
+    };
+
   public:     // lifetime control
     int MLMAPROC  Attach()  override  {  return 0;  }
     int MLMAPROC  Detach()  override  {  return 1;  }
@@ -118,7 +141,7 @@ namespace rus {
       const widechar* lpstem, size_t    ccstem,
       unsigned        nclass, formid_t  idform ) override;
     int MLMAPROC  FindMatch(
-      IMlmaMatch* pmatch,
+      IMatchStemWc*   pmatch,
       const widechar* pszstr, size_t    cchstr ) override;
 
   };
@@ -382,6 +405,19 @@ namespace rus {
 
   // CMlfaWc wrapper implementation
 
+  int   CMlfaWc::MatchTranslate::Add(
+    const char* plemma,
+    size_t      clemma,
+    size_t    /*cchstr*/,
+    unsigned    uclass,
+    size_t      nforms, const SStrMatch* pforms )
+  {
+    widechar  wlemma[0x100];
+    size_t    llemma = ToWidechar( wlemma, plemma, clemma );
+
+    return imatch->Add( wlemma, llemma, llemma, uclass, nforms, pforms );
+  }
+
   int   CMlfaWc::GetWdInfo(
     unsigned char*  pwinfo, unsigned uclass )
   {
@@ -488,18 +524,28 @@ namespace rus {
     return fcount;
   }
 
-  int   CMlfaWc::FindMatch( IMlmaMatch* pmatch,
-    const widechar* pwsstr, size_t  cchstr )
+  int   CMlfaWc::FindMatch(
+    IMatchStemWc*   pmatch,
+    const widechar* pwsstr,
+    size_t          cchstr )
   {
-    /*
-    char        szword[0xf0];
-    size_t      ccword;
+    char    szword[0x100];
+    size_t  ccword;
 
-  // get string length and convert to native codepage
+    if ( pmatch == nullptr )
+      return ARGUMENT_FAILED;
+
+    if ( pwsstr == nullptr )
+      return ARGUMENT_FAILED;
+
+    if ( cchstr == 0 )
+      return 0;
+
+  // get string length and convert to ansi
     if ( (ccword = ToInternal( szword, pwsstr, cchstr )) == (size_t)-1 )
       return WORDBUFF_FAILED;
 
-    */return 0;//mlfaMbInstance.FindMatch( pmatch, szword, ccword );
+    return mlfaMbInstance.FindMatch( MatchTranslate( pmatch ).ptr(), szword, ccword );
   }
 
   struct
