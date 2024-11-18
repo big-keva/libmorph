@@ -108,7 +108,7 @@ install(TARGETS morphrus DESTINATION lib)
 
 install(
   FILES
-    include/mlma1049.h
+    ../include/mlma1049.h
   DESTINATION include/libmorph/rus/include)
 
 add_executable(morphrus-test
