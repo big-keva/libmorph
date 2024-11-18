@@ -82,3 +82,11 @@ add_executable(${MakeClasses}	tools/make-classes.cpp)
 
 target_link_libraries(${CompileDict}	moonycode mtc)
 target_link_libraries(${MakeClasses}	morphrus moonycode mtc)
+
+# install
+install(TARGETS fuzzyrus DESTINATION lib)
+
+install(
+  FILES
+    ../include/mlfa1049.h
+  DESTINATION include/libmorph/rus/include)
