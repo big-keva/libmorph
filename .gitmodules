@@ -3,4 +3,4 @@
 	url = https://github.com/big-keva/moonycode
 [submodule "contrib/mtc"]
 	path = contrib/mtc
-	url = git@github.com:big-keva/mtc.git
+	url = https://github.com/big-keva/mtc.git
