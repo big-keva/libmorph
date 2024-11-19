@@ -10,7 +10,7 @@ namespace rus {
   class FormBuild
   {
     mutable MbcsCoder         pforms;       // the buffer for the forms
-            const CapScheme&  casing;       // capitalization scheme tool
+            const CapScheme   casing;       // capitalization scheme tool
             const lexeme_t    lexeme;
             const uint8_t*    szstem;
             const formid_t    idform;
