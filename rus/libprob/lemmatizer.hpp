@@ -28,7 +28,7 @@ namespace rus {
 
     };
 
-    const CapScheme&    casing;
+    const CapScheme     casing;
     const uint8_t*      pszstr;
     const size_t        cchstr;
     const uint16_t      scheme;
