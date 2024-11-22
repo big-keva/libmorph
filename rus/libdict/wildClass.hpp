@@ -118,21 +118,24 @@ namespace rus {
         }
       }
 
-    // skip until stems
-      for ( ; ucount-- > 0; ptable += sublen )
-        sublen = getserial( ++ptable );
-
-      if ( counter<uint8_t>::hasupper( uflags ) )
+      if ( inflex.empty() || !suffix.empty() )
       {
-        auto  nforms = getserial( ptable );
+      // skip until stems
+        for ( ; ucount-- > 0; ptable += sublen )
+          sublen = getserial( ++ptable );
 
-        while ( nforms-- > 0 )
+        if ( counter<uint8_t>::hasupper( uflags ) )
         {
-          auto  grinfo = SGramInfo{ 0, 0, getword16( ptable ), *ptable++ };
+          auto  nforms = getserial( ptable );
 
-          if ( filter( grinfo ) )
-            if ( (nerror = ScanSuffix( target, smatch, lmatch, inflex, suffix, grinfo )) != 0 )
-              return nerror;
+          while ( nforms-- > 0 )
+          {
+            auto  grinfo = SGramInfo{ 0, 0, getword16( ptable ), *ptable++ };
+
+            if ( filter( grinfo ) )
+              if ( (nerror = ScanSuffix( target, smatch, lmatch, inflex, suffix, grinfo )) != 0 )
+                return nerror;
+          }
         }
       }
       return 0;

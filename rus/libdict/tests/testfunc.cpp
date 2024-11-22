@@ -547,6 +547,9 @@ TestItEasy::RegisterFunc  testmorphrus( []()
               REQUIRE_NOTHROW( ms = FindMatch( mlma, "дрызг*аются" ) );
                 REQUIRE( ms.size() == 1 );
                 REQUIRE( ms.ToString() == "дрызгаются" );
+              REQUIRE_NOTHROW( ms = FindMatch( mlma, "пятницей*" ) );
+                REQUIRE( ms.size() == 1 );
+                REQUIRE( ms.ToString() == "пятницей" );
               REQUIRE_NOTHROW( ms = FindMatch( mlma, "?рызг*аются" ) );
                 REQUIRE( ms.size() == 2 );
                 REQUIRE( ms.ToString() == "брызгаются/дрызгаются" );
