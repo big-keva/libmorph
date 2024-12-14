@@ -56,6 +56,14 @@ namespace rus {
     int  operator()( args... ) const  {  return 1;  }
   };
 
+  enum  maximal: size_t
+  {
+    form_length = 24,               // максимальная длина слова в буквак
+    utf8_length = form_length * 2,  // максимальная длина слова в байтах
+    forms_count = 256,              // реально чуть меньше, но у глаголов много
+    buffer_size = forms_count * utf8_length
+  };
+
   //
   // the new api - IMlma interface class
   //
@@ -141,7 +149,7 @@ namespace rus {
   int   CMlmaMb::CheckWord( const char* pszstr, size_t  cchstr, unsigned  dwsets )
   {
     CATCH_ALL
-      uint8_t locase[256];
+      uint8_t locase[maximal::form_length];
       auto    scheme = ToCanonic( locase, pszstr, cchstr );
 
     // check source string and length
@@ -166,7 +174,7 @@ namespace rus {
                             SGramInfo*  pgrams, size_t  lgrams, unsigned  dwsets )
   {
     CATCH_ALL
-      uint8_t locase[256];
+      uint8_t locase[maximal::form_length];
       auto    scheme = ToCanonic( locase, pszstr, cchstr );
       int     nerror;
 
@@ -210,7 +218,7 @@ namespace rus {
       if ( (ofsptr = Flat::ScanTree<uint16_t>( getofs, libmorphrus::lidstree, { lidkey, lexkeylen( lidkey, nlexid ) } )) != nullptr )
       {
         auto    dicpos = libmorphrus::stemtree + getserial( ofsptr );
-        byte_t  szstem[0x80];
+        byte_t  szstem[maximal::form_length] = {};
         int     nerror;
 
       // fill other fields
@@ -233,7 +241,7 @@ namespace rus {
     formid_t    idform, unsigned  dwsets )
   {
     CATCH_ALL
-      uint8_t locase[256];
+      uint8_t locase[maximal::form_length];
       auto    scheme = ToCanonic( locase, pszstr, cchstr );
       int     nerror;
 
@@ -272,8 +280,8 @@ namespace rus {
   int   CMlmaMb::CheckHelp( char* output, size_t  cchout, const char* pszstr, size_t  cchstr )
   {
     CATCH_ALL
-      uint8_t locase[256];
-      uint8_t smatch[256];
+      uint8_t locase[maximal::form_length];
+      uint8_t smatch[maximal::form_length];
       auto    scheme = ToCanonic( locase, pszstr, cchstr );
       size_t  qtrpos;       // позиция квантора в строке
       size_t  keylen;       // длина поискового ключа
@@ -349,11 +357,11 @@ namespace rus {
   int   CMlmaMb::FindMatch( IMlmaMatch*  pmatch, const char* pszstr, size_t cchstr )
   {
     CATCH_ALL
-      uint8_t   locase[256];
-      char      cpsstr[256];
-      uint8_t   sforms[256 * 32];
+      char      cpsstr[maximal::form_length];
+      uint8_t   locase[maximal::form_length];
+      uint8_t   sforms[maximal::buffer_size];
+      SStrMatch amatch[maximal::forms_count];
       uint8_t*  pforms;
-      SStrMatch amatch[256];
       size_t    nmatch = 0;
       lexeme_t  lastId = 0;
       int       nerror;
@@ -469,11 +477,11 @@ namespace rus {
 
   int   CMlmaWc::CheckWord( const widechar* pwsstr, size_t  cchstr, unsigned  dwsets )
   {
-    char    szword[0x100];
+    char    szword[maximal::form_length];
     size_t  ccword;
 
   // get string length and convert to ansi
-    if ( (ccword = codepages::widetombcs( codepages::codepage_1251, szword, 0x100, (const widechar*)pwsstr, cchstr )) == (size_t)-1 )
+    if ( (ccword = codepages::widetombcs( codepages::codepage_1251, szword, sizeof(szword), (const widechar*)pwsstr, cchstr )) == (size_t)-1 )
       return WORDBUFF_FAILED;
     return mlmaMbInstance.CheckWord( szword, ccword, dwsets );
   }
@@ -614,7 +622,7 @@ namespace rus {
 
   int   CMlmaWc::FindMatch( IMlmaMatch* pmatch, const widechar* pwsstr, size_t cchstr )
   {
-    char    szword[0x100];
+    char    szword[maximal::form_length];
     size_t  ccword;
 
   // get string length and convert to native codepage
