@@ -58,7 +58,7 @@ namespace rus {
 
   enum  maximal: size_t
   {
-    form_length = 24,               // максимальная длина слова в буквак
+    form_length = 48,               // максимальная длина слова в буквак
     utf8_length = form_length * 2,  // максимальная длина слова в байтах
     forms_count = 256,              // реально чуть меньше, но у глаголов много
     buffer_size = forms_count * utf8_length
