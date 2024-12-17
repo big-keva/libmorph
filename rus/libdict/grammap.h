@@ -263,6 +263,9 @@ namespace rus {
     if ( IsAdjective( wdinfo ) )
       return GetDefsInfo( idform );
 
+    if ( (wdinfo & wfPlural) != 0 && idform < 10 )
+      return { uint16_t(-1), uint8_t(-1) };
+
     return GetNounInfo( idform );
   }
 
