@@ -93,7 +93,7 @@ element*  wordtree<element, counter>::Insert( const char* pszstr, size_t cchstr 
   }
 
   if ( p_data == nullptr )
-    p_data = std::unique_ptr<element>( new element() );
+    p_data = std::make_unique<element>();
 
   return p_data.get();
 }
