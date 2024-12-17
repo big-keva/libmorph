@@ -60,7 +60,7 @@ namespace rus {
   {
     form_length = 48,               // максимальная длина слова в буквак
     utf8_length = form_length * 2,  // максимальная длина слова в байтах
-    forms_count = 256,              // реально чуть меньше, но у глаголов много
+    forms_count = 256,              // реально чуть меньше, но у глаголов много, до 352
     buffer_size = forms_count * utf8_length
   };
 
@@ -379,6 +379,10 @@ namespace rus {
           pforms = sforms;
           nmatch = 0;
         }
+
+        for ( auto prev = amatch, last = amatch + nmatch; prev != last; ++prev )
+          if ( prev->id == grinfo.idForm && prev->cc == length && memcmp( prev->sz, string, length ) == 0 )
+            return 0;
 
         amatch[nmatch++] = { strncpy( (char*)pforms, (const char*)string, length ), length, grinfo.idForm };
           pforms += length + 1;
