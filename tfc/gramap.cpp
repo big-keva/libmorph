@@ -16,7 +16,7 @@ struct  gramdata
 static  std::map<std::string, gramdata> gramMapper;
 
 # define add_key( szkey, gmask, ginfo, fmask, flags )   \
-  gramMapper.insert( { utf8to1251( szkey ), { (unsigned)(gmask), (unsigned)(ginfo), (unsigned)(fmask), (unsigned)(flags) } } );
+  gramMapper.emplace( utf8to1251( szkey ), gramdata{ (unsigned)(gmask), (unsigned)(ginfo), (unsigned)(fmask), (unsigned)(flags) } );
 
 graminfo  MapInfo( const char*  pszkey, graminfo cginfo )
 {

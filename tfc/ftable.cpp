@@ -59,7 +59,7 @@ void  fxlist::Insert( ftable&& ft, const char* ix )
       --ix;
 
     if ( ix > pszorg )
-      tabmap.insert( { std::string( pszorg, ix - pszorg ), findex } );
+      tabmap.emplace( std::string( pszorg, ix - pszorg ), findex );
 
     if ( *(ix = l_trim( ix )) == ',' )
       ++ix;
