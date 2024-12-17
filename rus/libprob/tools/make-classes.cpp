@@ -84,7 +84,7 @@ public:
     {
       for ( ; mbeg != mend && *mbeg < *pbeg; ++mbeg )
         mlen += mbeg->occCount * mbeg->occCount;
-      for ( ; pbeg != pend && *pbeg < *mbeg; ++pbeg )
+      for ( ; mbeg != mend && pbeg != pend && *pbeg < *mbeg; ++pbeg )
         plen += pbeg->occCount * pbeg->occCount;
       if ( mbeg != mend && pbeg != pend && *mbeg == *pbeg )
         rmul += (mbeg++)->occCount * (pbeg++)->occCount;
@@ -516,8 +516,8 @@ void  LoadDict( ClassMap& mclass, IMlmaMb& morpho, const std::initializer_list<s
 
         if ( pfound == mclass.end() )
         {
-          mclass.insert( { std::move( clskey ), std::make_tuple( 1U, Supreset{ std::get<0>( aclass ) },
-            form_0 ) } );
+          mclass.emplace( std::move( clskey ),
+            std::make_tuple( 1U, Supreset{ std::get<0>( aclass ) }, form_0 ) );
         }
           else
         {
