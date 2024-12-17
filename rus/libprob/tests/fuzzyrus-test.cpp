@@ -94,6 +94,7 @@ public:
 
     if ( pfound == aclass.end() || *pfound != clsstr )
       aclass.insert( pfound, clsstr );
+    return 0;
   }
   auto  Get() -> std::string
   {
