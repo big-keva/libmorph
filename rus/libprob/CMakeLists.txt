@@ -67,8 +67,7 @@ add_custom_command(OUTPUT ${InflexCPP}
 # на основе словарного морфоанализатора и заданного предела покрытия лексики
 #
 add_custom_command(OUTPUT ${InflexSRC}
-	COMMAND ${MakeClasses} > ${InflexSRC}
-        DEPENDS ${MakeClasses} )
+	COMMAND ${MakeClasses} > ${InflexSRC} )
 
 #
 # Компилятор словаря окончаний inflex.json
