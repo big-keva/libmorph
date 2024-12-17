@@ -53,7 +53,7 @@ namespace rus {
       return nullptr;
 
     while ( toload-- > 0 && (s = ::FetchFrom( ::FetchFrom( s, refstr ), refofs )) != nullptr )
-      mapper.insert( { std::move( refstr ), tabset.data() + refofs } );
+      mapper.emplace( std::move( refstr ), tabset.data() + refofs );
 
     return s;
   }

@@ -214,7 +214,7 @@ inline  conditions& collector::set_conditions( const char* pnames )
     {
       if ( cindex == (size_t)-1 )
         condiSet.resize( (cindex = condiSet.size()) + 1 );
-      tabIndex.insert( { tabkey, cindex } );
+      tabIndex.emplace( tabkey, cindex );
     }
       else
   // если найден, проверить его соответствие уже существующему
