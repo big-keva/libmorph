@@ -689,9 +689,10 @@ int   MLMAPROC        mlmaruLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
   if ( pageid == codepages::codepage_1251 )
     return mlmaruLoadMbAPI( ptrAPI );
 
-  if ( (palloc = new CMlmaMb( pageid )) == nullptr )
+  if ( (palloc = (CMlmaMb*)malloc( sizeof(*palloc) )) == nullptr )
     return ENOMEM;
-  (*ptrAPI = (IMlmaMb*)palloc)->Attach();
+
+  (*ptrAPI = (IMlmaMb*)new( palloc ) CMlmaMb( pageid ))->Attach();
     return 0;
 }
 

@@ -145,7 +145,7 @@ protected:
           aplain.insert( aplain.end(), atable.begin(), atable.end() );
           aplain.resize( (aplain.size() + 0x0f) & ~0x0f );
 
-          iplain.insert( { mclass.tfoffs, theofs } );
+          iplain.emplace( mclass.tfoffs, theofs );
           mclass.tfoffs = static_cast<uint16_t>(theofs >> 4);
         }
           else
@@ -335,9 +335,9 @@ void  ResolveRus::InitTables( const std::string&  flex_table, const std::string&
   aplain.insert( aplain.end(), amagic, amagic + 16 );
 
 // load flex ad mix tables
-  ftable = libmorph::LoadSource( flex_table.c_str() );
+  ftable = libmorph::LoadSource( flex_table );
     libmorph::LoadObject( findex, flex_index );
-  mtable = libmorph::LoadSource( intr_table.c_str() );
+  mtable = libmorph::LoadSource( intr_table );
     libmorph::LoadObject( mindex, intr_index );
 }
 
