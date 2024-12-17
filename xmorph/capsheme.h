@@ -53,7 +53,14 @@ namespace libmorph {
         toLoCaseMatrix( cs.toLoCaseMatrix ),
         toUpCaseMatrix( cs.toUpCaseMatrix ),
         pspMinCapValue( cs.pspMinCapValue )  {}
-
+    CapScheme& operator = ( const CapScheme& cs )
+      {
+        charTypeMatrix = cs.charTypeMatrix;
+        toLoCaseMatrix = cs.toLoCaseMatrix;
+        toUpCaseMatrix = cs.toUpCaseMatrix;
+        pspMinCapValue = cs.pspMinCapValue;
+        return *this;
+      }
   public:
     enum: unsigned char
     {
