@@ -170,6 +170,7 @@
 # endif  /* russian_gram_info_defined */
 
 #   define wfMultiple   0x0040          /* Множественное число   */
+#   define wfPlural     0x0040          /* Множественное число   */
 
 # if !defined( wfUnionS )
 #   define wfUnionS     0x0040
