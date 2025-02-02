@@ -1,3 +1,5 @@
+#include <mlmadefs.h>
+
 # include "../../licenseGPL.h"
 # include "../../tools/buildmorph.h"
 # include "../../chartype.h"
@@ -39,7 +41,7 @@ public:
 
   public:     // serialization
     auto  GetBufLen() const -> size_t
-      {  return ::GetBufLen( wdinfo ) + ::GetBufLen( fxoffs );  }
+      {  return 2 * sizeof(uint16_t);  }
 
   };
 
@@ -60,10 +62,11 @@ class ResolveEng
 public:
   struct  entry_type
   {
-    uint8_t   chrmin;
-    uint8_t   chrmax;
-    uint32_t  nlexid;
-    uint16_t  oclass;
+    uint8_t     chrmin;
+    uint8_t     chrmax;
+    uint32_t    nlexid;
+    uint16_t    oclass;
+    std::string stpost;
 
   public:     // compare
     bool  operator <  ( const entry_type& r ) const {  return compare( r ) < 0;   }
@@ -79,7 +82,7 @@ public:
 
   };
 
-  using   stem_entry = std::pair<std::string, entry_type>;
+  using stem_entry = std::pair<std::string, entry_type>;
 
 public:
   ResolveEng();
@@ -90,6 +93,7 @@ public:
 
 protected:
   auto  MapPartOfSpeech( const std::string& s ) const -> uint16_t;
+  auto  FindStemPostfix( const char* string ) const -> std::string;
 
 protected:
   std::map<std::string, uint16_t>
@@ -185,9 +189,10 @@ auto  ClassTable::Add( const class_info& cls ) -> uint16_t
   auto  pfound = classTab.find( cls );
 
   if ( pfound == classTab.end() )
+  {
     pfound = classTab.insert( { cls, tableLen } ).first;
-
-  tableLen += cls.GetBufLen();
+    tableLen += cls.GetBufLen();
+  }
 
   return pfound->second;
 }
@@ -206,9 +211,11 @@ O*  ClassTable::Serialize( O* o ) const
     {  return c1->second < c2->second;  } );
 
   for ( auto& next: sorted )
-    o = ::Serialize( ::Serialize( o,
-      next->first.wdinfo ),
-      next->first.fxoffs );
+  {
+    o = ::Serialize( ::Serialize( ::Serialize( ::Serialize( o,
+      char(next->first.wdinfo) ), char(next->first.wdinfo >> 8) ),
+      char(next->first.fxoffs) ), char(next->first.fxoffs >> 8) );
+  }
 
   return o;
 }
@@ -217,26 +224,33 @@ O*  ClassTable::Serialize( O* o ) const
 
 auto  ResolveEng::entry_type::GetBufLen() const -> size_t
 {
-  return sizeof(chrmin) + sizeof(chrmax)
-    + ::GetBufLen( nlexid )
-    + ::GetBufLen( oclass );
+  return sizeof(chrmin) + sizeof(chrmax) + sizeof(uint16_t)
+    + ::GetBufLen( nlexid ) + (stpost.empty() ? 0 : 1 + stpost.length());
 }
 
 template <class O>
 O*  ResolveEng::entry_type::Serialize( O* o ) const
 {
-  return ::Serialize( ::Serialize( ::Serialize( ::Serialize( o,
-    &chrmin, sizeof(chrmin) ),
-    &chrmax, sizeof(chrmax) ), nlexid ), oclass );
+  auto  wstore = oclass | (stpost.empty() ? 0 : wfPostSt);
+
+  o = ::Serialize( ::Serialize( ::Serialize( ::Serialize( ::Serialize( o,
+    char(chrmin) ),
+    char(chrmax) ), nlexid ),
+    char(wstore) ),
+    char(wstore >> 8) );
+
+  return (wstore & wfPostSt) != 0 ? ::Serialize( o, stpost ) : o;
 }
 
-int   ResolveEng::entry_type::compare( const entry_type& entry ) const
+int   ResolveEng::entry_type::compare( const entry_type& r ) const
 {
   int   rescmp;
 
-  if ( (rescmp = entry.chrmax - chrmax) == 0 )
-    if ( (rescmp = chrmin - entry.chrmin) == 0 )
-        rescmp = nlexid - entry.nlexid;
+  if ( (rescmp = r.chrmax - chrmax) == 0 )
+    if ( (rescmp = chrmin - r.chrmin) == 0 )
+      if ( (rescmp = stpost.compare( r.stpost )) == 0 )
+        rescmp = nlexid - r.nlexid;
+
   return rescmp;
 }
 
@@ -280,29 +294,34 @@ inline  auto  skip_space( const char* s ) -> const char*
 
 auto  ResolveEng::operator ()( const char* article ) -> std::vector<stem_entry>
 {
-  char      szstem[0x100];
-  char      szflex[0x100];
-  uint16_t  wdinfo;
-  uint16_t  tfoffs;
-  char*     output = szstem;
-  char      partSp[64];
+  char        szstem[0x100];
+  char        szflex[0x100];
+  char        partSp[64];
+  uint16_t    wdinfo;
+  std::string stpost = FindStemPostfix( article );
+  auto        tabref = decltype(inflexMapper.AddInflex( nullptr )){};
+  char*       output = szstem;
 
 // check the length
   assert( strlen( article ) < MAX_STRING_LEN );
 
 // get the stem
   for ( article = skip_space( article ); *article != '\0' && *article != FLEX_DELIMITER && !is_space( *article ); )
-    *output = *article++;
+    *output++ = *article++;
 
-  if ( *article != FLEX_DELIMITER )
-    throw std::invalid_argument( "invalid article format, '|' delimiter between stem an flexions expected" );
+  if ( *article == '\0' )
+    throw std::invalid_argument( "invalid article format, '|' delimiter or space expected between stem pr part-of-speech" );
   else *output = '\0';
+
+// check for postfix
+  if ( !stpost.empty() )
+    *(output -= stpost.length()) = '\0';
 
 // get inflexion string
   for ( output = szflex; *article != '\0' && !is_space( *article ); )
     *output++ = *article++;
 
-  if ( output == szflex || *article == '\0' )
+  if ( *article == '\0' )
     throw std::invalid_argument( "part of speech expected" );
   else *output = '\0';
 
@@ -320,7 +339,9 @@ auto  ResolveEng::operator ()( const char* article ) -> std::vector<stem_entry>
 
 // Get the part of speach and the inflexion
   wdinfo = MapPartOfSpeech( partSp );
-  tfoffs = inflexMapper.AddInflex( szflex );
+
+  if ( szflex[0] != '\0' )  tabref = inflexMapper.AddInflex( szflex );
+    else tabref = { 0, '\0', '\0' };
 
   if ( wdinfo == (uint16_t)-1 )
     throw std::invalid_argument( mtc::strprintf( "unresolved part-of-speech tag '%s'", partSp ) );
@@ -341,10 +362,11 @@ auto  ResolveEng::operator ()( const char* article ) -> std::vector<stem_entry>
   return { {
       szstem,
       {
-        '\0',
-        '\0',
+        tabref.clower,
+        tabref.cupper,
         0,
-        classesTable.Add( { wdinfo, tfoffs } )
+        classesTable.Add( { wdinfo, tabref.offset } ),
+        stpost
       } } };
 }
 
@@ -356,6 +378,23 @@ auto ResolveEng::MapPartOfSpeech( const std::string& ps ) const -> uint16_t
     throw std::invalid_argument( mtc::strprintf( "unknown part-of-speach '%s'", ps.c_str() ) );
 
   return pfound->second;
+}
+
+auto ResolveEng::FindStemPostfix( const char* string ) const -> std::string
+{
+  const char* strtop;
+  const char* strend;
+
+  if ( (strtop = strstr( string, "post:" )) != nullptr )
+  {
+    for ( strtop += 5; *strtop != '\0' && (unsigned char)*strtop <= 0x20; strtop++ )
+      (void)NULL;
+    for ( strend = strtop; (unsigned char)*strend > 0x20; strend++ )
+      (void)NULL;
+
+    return std::string( strtop, strend - strtop );
+  }
+  return "";
 }
 
 char about[] = "makeeng - the dictionary builder;\n"

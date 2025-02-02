@@ -1,60 +1,97 @@
-# if !defined( _mlmadefs_h_ )
-# define _mlmadefs_h_
+/******************************************************************************
 
-// Определить кроссплатформенные типы данных
+    libmorpheng - dictiorary-based morphological analyser for English.
+    Copyright (C) 1994-2016 Andrew Kovalenko aka Keva
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+    Commercial license is available upРѕn request.
+
+    Contacts:
+      email: keva@meta.ua, keva@rambler.ru
+      Skype: big_keva
+      Phone: +7(495)648-4058, +7(926)513-2991
+
+******************************************************************************/
+# if !defined( __libmorph_eng_mlmadefs_h__ )
+# define __libmorph_eng_mlmadefs_h__
+
+// РћРїСЂРµРґРµР»РёС‚СЊ РєСЂРѕСЃСЃРїР»Р°С‚С„РѕСЂРјРµРЅРЅС‹Рµ С‚РёРїС‹ РґР°РЅРЅС‹С…
 # include "../include/mlma1033.h"
+# include "xmorph/typedefs.h"
 
-namespace __libmorpheng__
+namespace libmorpheng {
+  extern unsigned char  flexTree[];
+  extern unsigned char  classmap[];
+  extern unsigned char  stemtree[];
+  extern unsigned char  lidstree[];
+}
+
+namespace libmorph {
+namespace eng
 {
   // Define common types used in the analyser
   typedef unsigned char   byte08_t;
   typedef unsigned short  word16_t;
   typedef lexeme_t        word32_t;
 
-  // Define data access macros
-  # if defined( WIN32 ) || defined( WIN16 ) || defined( INTEL_SYSTEM )
+# if !defined( mlma_grammarecord_defined )
+# define mlma_grammarecord_defined
+  typedef struct tagGramInfo
+  {
+    unsigned char  wInfo;
+    unsigned char  iForm;
+    unsigned short gInfo;
+    unsigned char  other;
+  } SGramInfo;
+# endif
 
-  #   if !defined( GetWord16 )
-  #     define GetWord16( pv )     *(word16_t*)(pv)
-  #   endif  // GetWord16
-  #   if !defined( GetWord32 )
-  #     define GetWord32( pv )     *(word32_t*)(pv)
-  #   endif  // GetWord32
+  // stem access class
 
-  #   define Swap16( sw )
-  #   define Swap32( sw )
+  struct  steminfo
+  {
+    uint16_t  wdinfo;
+    uint16_t  tfoffs;
 
-  # elif defined( SUN )
-
-  #   if !defined( GetWord16 )
-  #     define GetWord16( pv )  ( ((byte08_t*)(pv))[0] | (((byte08_t*)(pv))[1] << 8) )
-  #   endif  // GetWord16
-  #   if !defined( GetWord32 )
-  #     define GetWord32( pv )  ( ((byte08_t*)(pv))[0] | (((byte08_t*)(pv))[1] << 8)  \
-                               | (((byte08_t*)(pv))[2] << 16) | (((byte08_t*)(pv))[3] << 24))
-  #   endif  // GetWord32
-
-
-  #   define Swap16( sw ) (sw) = (((sw) & 0x00FF) << 8) | ((sw) >> 8)
-  #   define Swap32( sw ) (sw) = ((sw) << 24) | (((sw) & 0x0000FF00) << 8)  \
-                              | (((sw) & 0x00FF0000) >> 8) | ((sw) >> 24)
-
-  # endif // macros definitions
-
-  // Грамматическая информация, используемая при общении с вызывающими
-  // программами
-  # if !defined( mlma_grammarecord_defined )
-    # define mlma_grammarecord_defined
-      typedef struct tagGramInfo
+  public:     // init
+    steminfo( uint16_t oclass = (uint16_t)-1 )
       {
-        unsigned char  wInfo;
-        unsigned char  iForm;
-        unsigned short gInfo;
-        unsigned char  other;
-      } SGramInfo;
-  # endif
+        if ( oclass != (uint16_t)-1 )
+          Load( (const uint8_t*)libmorpheng::classmap + oclass );
+      }
+    steminfo( uint16_t winfo, uint16_t foffs ):
+      wdinfo( winfo ),
+      tfoffs( foffs ) {}
+    steminfo& Load( const byte_t* pclass )
+      {
+        wdinfo = getword16( pclass );
+        tfoffs = getword16( pclass );
+        return *this;
+      }
+    unsigned      MinCapScheme() const
+      {
+        return (wdinfo >> 7) & 0x3;
+      }
+    const byte_t* GetFlexTable() const
+      {
+        return tfoffs != 0 ? tfoffs + libmorpheng::flexTree : nullptr;
+      }
+  };
 
-  // Внутренняя структура, используемая при сканировании страниц
+# if 0
+  //
   typedef struct tagScanPage
   {
     char*     lpWord;
@@ -63,51 +100,51 @@ namespace __libmorpheng__
     unsigned  scheme;
   } SScanPage;
 
-  # define wfSuffix   0x8000       /* Stem has pseudo-suffix                 */
-  # define wfPostSt   0x4000       /* Stem has post-text definition          */
-  # define wfFlexes   0x4000       /* Stem has flex-table reference          */
+# define wfSuffix   0x8000       /* Stem has pseudo-suffix                 */
+# define wfPostSt   0x4000       /* Stem has post-text definition          */
+# define wfFlexes   0x4000       /* Stem has flex-table reference          */
 
   extern unsigned char  fxString[];
   extern unsigned char  fxTables[];
   extern unsigned char  suffixes[];
   extern unsigned char  classBox[];
 
-  // Функции min и max - свои, так как в разных компиляторах
-  // используются разные способы определения этих функций
+  //
+  //
 
   template <class T>
   inline T minimal( T v1, T v2 )
-    {  return ( v1 <= v2 ? v1 : v2 );  }
+  {  return ( v1 <= v2 ? v1 : v2 );  }
 
   template <class T>
   inline T maximal( T v1, T v2 )
-    {  return ( v1 >= v2 ? v1 : v2 );  }
+  {  return ( v1 >= v2 ? v1 : v2 );  }
 
-  // Функции доступа к таблицам окончаний
-
+  //
+/*
   inline  byte08_t* GetInfoByID( word16_t id )
-    {  return classBox + GetWord16( ((word16_t*)classBox) + (id & 0x0FFF) ); }
+  {  return classBox + GetWord16( ((word16_t*)classBox) + (id & 0x0FFF) ); }
 
   inline  byte08_t* GetFragByID( int id )
-    {  return suffixes + GetWord16( ((word16_t*)suffixes) + id );  }
+  {  return suffixes + GetWord16( ((word16_t*)suffixes) + id );  }
 
   inline int  GetSkipCount( const byte08_t* stemList )
   {
     int       cbSkip = 2;
     word16_t  idStem = GetWord16( stemList );
 
-  // Если у слова есть псевдосуффикс, пропустить еще байт
+    //
     if ( idStem & wfSuffix )
       cbSkip++;
-  // Если есть нефлективный текст в постпозиции, пропустить
-  // его длину и один байт
+    //
+    //
     if ( idStem & wfPostSt )
       cbSkip += stemList[cbSkip] + 1;
-  // Пропустить размер идентификатора лексемы
+    //
     return cbSkip + ((idStem & 0x3000) >> 12) + 1;
   }
 
-  // Прототип функций, вызываемых на словаре при успешном отождествлении
+  //
   typedef void (*FAction)( const byte08_t* lpStem,
                            const byte08_t* lpWord,
                            SGramInfo*      grInfo,
@@ -131,18 +168,10 @@ namespace __libmorpheng__
                   int             size,
                   SScanPage&      rfScan,
                   FAction         action );
+*/
+# endif
+#define MAX_WORD_FORMS  32
 
-  #define MAX_WORD_FORMS  32
+}} // end libmorph::eng namespace
 
-// Provide windows.h definitions if needed
-// Отключить использование ненужных определений - OLE, графику
-// Собственно, здесь windows.h нужен, чтобы задать тип экспортируемых
-// функций в соответствии с требованиями операционной системы
-  # if defined( WIN32 ) || defined( WIN16 )
-  #   define WIN32_LEAN_AND_MEAN
-  #   include <windows.h>
-  # endif
-
-} // end __libmorpheng__ namespace
-
-# endif // _mlmadefs_h_
+# endif // !__libmorph_eng_mlmadefs_h__

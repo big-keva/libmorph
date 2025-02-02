@@ -29,6 +29,7 @@
 namespace libmorph {
 namespace eng {
 
+  extern const unsigned char charTypeMatrix[256];
   extern const unsigned char toLoCaseMatrix[256];
   extern const unsigned char toUpCaseMatrix[256];
 

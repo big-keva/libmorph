@@ -7,6 +7,15 @@
 
 class CFlexBox
 {
+public:
+  struct tableref
+  {
+    uint16_t  offset;
+    uint8_t   clower = 0xff;
+    uint8_t   cupper = 0;
+  };
+
+protected:
   struct  fxinfo
   {
     std::string szflex;
@@ -19,11 +28,8 @@ class CFlexBox
       return rcmp != 0 ? rcmp < 0 : idform < fx.idform;
     }
   };
-  struct  ftable: public std::vector<fxinfo>
+  struct  ftable: public tableref, public std::vector<fxinfo>
   {
-    uint16_t  offset;
-
-  public:
     auto  GetBufLen() const -> size_t
     {
       auto  length = size_t(1);
@@ -34,14 +40,13 @@ class CFlexBox
       return length;
     }
   };
-
+  
 public:
-  uint16_t  AddInflex( const char* );
+  auto  AddInflex( const char* ) -> tableref;
 
-public:
-  size_t    GetBufLen() const;
+public:     // serialization
   template <class O>
-  O*        Serialize( O* ) const;
+  O*    Serialize( O* ) const;
 
 protected:
   std::map<std::string, ftable> tabmap;
@@ -51,13 +56,13 @@ protected:
 
 // CFlexBox implementation
 
-inline  auto  CFlexBox::AddInflex( const char* lpflex ) -> uint16_t
+inline  auto  CFlexBox::AddInflex( const char* lpflex ) -> tableref
 {
   auto  ptable = tabmap.find( lpflex );
   int   idflex = 0;
 
 // check if present, register new table
-  if ( ptable != tabmap.end() ) return ptable->second.offset;
+  if ( ptable != tabmap.end() ) return ptable->second;
     else  ptable = tabmap.insert( { lpflex, {} } ).first;
 
 // skip first delimiter
@@ -107,8 +112,12 @@ inline  auto  CFlexBox::AddInflex( const char* lpflex ) -> uint16_t
       ptable->second.insert( std::lower_bound( ptable->second.begin(), ptable->second.end(), inflex ),
         inflex );
 
+      ptable->second.clower = std::min( ptable->second.clower, uint8_t(reglen > 0 ? *ptrtop : '\0') );
+      ptable->second.cupper = std::max( ptable->second.cupper, uint8_t(reglen > 0 ? *ptrtop : '\0') );
+
       if ( strend < ptrend && *strend == '/' )
         ++strend;
+      
       ptrtop = strend;
     }
     ++idflex;
@@ -117,7 +126,7 @@ inline  auto  CFlexBox::AddInflex( const char* lpflex ) -> uint16_t
 // register the offset
   ptable->second.offset = length;
     length += ptable->second.GetBufLen();
-  return ptable->second.offset;
+  return ptable->second;
 }
 
 template <class O>
