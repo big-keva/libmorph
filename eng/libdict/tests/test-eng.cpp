@@ -385,14 +385,13 @@ TestItEasy::RegisterFunc  testmorpheng( []()
           REQUIRE( mlma->BuildForm( 88893, 0 ).size() == 0 );
         }
       }
-# if 0
       SECTION( "FindForms" )
       {
         char  aforms[0x100];
 
         SECTION( "with invalid arguments it returns ARGUMENT_INVALID" )
         {
-          REQUIRE( mlma->FindForms( nullptr, 0xff, "метла", (size_t)-1, 1, 0 ) == ARGUMENT_FAILED );
+          REQUIRE( mlma->FindForms( nullptr, 0xff, "word", (size_t)-1, 1, 0 ) == ARGUMENT_FAILED );
         }
         SECTION( "with empty string it returns 0" )
         {
@@ -401,42 +400,41 @@ TestItEasy::RegisterFunc  testmorpheng( []()
         }
         SECTION( "for unknown words it returns 0" )
         {
-          REQUIRE( mlma->FindForms( aforms, "ааа", 0 ) == 0 );
+          REQUIRE( mlma->FindForms( aforms, "aaa", 0 ) == 0 );
         }
         SECTION( "for known words it returns count of forms build" )
         {
-          auto  out = decltype( mlma->FindForms( "метла", 5 ) )();
+          auto  out = decltype( mlma->FindForms( "market", 1 ) )();
 
-          REQUIRE_NOTHROW( out = mlma->FindForms( "метла", 5 ) );
-          REQUIRE( out.size() == 2 );
+          REQUIRE_NOTHROW( out = mlma->FindForms( "market", 1 ) );
 
-          if ( out.size() == 2 )
+          if ( REQUIRE( out.size() == 2 ) )
           {
-            REQUIRE( out[0] == "метлою" );
-            REQUIRE( out[1] == "метлой" );
+            REQUIRE( out[0] == "markets" );
+            REQUIRE( out[1] == "markets" );
           }
         }
-
         SECTION( "for non-flective words, it builds form '0xff'" )
         {
-          REQUIRE( mlma->BuildForm( aforms, 24603 /* барбекю */, 1 ) == 0 );
-          REQUIRE( mlma->BuildForm( aforms, 24603 /* барбекю */, 0xff ) == 1 );
-          REQUIRE( std::string( aforms ) ==  "барбекю" );
+          REQUIRE( mlma->FindForms( aforms, "marriable", 0 ) == 0 );
+          REQUIRE( mlma->FindForms( aforms, "marriable", 0xff ) == 1 );
+          REQUIRE( std::string( aforms ) ==  "marriable" );
         }
 
         SECTION( "for personal names, it builds minimal valid capitalization" )
         {
-          REQUIRE( mlma->FindForms( aforms, "москва", 0 ) == 0 );
-          REQUIRE( mlma->FindForms( aforms, "москва", 1, sfIgnoreCapitals ) == 1 );
-          REQUIRE( std::string( aforms ) == "Москвы" );
+          REQUIRE( mlma->FindForms( aforms, "andrew", 0 ) == 0 );
+          REQUIRE( mlma->FindForms( aforms, "andrew", 1, sfIgnoreCapitals ) == 1 );
+          REQUIRE( std::string( aforms ) == "Andrew's" );
         }
 
         SECTION( "for suffixed words, it appends suffix" )
         {
-          REQUIRE( mlma->FindForms( aforms, "кто-нибудь", 1 ) == 1 );
-          REQUIRE( std::string( aforms ) == "кого-нибудь" );
+          REQUIRE( mlma->FindForms( aforms, "daughters-in-law", 0 ) == 1 );
+          REQUIRE( std::string( aforms ) == "daughter-in-law" );
         }
       }
+# if 0
       SECTION( "CheckHelp" )
       {
         char  szhelp[0x100];

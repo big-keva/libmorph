@@ -225,7 +225,6 @@ namespace eng {
     const char* pszstr, size_t    cchstr,
     formid_t    idform, unsigned  dwsets )
   {
-    /*
     CATCH_ALL
       uint8_t locase[maximal::form_length];
       auto    scheme = ToCanonic( locase, pszstr, cchstr );
@@ -244,18 +243,16 @@ namespace eng {
         return 0;
 
     // create form builder
-      auto  buildform = FormBuild( { output, cchout, codepage }, CapScheme(
-        charTypeMatrix, toLoCaseMatrix,
-        toUpCaseMatrix, pspMinCapValue ), 0x0000, idform, locase );
+      auto  buildform = FormBuild( { output, cchout, codepage }, CapScheme( charTypeMatrix, toLoCaseMatrix, toUpCaseMatrix ),
+        0x0000, idform, locase );
 
       nerror = Flat::ScanTree<uint8_t>( Flat::ScanList( MakeClassMatch( buildform )
         .SetCapitalization( uint16_t(scheme) )
         .SetSearchSettings( dwsets ) ),
-      libmorphrus::stemtree, { locase, scheme >> 16 } );
+      libmorpheng::stemtree, { locase, scheme >> 16 } );
 
       return nerror < 0 ? nerror : buildform;
     ON_ERRORS( -1 )
-    */
   }
 
  /*
