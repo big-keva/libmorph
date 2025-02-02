@@ -27,7 +27,7 @@ template <class resolver>
 class buildmorph
 {
   using   steminfo = typename resolver::entry_type;
-  using   stemdata = std::pair<std::string, steminfo>;
+  using   stemdata = typename resolver::stem_entry;
 
   typedef wordtree<std::vector<steminfo>, unsigned char>  StemTree;   // the actual tree
   typedef wordtree<unsigned, unsigned short>              LidsTree;
@@ -153,7 +153,7 @@ void  buildmorph<resolver>::DictReader( FILE* source )
     char*                 strtop;
     char*                 strend;
     char*                 pszlid;
-    lexeme_t              nlexid;
+    uint32_t              nlexid;
     std::vector<stemdata> astems;
 
   // change codepage
@@ -173,10 +173,10 @@ void  buildmorph<resolver>::DictReader( FILE* source )
     }
 
   // resolve lexeme identifier
-    if ( (pszlid = strstr( strtop, " LID:" )) == nullptr )
+    if ( (pszlid = strstr( strtop, "LID:" )) == nullptr || pszlid == strtop || (pszlid[-1] != '\t' && pszlid[-1] != ' ') )
       continue;
       
-    if ( (nlexid = strtoul( pszlid + 5, &strend, 0 )) == 0 )
+    if ( (nlexid = strtoul( pszlid + 4, &strend, 0 )) == 0 )
       continue;
 
   // resolve word properties
