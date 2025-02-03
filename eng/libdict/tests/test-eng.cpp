@@ -280,6 +280,35 @@ TestItEasy::RegisterFunc  testmorpheng( []()
             REQUIRE( std::string( lemmas[1].plemma ) == "scissors" );
           }
         }
+        SECTION( "irregular forms are also processed" )
+        {
+          auto  lemmas = decltype( mlma->Lemmatize( "" ) )();
+
+          if ( REQUIRE( (lemmas = mlma->Lemmatize( "man" )).size() == 2 ) )
+          {
+            REQUIRE( std::string( lemmas[0].plemma ) == "man" );
+            REQUIRE(             (lemmas[0].pgrams->wdInfo & 0x3f) == 2 );    // V
+            REQUIRE( std::string( lemmas[1].plemma ) == "man" );
+            REQUIRE(             (lemmas[1].pgrams->wdInfo & 0x3f) == 1 );    // N
+          }
+          if ( REQUIRE( (lemmas = mlma->Lemmatize( "men" )).size() == 1 ) )
+          {
+            REQUIRE( std::string( lemmas[0].plemma ) == "man" );
+            REQUIRE(             (lemmas[0].pgrams->wdInfo & 0x3f) == 1 );    // N
+          }
+          if ( REQUIRE( (lemmas = mlma->Lemmatize( "woman" )).size() == 2 ) )
+          {
+            REQUIRE( std::string( lemmas[0].plemma ) == "woman" );
+            REQUIRE(             (lemmas[0].pgrams->wdInfo & 0x3f) == 2 );    // V
+            REQUIRE( std::string( lemmas[1].plemma ) == "woman" );
+            REQUIRE(             (lemmas[1].pgrams->wdInfo & 0x3f) == 1 );    // N
+          }
+          if ( REQUIRE( (lemmas = mlma->Lemmatize( "women" )).size() == 1 ) )
+          {
+            REQUIRE( std::string( lemmas[0].plemma ) == "woman" );
+            REQUIRE(             (lemmas[0].pgrams->wdInfo & 0x3f) == 1 );    // N
+          }
+        }
         SECTION( "forms with postfixes are analyzed and built" )
         {
           auto  lemmas = decltype( mlma->Lemmatize( "" ) )();
@@ -434,11 +463,10 @@ TestItEasy::RegisterFunc  testmorpheng( []()
           REQUIRE( std::string( aforms ) == "daughter-in-law" );
         }
       }
-# if 0
       SECTION( "CheckHelp" )
       {
         char  szhelp[0x100];
-        /*
+
         SECTION( "called with empty string it returns 0" )
         {
           REQUIRE( mlma->CheckHelp( szhelp, sizeof(szhelp), nullptr, 0 ) == 0 );
@@ -449,27 +477,28 @@ TestItEasy::RegisterFunc  testmorpheng( []()
         {
           REQUIRE( mlma->CheckHelp( nullptr, sizeof(szhelp), "а?", (size_t)-1 ) == ARGUMENT_FAILED );
           REQUIRE( mlma->CheckHelp( szhelp, 0, "а?", (size_t)-1 ) == ARGUMENT_FAILED );
-        }*/
+        }
         SECTION( "for dictionary templates it returns the list of characters" )
         {
-          REQUIRE( mlma->CheckHelp( szhelp, "м?жичок" ) == 1 );
-            REQUIRE( std::string( szhelp ) == "у" );
-          REQUIRE( mlma->CheckHelp( szhelp, "слоновник*" ) == 6 );
+          REQUIRE( mlma->CheckHelp( szhelp, "st?aw" ) == 1 );
+            REQUIRE( std::string( szhelp ) == "r" );
+          if ( REQUIRE( mlma->CheckHelp( szhelp, "straw*" ) == 9 ) )
+          {
             REQUIRE( szhelp[0] == '\0' );
-            REQUIRE( std::string( szhelp + 1 ) == "аеиоу" );
-          REQUIRE( mlma->CheckHelp( szhelp, "слоновник?м" ) == 2 );
-            REQUIRE( std::string( szhelp ) == "ао" );
-          REQUIRE( mlma->CheckHelp( szhelp, "кт?-нибудь" ) == 1 );
-            REQUIRE( std::string( szhelp ) == "о" );
-          REQUIRE( mlma->CheckHelp( szhelp, "кто?нибудь" ) == 1 );
+            REQUIRE( std::string( szhelp + 1 ) == "'-beiswy" );
+          }
+          if ( REQUIRE( mlma->CheckHelp( szhelp, "straw?d" ) == 1 ) )
+            REQUIRE( std::string( szhelp ) == "e" );
+          if ( REQUIRE( mlma->CheckHelp( szhelp, "fa?her-in-law" ) == 1 ) )
+            REQUIRE( std::string( szhelp ) == "t" );
+          if ( REQUIRE( mlma->CheckHelp( szhelp, "daughter?in-law" ) == 1 ) )
             REQUIRE( std::string( szhelp ) == "-" );
-          REQUIRE( mlma->CheckHelp( szhelp, "мужич?к" ) == 2 );
-            REQUIRE( std::string( szhelp ) == "ео" );
-          REQUIRE( mlma->CheckHelp( szhelp, "мужичок?" ) == 0 );
-          REQUIRE( mlma->CheckHelp( szhelp, "комсомольском-на-амуре" ) == 0 );
-          REQUIRE( mlma->CheckHelp( szhelp, "комсомольском-на-амуре*" ) == 1 );
-            REQUIRE( std::string( szhelp ) == "" );
-          REQUIRE( mlma->CheckHelp( szhelp, "комсомольском-на-амуре?" ) == 0 );
+          if ( REQUIRE( mlma->CheckHelp( szhelp, "women*" ) == 2 ) )
+          {
+            REQUIRE( szhelp[0] == '\0' );
+            REQUIRE( szhelp[1] == '\'' );
+          }
+          REQUIRE( mlma->CheckHelp( szhelp, "dog's*?" ) == 0 );
         }
       }
       SECTION( "FindMatch" )
@@ -489,112 +518,79 @@ TestItEasy::RegisterFunc  testmorpheng( []()
           {
             SECTION( "∙ in non-flective words;" )
             {
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "вдн?" ) );
-                REQUIRE( ms.size() == 1 );
-                REQUIRE( ms.ToString() == "вднх" );
-                if ( REQUIRE( ms.front().aforms.size() == 1 ) )
-                {
-                  REQUIRE( ms.front().aforms.front().id == (uint8_t)-1 );
-                }
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "вд?х" ) );
-                REQUIRE( ms.size() == 2 );    // вднх/вдох
-                REQUIRE( ms.ToString() == "вднх/вдох" );
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "в?нх" ) );
-                REQUIRE( ms.size() == 2 );    // вднх/вдох
-                REQUIRE( ms.ToString() == "вднх/вснх" );
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "?днх" ) );
-                REQUIRE( ms.size() == 1 );
-                REQUIRE( ms.ToString() == "вднх" );
+              REQUIRE_NOTHROW( ms = FindMatch( mlma, "y?man" ) );
+
+              if ( REQUIRE( ms.size() == 1 )
+                && REQUIRE( ms.ToString() == "yuman" )
+                && REQUIRE( ms.front().aforms.size() == 1 ) )
+              {
+                REQUIRE( ms.front().aforms.front().id == (uint8_t)-1 );
+              }
+
+              REQUIRE_NOTHROW( ms = FindMatch( mlma, "yuma?" ) );
+
+              if ( REQUIRE( ms.size() == 2 ) )
+                REQUIRE( ms.ToString() == "yuman/yumas" );
             }
             SECTION( "∙ in stems of flective words;" )
             {
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "с?баки" ) );
-              if ( REQUIRE( ms.size() == 1 ) )
+              REQUIRE_NOTHROW( ms = FindMatch( mlma, "exc?ptions" ) );
+
+              if ( REQUIRE( ms.size() == 1 )
+                && REQUIRE( ms.ToString() == "exceptions" )
+                && REQUIRE( ms.front().aforms.size() == 1 ) )
               {
-                REQUIRE( ms.ToString() == "собаки" );
-                if ( REQUIRE( ms.front().aforms.size() == 2 ) )
-                {
-                  REQUIRE( ms.front().aforms[0].id == 10 );
-                  REQUIRE( ms.front().aforms[1].id == 1 );
-                }
+                REQUIRE( ms.front().aforms[0].id == 1 );
               }
             }
             SECTION( "∙ in flexions of flective words;" )
             {
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "собака?" ) );
-                if ( REQUIRE( ms.size() == 1 ) )
-                {
-                  REQUIRE( ms.ToString() == "собакам/собаках" );
+              REQUIRE_NOTHROW( ms = FindMatch( mlma, "exception?" ) );
 
-                  if ( REQUIRE( ms.front().aforms.size() == 2 ) )
-                  {
-                    REQUIRE( ms.front().aforms[0].id == 16 );
-                    REQUIRE( ms.front().aforms[1].id == 12 );
-                  }
-                }
+              if ( REQUIRE( ms.size() == 1 )
+                && REQUIRE( ms.ToString() == "exceptions" )
+                && REQUIRE( ms.front().aforms.size() == 1 ) )
+              {
+                REQUIRE( ms.front().aforms[0].id == 1 );
+              }
             }
-            SECTION( "∙ in flexions of words with character swaps;" )
+            SECTION( "∙ in flexions of words with zero stem;" )
             {
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "сосенка?" ) );
-                REQUIRE( ms.size() == 1 );
-                REQUIRE( ms.ToString() == "сосенкам/сосенках" );
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "сосено?" ) );
-                REQUIRE( ms.size() == 1 );
-                REQUIRE( ms.ToString() == "сосенок" );
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "сосен?к" ) );
-                REQUIRE( ms.size() == 1 );
-                REQUIRE( ms.ToString() == "сосенок" );
+              REQUIRE_NOTHROW( ms = FindMatch( mlma, "wome?" ) );
+
+              if ( REQUIRE( ms.size() == 1 ) )
+                REQUIRE( ms.ToString() == "women" );
             }
             SECTION( "∙ in postfixes;" )
             {
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "кто-н?будь" ) );
-                REQUIRE( ms.size() == 1 );
-                REQUIRE( ms.ToString() == "кто-нибудь" );
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "кого-н?будь" ) );
-                REQUIRE( ms.size() == 1 );
-                REQUIRE( ms.ToString() == "кого-нибудь" );
-            }
-            SECTION( "∙ in postfixed words;" )
-            {
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "кт?-нибудь" ) );
-                REQUIRE( ms.size() == 1 );
-                REQUIRE( ms.ToString() == "кто-нибудь" );
+              REQUIRE_NOTHROW( ms = FindMatch( mlma, "brothers-i?-law" ) );
+
+              if ( REQUIRE( ms.size() == 1 ) )
+                REQUIRE( ms.ToString() == "brothers-in-law" );
             }
           }
           SECTION( "* matches any sequence of characters" )
           {
             SECTION( "∙ in non-flective words;" )
             {
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "вдн*" ) );
-                REQUIRE( ms.size() == 1 );
-                REQUIRE( ms.ToString() == "вднх" );
+              REQUIRE_NOTHROW( ms = FindMatch( mlma, "analogo*ly" ) );
+
+              if ( REQUIRE( ms.size() == 1 ) )
+                REQUIRE( ms.ToString() == "analogously" );
             }
             SECTION( "∙ in flective words;" )
             {
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "дрызгаются*" ) );
-                REQUIRE( ms.size() == 1 );
-                REQUIRE( ms.ToString() == "дрызгаются" );
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "дрызг*тся" ) );
-                REQUIRE( ms.size() == 1 );
-                REQUIRE( ms.ToString() == "дрызгается/дрызгаются" );
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "дрызг*аются" ) );
-                REQUIRE( ms.size() == 1 );
-                REQUIRE( ms.ToString() == "дрызгаются" );
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "пятницей*" ) );
-                REQUIRE( ms.size() == 1 );
-                REQUIRE( ms.ToString() == "пятницей" );
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "?рызг*аются" ) );
-                REQUIRE( ms.size() == 2 );
-                REQUIRE( ms.ToString() == "брызгаются/дрызгаются" );
+              REQUIRE_NOTHROW( ms = FindMatch( mlma, "excitabilities*" ) );
+
+              if ( REQUIRE( ms.size() == 1 ) )
+                REQUIRE( ms.ToString() == "excitabilities/excitabilities'" );
             }
             SECTION( "∙ in postfixes;" )
             {
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "кто-ниб*" ) );
-                REQUIRE( ms.size() == 1 );
-                REQUIRE( ms.ToString() == "кто-нибудь" );
-              REQUIRE_NOTHROW( ms = FindMatch( mlma, "кто-**" ) );
-                REQUIRE( ms.size() == 3 );
-                REQUIRE( ms.ToString() == "кто-либо/кто-нибудь/кто-то" );
+              REQUIRE_NOTHROW( ms = FindMatch( mlma, "brother-in-law*" ) );
+
+              if ( REQUIRE( ms.size() == 1 ) )
+                REQUIRE( ms.ToString() == "brother-in-law" );
             }
           }
         }
@@ -618,7 +614,6 @@ TestItEasy::RegisterFunc  testmorpheng( []()
                               const char*     pszstr, size_t    cchstr ) MLMA_PURE;
         */
       }
-# endif
     }
 # if 0
     if ( false )
