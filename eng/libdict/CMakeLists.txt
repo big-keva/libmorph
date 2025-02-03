@@ -39,7 +39,6 @@ if (MORPHENG_BUILD_AS_SHARED_LIBRARY)
     buildform.cpp
     lemmatize.cpp
     ${LIBMORPH_SOURCE_DIR}/xmorph/capsheme.cpp
-#    ${LIBMORPH_SOURCE_DIR}/xmorph/buildforms.cpp
     ${MORPHENG_SOURCE_DIR}/chartype.cpp
     ${DicCPP})
 
@@ -52,7 +51,6 @@ else()
     buildform.cpp
     lemmatize.cpp
     ${LIBMORPH_SOURCE_DIR}/xmorph/capsheme.cpp
-#    ${LIBMORPH_SOURCE_DIR}/xmorph/buildforms.cpp
     ${MORPHENG_SOURCE_DIR}/chartype.cpp
     ${DicCPP})
 
@@ -87,7 +85,6 @@ install(
 
 add_executable(morpheng-test
 	tests/test-eng.cpp)
-
 
 target_link_libraries(morpheng-test
 	morpheng
