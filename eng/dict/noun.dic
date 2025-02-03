@@ -3022,7 +3022,7 @@ appallment|0|s|'s|s'	N	LID:39887
 appall|0|s|'s|s'	N	LID:39888
 appanage|0|s|'s|s'	N	LID:39889
 appanagist|0|s|'s|s'	N	LID:39890
-apparatus|0|-/es|'|'/es'	N	LID:39891
+apparatus|0|es|'|'/es'	N	LID:39891
 appareling|0|s|'s|s'	N	LID:39892
 apparel|0|s|'s|s'	N	LID:39893
 apparence|0|s|'s|s'	N	LID:39894
@@ -4856,7 +4856,7 @@ bantering|0|s|'s|s'	N	LID:41723
 banter|0|s|'s|s'	N	LID:41724
 bantingism|0|s|'s|s'	N	LID:41725
 bantling|0|s|'s|s'	N	LID:41726
-bantu|0|-/s|'s|'s/s'	N	LID:41727
+bantu|0|s|'s|'s/s'	N	LID:41727
 banxring|0|s|'s|s'	N	LID:41728
 banyan|0|s|'s|s'	N	LID:41729
 ban|0|s|'s|s'	N	LID:41730
@@ -4995,7 +4995,7 @@ barracoon|0|s|'s|s'	N	LID:41862
 barracouata|0|s|'s|s'	N	LID:41863
 barracuda|0|s|'s|s'	N	LID:41864
 barrage|0|s|'s|s'	N	LID:41865
-barramundi|0|-/s|'s|'s/s'	N	LID:41866
+barramundi|0|s|'s|'s/s'	N	LID:41866
 barranca|0|s|'s|s'	N	LID:41867
 barras|0|es|'|es'	N	LID:41868
 barratr|y|ies|y's|ies'	N	LID:41869
@@ -11230,7 +11230,7 @@ coasting|0|s|'s|s'	N	LID:48099
 coast|0|s|'s|s'	N	LID:48100
 coatee|0|s|'s|s'	N	LID:48101
 coating|0|s|'s|s'	N	LID:48102
-coati|0|-/s|'s|'s/s'	N	LID:48103
+coati|0|s|'s|'s/s'	N	LID:48103
 coat|0|s|'s|s'	N	LID:48104
 coaxation|0|s|'s|s'	N	LID:48105
 coaxer|0|s|'s|s'	N	LID:48106
@@ -11681,7 +11681,7 @@ colure|0|s|'s|s'	N	LID:48550
 colza|0|s|'s|s'	N	LID:48551
 col|y|ies|'s|s'	N	LID:48552
 col|y|ies|y's|ies'	N	LID:48553
-comanche|0|-/s|'s|'s/s'	N	LID:48554
+comanche|0|s|'s|'s/s'	N	LID:48554
 comart|0|s|'s|s'	N	LID:48555
 comatula|0|s|'s|s'	N	LID:48556
 comatulid|0|s|'s|s'	N	LID:48557
@@ -20445,7 +20445,7 @@ espringal|0|s|'s|s'	N	LID:57315
 esprit|0|s|'s|s'	N	LID:57316
 espying|0|s|'s|s'	N	LID:57317
 esp|y|ies|y's|ies'	N	LID:57318
-esquimau|0|-/x|'s|'s/x's	N	LID:57319
+esquimau|0|x|'s|'s/x's	N	LID:57319
 esquire|0|s|'s|s'	N	LID:57320
 esquiring|0|s|'s|s'	N	LID:57321
 esquisse|0|s|'s|s'	N	LID:57322
@@ -65720,7 +65720,7 @@ yug|0|s|'s|s'	N	LID:102591
 yulan|0|s|'s|s'	N	LID:102592
 yuletide|0|s|'s|s'	N	LID:102593
 yule|0|s|'s|s'	N	LID:102594
-yuma|0|-/s|'s|'s'/s'	N	LID:102595
+yuma|0|s|'s|'s'/s'	N	LID:102595
 yunca|0|s|'s|s'	N	LID:102596
 yunx|0|es|'s|es'	N	LID:102597
 yupon|0|s|'s|s'	N	LID:102598
@@ -66137,3 +66137,4 @@ programmer|0|s|'s|s'	N	LID:103008
 radiobutton|0|s|'s|s'	N	LID:103009
 usabilit|y|ies|y's|ies'	N	LID:103010
 wildcard|0|s|'s|s'	N	LID:103011
+wom|an|en|an's|en's	N	LID:103012
