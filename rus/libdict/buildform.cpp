@@ -150,7 +150,7 @@ namespace rus {
     {
       ccform = strlen( p );
 
-      casing.Set( (unsigned char*)p, ccform, lextem.wdinfo & 0x3f );
+      casing.Set( (unsigned char*)p, ccform, pspMinCapValue[lextem.wdinfo & 0x3f] );
 
       if ( !pforms.append( p, ccform ) || !pforms.append( '\0' ) )
         return LEMMBUFF_FAILED;

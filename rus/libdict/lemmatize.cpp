@@ -1,8 +1,6 @@
 # include "lemmatize.hpp"
 # include "buildform.hpp"
 # include "grammap.h"
-# include "codepages.hpp"
-# include "xmorph/buildforms.hpp"
 # include "xmorph/capsheme.h"
 # include "moonycode/codes.h"
 # include <algorithm>
@@ -100,7 +98,7 @@ namespace rus {
         return nforms;
 
     // Привести слово к минимальной возможной капитализации
-      casing.Set( (uint8_t*)fmbuff, ccform = strlen( fmbuff ), lextem.wdinfo & 0x3f );
+      casing.Set( (uint8_t*)fmbuff, ccform = strlen( fmbuff ), pspMinCapValue[lextem.wdinfo & 0x3f] );
 
     // отправить на выход
       if ( !pforms.append( fmbuff, ccform ) || !pforms.append( '\0' ) )
