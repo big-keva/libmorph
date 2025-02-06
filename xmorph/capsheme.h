@@ -33,7 +33,6 @@ namespace libmorph {
     const unsigned char*  charTypeMatrix;
     const unsigned char*  toLoCaseMatrix;
     const unsigned char*  toUpCaseMatrix;
-    const unsigned char*  pspMinCapValue;
 
     static
     const unsigned char (&capStateMatrix)[6][4];
@@ -42,23 +41,19 @@ namespace libmorph {
     CapScheme(
       const unsigned char* charType,
       const unsigned char* toLoCase,
-      const unsigned char* toUpCase,
-      const unsigned char* minValue ):
+      const unsigned char* toUpCase ):
         charTypeMatrix( charType ),
         toLoCaseMatrix( toLoCase ),
-        toUpCaseMatrix( toUpCase ),
-        pspMinCapValue( minValue )  {}
+        toUpCaseMatrix( toUpCase )  {}
     CapScheme( const CapScheme& cs ):
         charTypeMatrix( cs.charTypeMatrix ),
         toLoCaseMatrix( cs.toLoCaseMatrix ),
-        toUpCaseMatrix( cs.toUpCaseMatrix ),
-        pspMinCapValue( cs.pspMinCapValue )  {}
+        toUpCaseMatrix( cs.toUpCaseMatrix )  {}
     CapScheme& operator = ( const CapScheme& cs )
       {
         charTypeMatrix = cs.charTypeMatrix;
         toLoCaseMatrix = cs.toLoCaseMatrix;
         toUpCaseMatrix = cs.toUpCaseMatrix;
-        pspMinCapValue = cs.pspMinCapValue;
         return *this;
       }
   public:
@@ -77,7 +72,7 @@ namespace libmorph {
     auto  Get( unsigned char* out, size_t cch,
       const char*  src, size_t len = (size_t)-1 ) const -> unsigned;
     auto  Set( unsigned char* str, size_t len,
-       uint8_t  psp ) const -> unsigned char*;
+      uint8_t min ) const -> unsigned char*;
   };
 
   // CapScheme inline implementation

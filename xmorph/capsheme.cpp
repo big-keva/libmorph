@@ -68,10 +68,9 @@ namespace libmorph
   // которая передана в качестве cSheme. Предполагается, что слово подано
   // в нижнем регистре, так как именно таким образом организован словарь.
   //=====================================================================
-  auto  CapScheme::Set( unsigned char* str, size_t len, uint8_t psp ) const -> unsigned char*
+  auto  CapScheme::Set( unsigned char* str, size_t len, uint8_t min ) const -> unsigned char*
   {
     auto  strorg = str;
-    auto  minCap = pspMinCapValue[psp];
     auto  scheme = uint16_t{};
     int   nparts = 1;
 
@@ -91,13 +90,13 @@ namespace libmorph
     switch ( nparts )
     {
       case 1:
-        scheme = minCap;
+        scheme = min;
         break;
       case 2:
-        scheme = minCap | (minCap << 2);
+        scheme = min | (min << 2);
         break;
       case 3:
-        scheme = minCap | (minCap << 4) | ((minCap & 0x02) << 2);
+        scheme = min | (min << 4) | ((min & 0x02) << 2);
         break;
       default:
         scheme = 0;
@@ -116,91 +115,4 @@ namespace libmorph
     return strorg;
   }
 
-# if 0
-  # define CT_CAPITAL  0
-  # define CT_REGULAR  1
-  # define CT_DLMCHAR  2         // Разделитель - дефис
-  # define CT_INVALID  3
-
-# if defined( unit_test )
-# include <string.h>
-# include <stdio.h>
-
-  struct
-  {
-    const char* thestr;
-    unsigned    scheme;
-  } capschemeTestData[] =
-  {
-    { "�����",                0x00050000 },
-    { "�����",                0x00050001 },
-    { "�����",                0x00050002 },
-    { "�����",                0x0005ffff },
-    { "�����",                0x0005ffff },
-    { "�����",                0x0005ffff },
-    { "���-����",             0x00080100 },
-    { "���-����",             0x00080101 },
-    { "���-����",             0x00080102 },
-    { "���-����",             0x0008ffff },
-    { "���-����",             0x0008ffff },
-    { "���-����",             0x0008ffff },
-    { "���-����",             0x00080104 },
-    { "���-����",             0x00080108 },
-    { "���-����",             0x0008ffff },
-    { "���-����",             0x00080105 },
-    { "���-����",             0x00080106 },
-    { "���-����",             0x0008010A },
-    { "�����������-��-�����", 0x00140211 },
-    { "�����������-��-�����-���-�����-��-���-�����-�-�����-�������-������", (unsigned)-1 }
-  };
-
-  int   capscheme_unit_test()
-  {
-    unsigned      scheme;
-    unsigned char slower[0x20];     
-
-  // ��������� ����������� ����� ������������� �����
-    for ( int i = 0; i < sizeof(capschemeTestData) / sizeof(capschemeTestData[0]); ++i )
-      if ( (scheme = GetCapScheme( slower, sizeof(slower), capschemeTestData[i].thestr )) != capschemeTestData[i].scheme )
-      {
-        printf( "Invalid capitalization scheme for \'%s\': %08x instead of %08x!\n",
-          capschemeTestData[i].thestr, scheme, capschemeTestData[i].scheme );
-        return -1;
-      }
-
-  // ��������� ��������� ����� ���� �������������
-    if ( strcmp( SetCapScheme( strcpy( (char*)slower, "�����������-��-�����" ), GetMinScheme( 1, "�����������-��-�����" ) ), "�����������-��-�����" ) != 0 )
-    {
-      printf( "Invalid SetCapScheme() result for '�����������-��-�����'");
-      return -1;
-    }
-    return 0;
-  }
-
-# endif  // unit_test
-
-  // Массив задает минимальные схемы капитализации для всех зарегистрированных
-  // типов слов: 0 - все строчные, 1 - первая прописная, 2 - все прописные
-  unsigned      pspMinCapValue[] =
-  {
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0
-  };
-
-  unsigned char*  SetLowerCase( unsigned char* pszstr, size_t cchstr/*= (size_t)-1*/ )
-  {
-    unsigned char*  pszorg;
-    unsigned char*  pszend;
-
-    if ( cchstr == (size_t)-1 )
-      for ( cchstr = 0; pszstr[cchstr] != 0; ++cchstr ) (void)NULL;
-
-    for ( pszend = (pszorg = pszstr) + cchstr; pszstr < pszend; ++pszstr )
-      *pszstr = toLoCaseMatrix[*pszstr];
-
-    return pszorg;
-  }
-# endif
 } // end lubmorph namespace
