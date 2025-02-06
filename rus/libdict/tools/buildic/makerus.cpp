@@ -2,7 +2,7 @@
 
     libmorphrus - dictiorary-based morphological analyser for Russian.
 
-    Copyright (C) 1994-2016 Andrew Kovalenko aka Keva
+    Copyright (C) 1994-2025 Andrew Kovalenko aka Keva
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,7 @@
 ******************************************************************************/
 # include "../../tools/dumppage.h"
 # include "lresolve.h"
-# include "../licenseGPL.h"
+# include "../license.h"
 # include "../../tools/plaintable.h"
 # include "../../tools/classtable.h"
 # include "../../tools/buildmorph.h"

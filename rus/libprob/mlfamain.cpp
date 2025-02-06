@@ -2,7 +2,7 @@
 
     libfuzzyrus - fuzzy morphological analyser for Russian.
 
-    Copyright (C) 1994-2016 Andrew Kovalenko aka Keva
+    Copyright (C) 1994-2025 Andrew Kovalenko aka Keva
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -289,7 +289,6 @@ namespace rus {
       {
         char    encode[256];
         size_t  cbytes = 0;
-        uint8_t partsp;
 
         for ( auto p = slemma, e = slemma + clemma; p != e; ++p )
           cbytes += libmorph::ToCodepage( codepage, encode + cbytes, sizeof(encode) - cbytes, p, 1 );
