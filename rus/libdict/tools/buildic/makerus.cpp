@@ -89,10 +89,9 @@ public:     /* entry_type - элемент словаря, обисание сл
     int   compare( const entry_type& ) const;
 
   };
-
-protected:
   using   stem_entry = std::pair<std::string, entry_type>;
 
+protected:
   template <size_t N>
   const char* GetSubtext( const char* source, char (&output)[N] )
     {
