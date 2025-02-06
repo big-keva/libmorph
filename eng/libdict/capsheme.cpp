@@ -1,19 +1,50 @@
+/******************************************************************************
+
+    libmorpheng - dictionary-based morphological analyser for English.
+
+    Copyright (C) 1994-2016 Andrew Kovalenko aka Keva
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+
+    Commercial license is available upon request.
+
+    Contacts:
+      email: keva@meta.ua, keva@rambler.ru
+      Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
+
+******************************************************************************/
 # include "capsheme.h"
 # include <assert.h>
 
 namespace __libmorpheng__
 {
-  # define SHEME_UNDEFINED 0     // Схема капитализации не определена
-  # define SHEME_ALL_SMALL 1     // Все буквы- строчные
-  # define SHEME_FIRST_CAP 2     // Первая буква - заглавная
-  # define SHEME_WORD_CAPS 3     // Все заглавные
-  # define SHEME_FIRST_WAS 4     // Первая буква была заглавной
-  # define SHEME_ERROR_CAP 5     // Ошибочная капитализация
+  # define SHEME_UNDEFINED 0     // 
+  # define SHEME_ALL_SMALL 1     // 
+  # define SHEME_FIRST_CAP 2     // 
+  # define SHEME_WORD_CAPS 3     // 
+  # define SHEME_FIRST_WAS 4     // 
+  # define SHEME_ERROR_CAP 5     // 
   # define SHEME_OVERFLOW  6
 
   # define CT_CAPITAL  0
   # define CT_REGULAR  1
-  # define CT_DLMCHAR  2         // Разделитель - дефис
+  # define CT_DLMCHAR  2         // 
   # define CT_INVALID  3
 
   static unsigned char capMatrix[6][4] =
@@ -188,8 +219,8 @@ namespace __libmorpheng__
   };
 
   //=====================================================================
-  // Функция вычисляет схему капитализации фрагмента слова, его длину и
-  // создает образ слова, переведенный в нижний регистр
+  // 
+  // 
   //=====================================================================
   static unsigned GetFragmentCapScheme( const char* lpWord,
                                         char*       lpDest,
@@ -201,29 +232,29 @@ namespace __libmorpheng__
 
     cbText = 0;
 
-  // Цикл по всем символам слова до неизвестного символа
+  // 
     while ( (chType = charTypeMatrix[(unsigned char)lpWord[0]]) != CT_DLMCHAR
       && cbText < cbBuff )
     {
-    // Перевести очередной символ в нижний регистр
+    // 
       lpDest[0] = (char)toLoCaseMatrix[(unsigned char)lpWord[0]];
 
-    // Извлечь из таблицы очередной тип капитализации
+    // 
       bSheme = capMatrix[bSheme][chType];
 
-    // Поправить указатель на строку и количество символов в слове
+    // 
       lpWord++;
       lpDest++;
       cbText++;
     }
     bSheme = capMatrix[bSheme][CT_DLMCHAR];
-  // Вернуть схему капитализации слова
+  // 
     return ( cbText < cbBuff ? bSheme : SHEME_OVERFLOW );
   }
 
   //=====================================================================
-  // Функция вычисляет схему капитализации всего слова, его длину и
-  // создает образ слова, переведенный в нижний регистр
+  // 
+  // 
   //=====================================================================
   unsigned  GetCapScheme( const char* lpWord,
                           char*       lpDest,
@@ -239,25 +270,25 @@ namespace __libmorpheng__
 
     while ( lpWord[cbText] != '\0' && cbText < cbBuff )
     {
-    // Извлечь схему капитализации очередного фрагмнта слова
+    // 
       bSheme = GetFragmentCapScheme( lpWord + cbText, lpDest + cbText,
         cbBuff - cbText, cfSize );
 
-    // Проверить схему на легальность
+    // 
       fValid &= bSheme != SHEME_ERROR_CAP && ( lpWord[cbText + cfSize] == '\0'
         || lpWord[cbText + cfSize] == '-' );
 
-    // Проверить, не было ли превышения длины
+    // 
       if ( bSheme == SHEME_OVERFLOW )
         return (unsigned)-1;
 
-    // Занести схему капитализации части слова в shemes - накопитель
+    // 
       if ( fValid ) shemes |= (bSheme - 1) << (cDefis++ << 1);
 
-    // Учесть размер фрагмента текста
+    // 
       cbText += cfSize;
 
-    // Если встретили дефис, дать инкремент счетчику
+    // 
       if ( lpWord[cbText] == '-' )
       {
         lpDest[cbText] = '-';
@@ -266,16 +297,16 @@ namespace __libmorpheng__
         else
       fValid &= ( lpWord[cbText] == '\0' );
     }
-  // Сообщить наружу схему капитализации всего слова
+  // 
     lpDest[cbText] = 0;
     scheme = ( fValid ? shemes | (cDefis << 8) : 0 );
     return ( cbText < cbBuff ? cbText : (unsigned)-1 );
   }
 
   //=====================================================================
-  // Функция приводит слово к нужной схеме капитализации, т. е. к той,
-  // которая передана в качестве cSheme. Предполагается, что слово подано
-  // в нижнем регистре, так как именно таким образом организован словарь.
+  // 
+  // 
+  // 
   //=====================================================================
   void  SetCapScheme( char*     lpWord,
                       unsigned  scheme )
@@ -284,10 +315,10 @@ namespace __libmorpheng__
 
     while ( count > 0 && lpWord[0] != '\0' )
     {
-    // Извлечь схему капитализации фрагмента - 0 (a), 1 (Aa) или 2 (AA)
+    // 
       unsigned  local = scheme & 0x03;
 
-    // Привести фрагмент к нужной степени капитализации
+    // 
       while ( *lpWord != '\0' && *lpWord != '-' )
       {
         if ( local > 0 )
@@ -297,11 +328,11 @@ namespace __libmorpheng__
         lpWord++;
       }
 
-    // Пропустить дефис
+    // 
       if ( *lpWord == '-' )
         lpWord++;
 
-    // Сдвинуть схему капитализации слова
+    // 
       scheme >>= 2;
     }
   }
@@ -312,13 +343,13 @@ namespace __libmorpheng__
   {
     assert( minCap == 0 || minCap == 1 || minCap == 2 );
 
-  // Если не задано количество частей слова, вычислить это количество
+  // 
     if ( nparts == 0 )
       for ( nparts = 1; *lpword != '\0'; lpword++ )
         if ( *lpword == '-' )
           ++nparts;
 
-  // Определить собственно схему капитализации
+  // 
     switch ( nparts )
     {
       case 1:
