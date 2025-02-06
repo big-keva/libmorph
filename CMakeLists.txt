@@ -38,6 +38,7 @@ if (NOT TARGET mtc)
   add_subdirectory(contrib/mtc)
 endif()
 
+add_subdirectory(eng)
 add_subdirectory(rus)
 # add_subdirectory(ukr)
 
