@@ -30,10 +30,16 @@ public:
     unsigned    uclass,
     size_t      nforms, const SStrMatch* pforms ) override
   {
+    (void)clemma;
+    (void)cchstr;
+    (void)uclass;
+
     fprintf( stdout, "%s\t%u\t", plemma, uclass );
 
-    for ( int i = 0; i != nforms; ++i )
+    for ( size_t i = 0; i != nforms; ++i )
       fprintf( stdout, "\t%s\n", pforms[i].sz );
+
+    return 0;
   }
 };
 
@@ -52,6 +58,11 @@ public:
     unsigned    uclass,
     size_t      nforms, const SStrMatch* pforms ) override
   {
+    (void)plemma;
+    (void)clemma;
+    (void)cchstr;
+    (void)uclass;
+
     for ( ; nforms-- > 0; ++pforms )
     {
       auto  pfound = std::lower_bound( aforms.begin(), aforms.end(), pforms->sz );
@@ -59,6 +70,7 @@ public:
       if ( pfound == aforms.end() || *pfound != pforms->sz )
         aforms.insert( pfound, pforms->sz );
     }
+    return 0;
   }
   auto  Get() -> std::string
   {
@@ -91,6 +103,10 @@ public:
   {
     auto  clsstr = std::string( plemma, cchstr ) + mtc::strprintf( "[%u]", uclass );
     auto  pfound = std::lower_bound( aclass.begin(), aclass.end(), clsstr );
+
+    (void)clemma;
+    (void)nforms;
+    (void)pforms;
 
     if ( pfound == aclass.end() || *pfound != clsstr )
       aclass.insert( pfound, clsstr );
@@ -272,7 +288,7 @@ TestItEasy::RegisterFunc  testmorphrus( []()
             && REQUIRE( !l2.empty() )
             && REQUIRE( l1.size() == l2.size() ) )
           {
-            for ( auto i = 0; i != l1.size(); ++i )
+            for ( size_t i = 0; i != l1.size(); ++i )
             {
               REQUIRE( l1[i].nclass == l2[i].nclass );
               REQUIRE( l1[i].ccstem == l2[i].ccstem );
@@ -286,7 +302,7 @@ TestItEasy::RegisterFunc  testmorphrus( []()
             && REQUIRE( !l2.empty() )
             && REQUIRE( l1.size() == l2.size() ) )
           {
-            for ( auto i = 0; i != l1.size(); ++i )
+            for ( size_t i = 0; i != l1.size(); ++i )
             {
               REQUIRE( l1[i].nclass == l2[i].nclass );
               REQUIRE( l1[i].ccstem == l2[i].ccstem );

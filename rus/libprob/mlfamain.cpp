@@ -221,9 +221,7 @@ namespace rus {
         return 0;
 
     // create lemmatize collector
-      auto  lemmatizer = libfuzzy::rus::Lemmatizer( CapScheme(
-          charTypeMatrix, toLoCaseMatrix,
-          toUpCaseMatrix, pspMinCapValue ),
+      auto  lemmatizer = libfuzzy::rus::Lemmatizer( CapScheme( charTypeMatrix, toLoCaseMatrix, toUpCaseMatrix ),
         { plemma, clemma },
         { pforms, cforms, codepage },
         { pgrams, cgrams },
@@ -258,10 +256,8 @@ namespace rus {
       if ( scheme == (unsigned)-1 || scheme == 0 )
         return scheme == (unsigned)-1 ? WORDBUFF_FAILED : 0;
 
-      return libfuzzy::rus::Buildform( CapScheme(
-          charTypeMatrix, toLoCaseMatrix,
-          toUpCaseMatrix, pspMinCapValue ), { output, cchout, codepage } )
-        ( locase, scheme >> 8, nclass, idform );
+      return libfuzzy::rus::Buildform( CapScheme( charTypeMatrix, toLoCaseMatrix, toUpCaseMatrix ),
+        { output, cchout, codepage } ) ( locase, scheme >> 8, nclass, idform );
     }
     catch ( const std::invalid_argument& ) {  return ARGUMENT_FAILED;  }
     catch ( ... ) {  return -1;  }
@@ -292,7 +288,7 @@ namespace rus {
         uint8_t partsp;
 
         for ( auto p = slemma, e = slemma + clemma; p != e; ++p )
-          cbytes += libmorph::rus::ToCodepage( codepage, encode + cbytes, sizeof(encode) - cbytes, p, 1 );
+          cbytes += libmorph::ToCodepage( codepage, encode + cbytes, sizeof(encode) - cbytes, p, 1 );
 
         pmatch->Add( encode, clemma, cbytes, cclass, cmatch, amatch );
       };
@@ -379,9 +375,10 @@ namespace rus {
         else return (unsigned)-1;
     }
 
-    return CapScheme(
-      charTypeMatrix, toLoCaseMatrix,
-      toUpCaseMatrix, pspMinCapValue ).Get( output, pszstr, cchstr );
+    return CapScheme( charTypeMatrix, toLoCaseMatrix, toUpCaseMatrix ).Get(
+      output,
+      pszstr,
+      cchstr );
   }
 
   // CMlmaCp implementation

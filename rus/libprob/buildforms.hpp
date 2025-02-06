@@ -1,7 +1,7 @@
 # if !defined( __libfuzzy_rus_buildforms_hpp__ )
 # define __libfuzzy_rus_buildforms_hpp__
 # include "rus/include/mlfa1049.h"
-# include "rus/codepages.hpp"
+# include "codepages.hpp"
 # include "xmorph/capsheme.h"
 # include "classtable.hpp"
 # include "mtc/serialize.h"
@@ -11,7 +11,6 @@ namespace libfuzzy {
 namespace rus {
 
   using namespace libmorph;
-  using namespace libmorph::rus;
 
   class Buildform
   {
