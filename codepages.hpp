@@ -1,10 +1,9 @@
-# if !defined( __libmorph_rus_codepages_hpp__ )
-# define __libmorph_rus_codepages_hpp__
+# if !defined( __libmorph_codepages_hpp__ )
+# define __libmorph_codepages_hpp__
 # include "moonycode/codes.h"
 # include <cstddef>
 
 namespace libmorph {
-namespace rus {
 
   class MbcsCoder
   {
@@ -93,6 +92,6 @@ namespace rus {
     return enclen != (size_t)-1 ? (outptr += enclen), true : false;
   }
 
-}}
+}
 
-# endif // __libmorph_rus_codepages_hpp__
+# endif // __libmorph_codepages_hpp__
