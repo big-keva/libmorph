@@ -187,9 +187,7 @@ namespace rus {
         return 0;
 
     // create lemmatizer object
-      auto  lemmatize = Lemmatizer( CapScheme(
-          charTypeMatrix, toLoCaseMatrix,
-          toUpCaseMatrix, pspMinCapValue ),
+      auto  lemmatize = Lemmatizer( CapScheme( charTypeMatrix, toLoCaseMatrix, toUpCaseMatrix ),
         { plemma, llemma },
         { pforms, lforms, codepage },
         { pgrams, lgrams }, locase, dwsets );
@@ -222,9 +220,8 @@ namespace rus {
         int     nerror;
 
       // fill other fields
-        auto  buildform = FormBuild( { output, cchout, codepage }, CapScheme(
-          charTypeMatrix, toLoCaseMatrix,
-          toUpCaseMatrix, pspMinCapValue ), nlexid, idform, szstem );
+        auto  buildform = FormBuild( { output, cchout, codepage }, CapScheme( charTypeMatrix, toLoCaseMatrix, toUpCaseMatrix ),
+          nlexid, idform, szstem );
 
         nerror = Flat::GetTrack<uint8_t>( Flat::ViewList( MakeBuildClass( buildform ), dicpos ),
           libmorphrus::stemtree, szstem, 0, dicpos );
@@ -258,9 +255,8 @@ namespace rus {
         return 0;
 
     // create form builder
-      auto  buildform = FormBuild( { output, cchout, codepage }, CapScheme(
-        charTypeMatrix, toLoCaseMatrix,
-        toUpCaseMatrix, pspMinCapValue ), 0x0000, idform, locase );
+      auto  buildform = FormBuild( { output, cchout, codepage }, CapScheme( charTypeMatrix, toLoCaseMatrix, toUpCaseMatrix ),
+        0x0000, idform, locase );
 
       nerror = Flat::ScanTree<uint8_t>( Flat::ScanList( MakeClassMatch( buildform )
         .SetCapitalization( uint16_t(scheme) )
@@ -419,9 +415,10 @@ namespace rus {
       }
 
     // change the word to the lower case
-      CapScheme(
-        charTypeMatrix, toLoCaseMatrix,
-        toUpCaseMatrix, pspMinCapValue ).Get( locase, pszstr, cchstr );
+      CapScheme( charTypeMatrix, toLoCaseMatrix, toUpCaseMatrix ).Get(
+        locase,
+        pszstr,
+        cchstr );
       locase[cchstr] = '\0';
 
     // scan the dictionary
@@ -453,9 +450,10 @@ namespace rus {
         else return (unsigned)-1;
     }
 
-    return CapScheme(
-      charTypeMatrix, toLoCaseMatrix,
-      toUpCaseMatrix, pspMinCapValue ).Get( output, pszstr, cchstr );
+    return CapScheme( charTypeMatrix, toLoCaseMatrix, toUpCaseMatrix ).Get(
+      output,
+      pszstr,
+      cchstr );
   }
 
   // CMlmaCp implementation
