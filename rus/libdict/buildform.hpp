@@ -1,7 +1,7 @@
 # if !defined( __libmorph_rus_buildform_hpp__ )
 # define __libmorph_rus_buildform_hpp__
 # include "xmorph/buildforms.hpp"
-# include "rus/codepages.hpp"
+# include "codepages.hpp"
 # include "grammap.h"
 
 namespace libmorph {
