@@ -31,11 +31,11 @@
 ******************************************************************************/
 #if !defined( __mtables_h__ )
 #define __mtables_h__
-# include <algorithm>
+# include <cstdint>
+# include <string>
 # include <vector>
 # include <tuple>
 # include <map>
-# include <string>
 
 namespace libmorph {
 namespace rus{
