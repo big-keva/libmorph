@@ -25,7 +25,7 @@ set(DicCPP
   dictree/mixTypes.cpp
   dictree/mxTables.cpp)
 
-add_compile_options(-W -Wall -Wextra)
+add_compile_options(-W -Wall -Wextra -fPIC)
 
 set(BuilDic morphrus-buildic)
 set(MakeIch morphrus-makeich)
