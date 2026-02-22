@@ -1,8 +1,8 @@
 /******************************************************************************
 
-    libfuzzyrus - fuzzy morphological analyser for Russian.
+    libmorphrus - dictionary-based morphological analyser for Russian.
 
-    Copyright (C) 1994-2025 Andrew Kovalenko aka Keva
+    Copyright (c) 1994-2026 Andrew Kovalenko aka Keva
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@
     Commercial license is available upon request.
 
     Contacts:
-      email: keva@meta.ua, keva@rambler.ru
+      email: keva@rambler.ru
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
@@ -44,14 +44,17 @@
 #   include <string>
 #   include <vector>
 #   include <stdexcept>
+#   include <functional>
+# else
+#   include <uchar.h>
 # endif
 
 # if !defined( __widechar_defined__ )
 # define  __widechar_defined__
 #   if defined(WCHAR_MAX) && (WCHAR_MAX >> 16) == 0
-    typedef wchar_t         widechar;
+    typedef wchar_t   widechar;
 #   else
-    typedef unsigned short  widechar;
+    typedef char16_t  widechar;
 #   endif  // size
 # endif  // __widechar_defined__
 
@@ -75,9 +78,13 @@
 #   define  mlma_strmatch_defined
     typedef struct
     {
-      const char* sz;
-      size_t      cc;
-      formid_t    id;
+      union
+      {
+        const char*     sz;
+        const widechar* ws;
+      };
+      size_t            cc;
+      formid_t          id;
     } SStrMatch;
 # endif // mlma_strmatch_defined
 
@@ -288,75 +295,11 @@
 # if !defined( mlma_interface_defined )
 # define  mlma_interface_defined
 
-# if defined( __cplusplus )
-
-  template <class Chartype>
-  struct MlmaTraits final
-  {
-    using string = std::basic_string<Chartype>;
-
-    template <class T>
-    struct  outbuf
-    {
-      T*      t;
-      size_t  l;
-
-    public:
-      outbuf(): t( nullptr ), l( 0 ) {}
-      template <size_t N>
-      outbuf( T (&p)[N] ): t( p ), l( N ) {}
-      outbuf( T* p, size_t n ): t( p ), l( n ) {}
-    };
-
-    struct  inword
-    {
-      const Chartype* t;
-      size_t          l;
-
-    public:
-      inword( const Chartype* s, size_t n = (size_t)-1 ):
-        t( s ), l( n )  {}
-      template <class Allocator>
-      inword( const std::basic_string<Chartype, Allocator>& s ):
-        inword( s.c_str(), s.length() ) {}
-    };
-
-  };
-
-  template <class Base>
-  struct SLemmInfo: public Base
-  {
-    using Chartype =
-      typename std::remove_const<
-      typename std::remove_reference<
-      decltype(*((Base*)nullptr)->plemma)>::type>::type;
-
-    SLemmInfo( const Base& lx ): Base( lx )
-    {
-      if ( lx.plemma != nullptr )
-        this->plemma = (normal = typename MlmaTraits<Chartype>::string( lx.plemma )).c_str();
-      if ( lx.ngrams != 0 )
-        this->pgrams = (agrams = std::vector<SGramInfo>( lx.pgrams, lx.pgrams + lx.ngrams )).data();
-    }
-    SLemmInfo( SLemmInfo&& lx ): Base( std::move( lx ) ),
-      normal( std::move( lx.normal ) ),
-      agrams( std::move( lx.agrams ) )
-    {
-      this->plemma = normal.c_str();
-      this->pgrams = agrams.data();
-    }
-  protected:
-    typename MlmaTraits<Chartype>::string normal;
-    std::vector<SGramInfo>                agrams;
-  };
-
-# endif
-
   MLMA_INTERFACE( IMlmaMatch )
     MLMA_METHOD( Attach )( MLMA_VOID ) MLMA_PURE;
     MLMA_METHOD( Detach )( MLMA_VOID ) MLMA_PURE;
 
-    MLMA_METHOD( RegisterLexeme )( MLMA_THIS
+    MLMA_METHOD( AddLexeme )( MLMA_THIS
       lexeme_t  nlexid,
       int       nforms, const SStrMatch* pforms ) MLMA_PURE;
   MLMA_END;
@@ -389,118 +332,6 @@
     MLMA_METHOD( FindMatch )( MLMA_THIS
       IMlmaMatch*     pienum,
       const char*     pszstr, size_t    cchstr ) MLMA_PURE;
-
-# if defined( __cplusplus )
-    template <class T>
-    using outbuf = MlmaTraits<char>::outbuf<T>;
-    using inword = MlmaTraits<char>::inword;
-    using string = MlmaTraits<char>::string;
-
-  public:
-    auto  GetWdInfo( lexeme_t nlexid ) -> uint8_t
-    {
-      uint8_t wdinfo;
-
-      return GetWdInfo( &wdinfo, nlexid ) > 0 ? wdinfo : 0;
-    }
-
-    int   Lemmatize(
-      const inword&             pszstr,
-      const outbuf<SLemmInfoA>& alemms,
-      const outbuf<char>&       aforms,
-      const outbuf<SGramInfo>&  agrams, unsigned  dwsets = 0 )
-    {
-      return Lemmatize(
-        pszstr.t, pszstr.l,
-        alemms.t, alemms.l,
-        aforms.t, aforms.l,
-        agrams.t, agrams.l, dwsets );
-    }
-
-    auto  Lemmatize(
-      const inword& pszstr,
-      unsigned      dwsets = 0 ) -> std::vector<SLemmInfo<SLemmInfoA>>
-    {
-      SLemmInfoA  lemmas[32];
-      SGramInfo   agrams[64];
-      char        aforms[256];
-      int         nbuilt = Lemmatize( pszstr, lemmas, aforms, agrams, dwsets );
-
-      if ( nbuilt >= 0 )
-      {
-        auto        output = std::vector<SLemmInfo<SLemmInfoA>>();
-
-        for ( auto p = lemmas, e = p + nbuilt; p != e; )
-          output.push_back( *p++ );
-
-        return output;
-      }
-      switch ( nbuilt )
-      {
-        case WORDBUFF_FAILED: throw std::out_of_range( "invalid string passed" );
-        case LEMMBUFF_FAILED: throw std::out_of_range( "not enough space in forms buffer" );
-        case LIDSBUFF_FAILED: throw std::out_of_range( "not enough space in stems buffer" );
-        case GRAMBUFF_FAILED: throw std::out_of_range( "not enough space in grams buffer" );
-        default:              throw std::runtime_error( "unknown error" );
-      }
-    }
-
-    int   BuildForm(
-      const outbuf<char>& output,
-      lexeme_t            nlexid,
-      formid_t            idform )
-    {
-      return BuildForm( output.t, output.l, nlexid, idform );
-    }
-
-    auto  BuildForm( lexeme_t nlexid, formid_t idform ) -> std::vector<string>
-    {
-      char  buffer[0x100];
-      auto  output = std::vector<string>();
-      int   nforms = BuildForm( buffer, nlexid, idform );
-
-      for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
-        output.emplace_back( strptr );
-
-      return output;
-    }
-
-    int   FindForms(
-      const outbuf<char>& output,
-      const inword&       szword,
-      formid_t            idform,
-      unsigned            dwsets = 0 )
-    {
-      return FindForms( output.t, output.l, szword.t, szword.l, idform, dwsets );
-    }
-
-    auto  FindForms(
-      const inword& szword,
-      formid_t      idform,
-      unsigned      dwsets = 0 ) -> std::vector<string>
-    {
-      char  buffer[0x100];
-      auto  output = std::vector<string>();
-      int   nforms = FindForms( buffer, szword, idform, dwsets );
-
-      for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
-        output.emplace_back( strptr );
-
-      return output;
-    }
-
-    int   CheckHelp(
-      const outbuf<char>& output,
-      const inword&       pszstr )
-    {
-      return CheckHelp( output.t, output.l, pszstr.t, pszstr.l );
-    }
-
-    int   FindMatch( IMlmaMatch* pmatch, const inword& pszstr )
-    {
-      return FindMatch( pmatch, pszstr.t, pszstr.l );
-    }
-# endif
   MLMA_END;
 
   MLMA_INTERFACE( IMlmaWc )
@@ -531,121 +362,251 @@
     MLMA_METHOD( FindMatch )( MLMA_THIS
       IMlmaMatch*     pienum,
       const widechar* pszstr, size_t    cchstr ) MLMA_PURE;
-
-# if defined( __cplusplus )
-    template <class T>
-    using outbuf = MlmaTraits<widechar>::outbuf<T>;
-    using inword = MlmaTraits<widechar>::inword;
-    using string = MlmaTraits<widechar>::string;
-
-  public:
-    auto  GetWdInfo( lexeme_t nlexid ) -> uint8_t
-    {
-      uint8_t wdinfo;
-
-      return GetWdInfo( &wdinfo, nlexid ) > 0 ? wdinfo : 0;
-    }
-
-    int   Lemmatize(
-      const inword&             pwsstr,
-      const outbuf<SLemmInfoW>& alemms,
-      const outbuf<widechar>&   aforms,
-      const outbuf<SGramInfo>&  agrams, unsigned  dwsets = 0 )
-    {
-      return Lemmatize(
-        pwsstr.t, pwsstr.l,
-        alemms.t, alemms.l,
-        aforms.t, aforms.l,
-        agrams.t, agrams.l, dwsets );
-    }
-
-    auto  Lemmatize(
-      const inword& pszstr,
-      unsigned      dwsets = 0 ) -> std::vector<SLemmInfo<SLemmInfoW>>
-    {
-      SLemmInfoW  lemmas[32];
-      SGramInfo   agrams[64];
-      widechar    aforms[256];
-      int         nbuilt = Lemmatize( pszstr, lemmas, aforms, agrams, dwsets );
-
-      if ( nbuilt >= 0 )
-      {
-        auto        output = std::vector<SLemmInfo<SLemmInfoW>>();
-        for ( auto p = lemmas, e = p + nbuilt; p != e; )
-          output.push_back( *p++ );
-
-        return output;
-      }
-      switch ( nbuilt )
-      {
-        case WORDBUFF_FAILED: throw std::out_of_range( "invalid string passed" );
-        case LEMMBUFF_FAILED: throw std::out_of_range( "not enough space in forms buffer" );
-        case LIDSBUFF_FAILED: throw std::out_of_range( "not enough space in stems buffer" );
-        case GRAMBUFF_FAILED: throw std::out_of_range( "not enough space in grams buffer" );
-        default:              throw std::runtime_error( "unknown error" );
-      }
-    }
-
-    int   BuildForm(
-      const outbuf<widechar>& output,
-      lexeme_t                nlexid,
-      formid_t                idform )
-    {
-      return BuildForm( output.t, output.l, nlexid, idform );
-    }
-
-    auto  BuildForm( lexeme_t nlexid, formid_t idform ) -> std::vector<string>
-    {
-      widechar  buffer[0x100];
-      auto      output = std::vector<string>();
-      int       nforms = BuildForm( buffer, nlexid, idform );
-
-      for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
-        output.emplace_back( strptr );
-
-      return output;
-    }
-
-    int   FindForms(
-      const outbuf<widechar>& output,
-      const inword&           szword,
-      formid_t                idform,
-      unsigned                dwsets = 0 )
-    {
-      return FindForms( output.t, output.l, szword.t, szword.l, idform, dwsets );
-    }
-
-    auto  FindForms(
-      const inword& szword,
-      formid_t      idform,
-      unsigned      dwsets = 0 ) -> std::vector<string>
-    {
-      widechar  buffer[0x100];
-      auto      output = std::vector<string>();
-      int       nforms = FindForms( buffer, szword, idform, dwsets );
-
-      for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
-        output.emplace_back( strptr );
-
-      return output;
-    }
-
-    int   CheckHelp(
-      const outbuf<widechar>& output,
-      const inword&           pszstr )
-    {
-      return CheckHelp( output.t, output.l, pszstr.t, pszstr.l );
-    }
-
-    int   FindMatch( IMlmaMatch* pmatch, const inword& pszstr )
-    {
-      return FindMatch( pmatch, pszstr.t, pszstr.l );
-    }
-# endif
-
   MLMA_END;
 
-# if !defined( __cplusplus )
+# if defined( __cplusplus )
+  template <class Mlma, class Char>
+  struct IMlmaXX: Mlma
+  {
+    using CharType = Char;
+    using LemmType = typename std::conditional<std::is_same<CharType, char>::value,
+      SLemmInfoA, SLemmInfoW>::type;
+    using GramType = SGramInfo;
+
+    using   string = std::basic_string<CharType>;
+
+    struct  inword;
+  template <class T>
+    struct  outbuf;
+    struct  lexeme;
+
+    using Mlma::GetWdInfo;
+    using Mlma::CheckWord;
+    using Mlma::Lemmatize;
+    using Mlma::BuildForm;
+    using Mlma::FindForms;
+    using Mlma::CheckHelp;
+    using Mlma::FindMatch;
+
+    auto  GetWdInfo( lexeme_t ) -> uint8_t;
+    int   CheckWord( const inword&, unsigned dwsets = 0 );
+    int   Lemmatize( const inword&,
+      const outbuf<LemmType>&  lxbuff,
+      const outbuf<CharType>&  stbuff = {},
+      const outbuf<GramType>&  grbuff = {}, unsigned dwsets = 0 );
+    auto  Lemmatize( const inword&, unsigned dwsets = 0 ) -> std::vector<lexeme>;
+    int   BuildForm( const outbuf<CharType>&, lexeme_t nlexid, formid_t idform );
+    auto  BuildForm( lexeme_t nlexid, formid_t idform ) -> std::vector<string>;
+    int   FindForms( const outbuf<CharType>&, const inword&, formid_t, unsigned dwsets = 0 );
+    auto  FindForms( const inword&, formid_t, unsigned dwsets = 0 ) -> std::vector<string>;
+    int   CheckHelp( const outbuf<CharType>&, const inword& );
+    auto  CheckHelp( const inword& ) -> string;
+    int   FindMatch( IMlmaMatch*, const inword& );
+    template <class FMatch>
+    int   FindMatch( const inword&, FMatch );
+
+  };
+
+  using IMlmaMbXX = IMlmaXX<IMlmaMb, char>;
+  using IMlmaWcXX = IMlmaXX<IMlmaWc, widechar>;
+
+  template <class Mlma, class Char>
+  struct  IMlmaXX<Mlma, Char>::inword
+  {
+    const CharType* t;
+    size_t          l;
+
+  public:
+    inword( const CharType* s, size_t n = (size_t)-1 ): t( s ), l( n )  {}
+    template <class Allocator>
+    inword( const std::basic_string<CharType, Allocator>& s ): inword( s.c_str(), s.length() ) {}
+  };
+
+  template <class Mlma, class Char>
+  template <class T>
+  struct  IMlmaXX<Mlma, Char>::outbuf
+  {
+    T*      t;
+    size_t  l;
+
+  public:
+    outbuf(): t( nullptr ), l( 0 ) {}
+    template <size_t N>
+    outbuf( T (&p)[N] ): t( p ), l( N ) {}
+    outbuf( T* p, size_t n ): t( p ), l( n ) {}
+  };
+
+  template <class Mlma, class Char>
+  struct  IMlmaXX<Mlma, Char>::lexeme: LemmType
+  {
+    lexeme( const LemmType& lx ): LemmType( lx )
+    {
+      if ( lx.plemma != nullptr )
+        this->plemma = (normal = string( lx.plemma )).c_str();
+      if ( lx.ngrams != 0 )
+        this->pgrams = (agrams = std::vector<SGramInfo>( lx.pgrams, lx.pgrams + lx.ngrams )).data();
+    }
+    lexeme( lexeme&& lx ): LemmType( std::move( lx ) ),
+      normal( std::move( lx.normal ) ),
+      agrams( std::move( lx.agrams ) )
+    {
+      this->plemma = normal.c_str();
+      this->pgrams = agrams.data();
+    }
+
+    string                 normal;
+    std::vector<SGramInfo> agrams;
+
+  };
+
+  template <class Mlma, class Char>
+  auto  IMlmaXX<Mlma, Char>::GetWdInfo( lexeme_t nlexid ) -> uint8_t
+  {
+    uint8_t wdinfo;
+
+    return this->GetWdInfo( &wdinfo, nlexid ) > 0 ? wdinfo : 0;
+  }
+
+  template <class Mlma, class Char>
+  int   IMlmaXX<Mlma, Char>::CheckWord( const inword&  szword, unsigned dwsets )
+  {
+    return this->CheckWord( szword.t, szword.l, dwsets );
+  }
+
+  template <class Mlma, class Char>
+  int   IMlmaXX<Mlma, Char>::Lemmatize( const inword&  szword,
+    const outbuf<LemmType>&  lxbuff,
+    const outbuf<CharType>&  stbuff,
+    const outbuf<GramType>&  grbuff, unsigned  dwsets )
+  {
+    return this->Lemmatize(
+      szword.t, szword.l,
+      lxbuff.t, lxbuff.l,
+      stbuff.t, stbuff.l,
+      grbuff.t, grbuff.l, dwsets );
+  }
+
+  template <class Mlma, class Char>
+  auto  IMlmaXX<Mlma, Char>::Lemmatize( const inword&  szword, unsigned  dwsets ) -> std::vector<lexeme>
+  {
+    using GramType = SGramInfo;
+
+    LemmType  lxbuff[32];
+    GramType  grbuff[64];
+    CharType  stbuff[256];
+    int       nbuilt = this->Lemmatize( szword, lxbuff, stbuff, grbuff, dwsets );
+
+    if ( nbuilt >= 0 )
+    {
+      auto  output = std::vector<lexeme>();
+
+      for ( auto p = lxbuff, e = p + nbuilt; p != e; )
+        output.push_back( *p++ );
+
+      return output;
+    }
+    switch ( nbuilt )
+    {
+      case WORDBUFF_FAILED: throw std::out_of_range( "invalid string passed" );
+      case LEMMBUFF_FAILED: throw std::out_of_range( "not enough space in forms buffer" );
+      case LIDSBUFF_FAILED: throw std::out_of_range( "not enough space in stems buffer" );
+      case GRAMBUFF_FAILED: throw std::out_of_range( "not enough space in grams buffer" );
+      default:              throw std::runtime_error( "unknown error" );
+    }
+  }
+
+  template <class Mlma, class Char>
+  int   IMlmaXX<Mlma, Char>::BuildForm( const outbuf<CharType>& output,
+    lexeme_t nlexid, formid_t idform )
+  {
+    return this->BuildForm( output.t, output.l, nlexid, idform );
+  }
+
+  template <class Mlma, class Char>
+  auto  IMlmaXX<Mlma, Char>::BuildForm(
+    lexeme_t nlexid, formid_t idform ) -> std::vector<string>
+  {
+    CharType  buffer[0x100];
+    auto      output = std::vector<string>();
+    int       nforms = this->BuildForm( buffer, nlexid, idform );
+
+    for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
+      output.emplace_back( strptr );
+
+    return output;
+  }
+
+  template <class Mlma, class Char>
+  int   IMlmaXX<Mlma, Char>::FindForms( const outbuf<CharType>& output,
+    const inword& szword, formid_t idform, unsigned dwsets )
+  {
+    return this->FindForms( output.t, output.l, szword.t, szword.l, idform, dwsets );
+  }
+
+  template <class Mlma, class Char>
+  auto  IMlmaXX<Mlma, Char>::FindForms(
+    const inword& szword, formid_t idform, unsigned dwsets ) -> std::vector<string>
+  {
+    CharType  buffer[0x100];
+    auto      output = std::vector<string>();
+    int       nforms = this->FindForms( buffer, szword, idform, dwsets );
+
+    for ( auto strptr = buffer; nforms-- > 0; strptr += output.back().length() + 1 )
+      output.emplace_back( strptr );
+
+    return output;
+  }
+
+  template <class Mlma, class Char>
+  int   IMlmaXX<Mlma, Char>::CheckHelp( const outbuf<CharType>& output, const inword& szword )
+  {
+    return this->CheckHelp( output.t, output.l, szword.t, szword.l );
+  }
+
+  template <class Mlma, class Char>
+  auto  IMlmaXX<Mlma, Char>::CheckHelp( const inword& szword ) -> string
+  {
+    widechar  output[256];
+    int       length = this->CheckHelp( output, 256, szword.t, szword.l );
+
+    if ( length < 0 )
+      throw std::runtime_error( "internal error" );
+
+    return { output, (size_t)length };
+  }
+
+  template <class Mlma, class Char>
+  int   IMlmaXX<Mlma, Char>::FindMatch( IMlmaMatch* pmatch, const inword& szword )
+  {
+    return this->FindMatch( pmatch, szword.t, szword.l );
+  }
+
+  template <class Mlma, class Char>
+  template <class FMatch>
+  int   IMlmaXX<Mlma, Char>::FindMatch( const inword&  szword, FMatch fmatch )
+  {
+    static_assert( std::is_constructible<std::function<int(lexeme_t, int, const SStrMatch*)>, FMatch>::value,
+      "invalid callback type, int( lexeme_t, int, const SStrMatch* ) expected" );
+
+    struct MatchAPI: IMlmaMatch
+    {
+      FMatch& match;
+
+      MatchAPI( FMatch& fm ): match( fm )
+        {}
+      int   MLMAPROC  Attach() override
+        {  return 1;  }
+      int   MLMAPROC  Detach() override
+        {  return 1;  }
+      int   MLMAPROC  AddLexeme( lexeme_t lex, int cnt, const SStrMatch* ptr ) override
+        {  return match( lex, cnt, ptr );  }
+    };
+    auto  pmatch = MatchAPI( fmatch );
+
+    return this->FindMatch( &pmatch, szword.t, szword.l );
+  }
+
+# else
 
 #   define  mlma_CheckWord( module, pszstr, cchstr, dwsets )    \
       module->vtbl->CheckWord( (module), (pszstr), (cchstr), (dwsets) )
@@ -677,12 +638,19 @@
 extern "C" {
 # endif /* __cplusplus */
 
-  int   MLMAPROC        mlmaruLoadMbAPI( IMlmaMb** );
-  int   MLMAPROC        mlmaruLoadCpAPI( IMlmaMb**, const char* codepage );
-  int   MLMAPROC        mlmaruLoadWcAPI( IMlmaWc** );
+  int   MLMAPROC  mlmaruLoadMbAPI( IMlmaMb** );
+  int   MLMAPROC  mlmaruLoadCpAPI( IMlmaMb**, const char* codepage );
+  int   MLMAPROC  mlmaruLoadWcAPI( IMlmaWc** );
 
 # if defined( __cplusplus )
 }
+  template <class T>  int   mlmaruLoadMbAPI( T** pp )
+    {  return mlmaruLoadMbAPI( (IMlmaMb**)pp );  }
+  template <class T>  int   mlmaruLoadCpAPI( T** pp, const char* cp )
+    {  return mlmaruLoadCpAPI( (IMlmaMb**)pp, cp );  }
+  template <class T>  int   mlmaruLoadWcAPI( T** pp )
+    {  return mlmaruLoadWcAPI( (IMlmaWc**)pp );  }
+
 # endif /* __cplusplus */
 
 # if defined( _WIN32 )
