@@ -1,8 +1,8 @@
 ﻿/******************************************************************************
 
-    libfuzzyrus - fuzzy morphological analyser for Russian.
+    libmorphrus - dictionary-based morphological analyser for Russian.
 
-    Copyright (C) 1994-2025 Andrew Kovalenko aka Keva
+    Copyright (c) 1994-2026 Andrew Kovalenko aka Keva
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@
     Commercial license is available upon request.
 
     Contacts:
-      email: keva@meta.ua, keva@rambler.ru
+      email: keva@rambler.ru
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
