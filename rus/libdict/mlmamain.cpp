@@ -1,8 +1,8 @@
 /******************************************************************************
 
-    libmorphrus - dictiorary-based morphological analyser for Russian.
+    libmorphrus - dictionary-based morphological analyser for Russian.
 
-    Copyright (C) 1994-2025 Andrew Kovalenko aka Keva
+    Copyright (c) 1994-2026 Andrew Kovalenko aka Keva
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@
     Commercial license is available upon request.
 
     Contacts:
-      email: keva@meta.ua, keva@rambler.ru
+      email: keva@rambler.ru
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
@@ -121,8 +121,11 @@ namespace rus {
 
   };
 
-  struct  CMlmaWc: public IMlmaWc
+  class CMlmaWc: public IMlmaWc
   {
+    class WcMatch;
+
+  public:
     int MLMAPROC  Attach() override {  return 0;  }
     int MLMAPROC  Detach() override {  return 0;  }
 
@@ -143,6 +146,18 @@ namespace rus {
     int MLMAPROC  GetWdInfo( unsigned char*   pwindo, lexeme_t  nlexid )  override;
     int MLMAPROC  FindMatch( IMlmaMatch*      pmatch,
                              const widechar*  pszstr, size_t    cchstr )  override;
+  };
+
+  class CMlmaWc::WcMatch: public IMlmaMatch
+  {
+    IMlmaMatch*   client;
+
+  public:
+    WcMatch( IMlmaMatch* pc ): client( pc ) {}
+
+    int MLMAPROC  Attach() override {  return 1;  }
+    int MLMAPROC  Detach() override {  return 1;  }
+    int MLMAPROC  AddLexeme( lexeme_t, int, const SStrMatch* ) override;
   };
 
   CMlmaMb mlmaMbInstance;
@@ -371,23 +386,32 @@ namespace rus {
         size_t            length,
         const SGramInfo&  grinfo )
       {
+        char  strbuf[maximal::utf8_length];
+
         if ( nlexid != lastId )
         {
           if ( lastId != 0 )
-            pmatch->RegisterLexeme( lastId, nmatch, amatch );
+            pmatch->AddLexeme( lastId, nmatch, amatch );
           lastId = nlexid;
           pforms = sforms;
           nmatch = 0;
         }
-
+        /*
         for ( auto prev = amatch, last = amatch + nmatch; prev != last; ++prev )
           if ( prev->id == grinfo.idForm && prev->cc == length && memcmp( prev->sz, string, length ) == 0 )
             return 0;
+        */
+        if ( codepage != codepages::codepage_1251 )
+        {
+          length = codepages::mbcstombcs( codepage, strbuf, sizeof(strbuf),
+            codepages::codepage_1251, (const char*)string, length );
+          string = (const uint8_t*)strbuf;
+        }
 
-        amatch[nmatch++] = { strncpy( (char*)pforms, (const char*)string, length ), length, grinfo.idForm };
-          pforms += length + 1;
+        for ( amatch[nmatch++] = { (const char*)pforms, length, grinfo.idForm };
+          length-- > 0; ) *pforms++ = *string++;
 
-        return 0;
+        return *pforms++ = '\0';
       };
 
     // check output buffer
@@ -430,7 +454,7 @@ namespace rus {
         libmorphrus::stemtree, { locase, cchstr }, (uint8_t*)cpsstr, 0 )) != 0 )
       return nerror;
 
-      return lastId != 0 ? pmatch->RegisterLexeme( lastId, nmatch, amatch ) : 0;
+      return lastId != 0 ? pmatch->AddLexeme( lastId, nmatch, amatch ) : 0;
     ON_ERRORS( -1 )
   }
 
@@ -628,6 +652,7 @@ namespace rus {
 
   int   CMlmaWc::FindMatch( IMlmaMatch* pmatch, const widechar* pwsstr, size_t cchstr )
   {
+    WcMatch client( pmatch );
     char    szword[maximal::form_length];
     size_t  ccword;
 
@@ -635,7 +660,30 @@ namespace rus {
     if ( (ccword = codepages::widetombcs( codepages::codepage_1251, szword, sizeof(szword) - 1, pwsstr, cchstr )) == (size_t)-1 )
       return WORDBUFF_FAILED;
 
-    return mlmaMbInstance.FindMatch( pmatch, szword, ccword );
+    return mlmaMbInstance.FindMatch( &client, szword, ccword );
+  }
+
+  // IMlmaWc::WcMatch implementation
+
+  int MLMAPROC  CMlmaWc::WcMatch::AddLexeme(
+    lexeme_t          nlexid,
+    int               nforms,
+    const SStrMatch*  pmatch )
+  {
+    widechar  strbuf[maximal::buffer_size];
+    widechar* strptr = strbuf;
+    SStrMatch amatch[maximal::forms_count];
+
+    for ( int idform = 0; idform < nforms; ++idform )
+    {
+      amatch[idform] = { (const char*)strptr, pmatch[idform].cc, pmatch[idform].id };
+
+      codepages::mbcstowide( codepages::codepage_1251, strptr, std::end(strbuf) - strptr,
+        pmatch[idform].sz, pmatch[idform].cc );
+      strptr += pmatch[idform].cc;
+        *strptr++ = 0;
+    }
+    return client->AddLexeme( nlexid, nforms, amatch );
   }
 
   struct
@@ -698,8 +746,9 @@ int   MLMAPROC        mlmaruLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
   if ( (palloc = (CMlmaMb*)malloc( sizeof(*palloc) )) == nullptr )
     return ENOMEM;
 
-  (*ptrAPI = (IMlmaMb*)new( palloc ) CMlmaMb( pageid ))->Attach();
-    return 0;
+  ((IMlmaMb*)new( palloc ) CMlmaMb( pageid ))->Attach();
+
+  return *ptrAPI = palloc, 0;
 }
 
 int   MLMAPROC        mlmaruLoadWcAPI( IMlmaWc**  ptrAPI )
