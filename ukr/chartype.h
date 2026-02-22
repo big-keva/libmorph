@@ -1,6 +1,7 @@
 /******************************************************************************
 
-    libmorphrus - dictiorary-based morphological analyser for Russian.
+    libmorphukr - dictionary-based morphological analyser for Russian.
+
     Copyright (C) 1994-2016 Andrew Kovalenko aka Keva
 
     This program is free software; you can redistribute it and/or modify
@@ -20,8 +21,7 @@
     Commercial license is available upоn request.
 
     Contacts:
-      email: keva@meta.ua, keva@rambler.ru
-      Skype: big_keva
+      email: keva@rambler.ru
       Phone: +7(495)648-4058, +7(926)513-2991
 
 ******************************************************************************/
