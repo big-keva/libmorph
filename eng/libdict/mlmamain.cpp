@@ -2,7 +2,7 @@
 
     libmorpheng - dictionary-based morphological analyser for English.
 
-    Copyright (C) 1994-2025 Andrew Kovalenko aka Keva
+    Copyright (C) 1994-2026 Andrew Kovalenko aka Keva
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,6 @@
 ******************************************************************************/
 # include "xmorph/wildscan.h"
 # include "xmorph/charlist.h"
-# include "../include/mlma1049.h"
 # include "../../codepages.hpp"
 # include "../chartype.h"
 # include "mlmadefs.h"
@@ -362,7 +361,7 @@ namespace eng {
         if ( nlexid != lastId )
         {
           if ( lastId != 0 )
-            pmatch->RegisterLexeme( lastId, nmatch, amatch );
+            pmatch->AddLexeme( lastId, nmatch, amatch );
           lastId = nlexid;
           pforms = sforms;
           nmatch = 0;
@@ -415,7 +414,7 @@ namespace eng {
         libmorpheng::stemtree, { locase, cchstr }, (uint8_t*)cpsstr, 0 )) != 0 )
       return nerror;
 
-      return lastId != 0 ? pmatch->RegisterLexeme( lastId, nmatch, amatch ) : 0;
+      return lastId != 0 ? pmatch->AddLexeme( lastId, nmatch, amatch ) : 0;
     ON_ERRORS( -1 )
   }
 
@@ -447,9 +446,13 @@ namespace eng {
 
 }}
 
+extern "C"  int   MLMAPROC  mlmaenLoadMbAPI( IMlmaMb** );
+extern "C"  int   MLMAPROC  mlmaenLoadCpAPI( IMlmaMb**, const char* codepage );
+extern "C"  int   MLMAPROC  mlmaenGetAPI( const char*, void** );
+
 using namespace libmorph::eng;
 
-int   MLMAPROC        mlmaenLoadMbAPI( IMlmaMb**  ptrAPI )
+extern "C"  int   MLMAPROC  mlmaenLoadMbAPI( IMlmaMb**  ptrAPI )
 {
   if ( ptrAPI == nullptr )
     return -1;
@@ -457,11 +460,17 @@ int   MLMAPROC        mlmaenLoadMbAPI( IMlmaMb**  ptrAPI )
     return 0;
 }
 
-int   MLMAPROC        mlmaenLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
+extern "C"  int   MLMAPROC  mlmaenLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
 {
   (void)codepage;
   return mlmaenLoadMbAPI( ptrAPI );
 }
+
+extern "C"  int   MLMAPROC  mlmaenGetAPI( const char* cpsKey, void** ppvAPI )
+{
+  return mlmaenLoadCpAPI( (IMlmaMb**)ppvAPI, cpsKey );
+}
+
 /*
 int   MLMAPROC        mlmaenLoadWcAPI( IMlmaWc**  ptrAPI )
 {
