@@ -33,7 +33,7 @@
 # define __libmorph_rus_mlmadefs_h__
 
 // Определить кроссплатформенные типы данных
-# include "../include/mlma1049.h"
+# include "../../rus.h"
 # include "xmorph/capsheme.h"
 # include "xmorph/typedefs.h"
 
