@@ -2,7 +2,7 @@
 
     libmorph - morphological analysers.
 
-    Copyright (C) 1994-2025 Andrew Kovalenko aka Keva
+    Copyright (C) 1994-2026 Andrew Kovalenko aka Keva
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,7 @@
 # include <algorithm>
 # include <cstdint>
 # include <cstddef>
+#include <cstring>
 
 namespace libmorph {
 
@@ -71,8 +72,20 @@ namespace libmorph {
     auto  front() const -> uint8_t {  return *str;  }
 
     auto  next() const -> fragment {  return { str + 1, len - 1 };  }
-    auto  left( size_t n ) -> fragment  {  return { str, std::min( len, n ) };  }
-    auto  right( size_t n ) -> fragment  {  return { str + len - std::min( len, n ), std::min( len, n ) };  }
+    auto  left( size_t n ) const -> fragment  {  return { str, std::min( len, n ) };  }
+    auto  right( size_t n ) const -> fragment  {  return { str + len - std::min( len, n ), std::min( len, n ) };  }
+
+    bool  operator == ( const fragment& f ) const {  return compare( f ) == 0;  }
+    bool  operator != ( const fragment& f ) const {  return compare( f ) != 0;  }
+    bool  operator <  ( const fragment& f ) const {  return compare( f ) <  0;  }
+
+    int   compare( const fragment& f ) const
+    {
+      int l = std::min( len, f.len );
+      int r = memcmp( str, f.str, l );
+
+      return r != 0 ? r : len - f.len;
+    }
   };
 
   struct flexinfo
