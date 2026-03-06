@@ -1,8 +1,8 @@
 /******************************************************************************
 
-    libfuzzyrus - fuzzy morphological analyser for Russian.
+    libmorpheng - dictionary-based analyser for English.
 
-    Copyright (C) 1994-2025 Andrew Kovalenko aka Keva
+    Copyright (C) 1996-2026 Andrew Kovalenko aka Keva
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -25,15 +25,15 @@
     Commercial license is available upon request.
 
     Contacts:
-      email: keva@meta.ua, keva@rambler.ru
-      Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
+      email: keva@rambler.ru
+      Phone: +7(495)648-4058, +7(926)513-2991
 
 ******************************************************************************/
 # if !defined( __libmorph_eng_mlmadefs_h__ )
 # define __libmorph_eng_mlmadefs_h__
 
 // Определить кроссплатформенные типы данных
-# include "../include/mlma1033.h"
+# include "../../eng.h"
 # include "xmorph/typedefs.h"
 
 namespace libmorpheng {
