@@ -2,7 +2,7 @@
 
     libfuzzyrus - fuzzy morphological analyser for Russian.
 
-    Copyright (C) 1994-2025 Andrew Kovalenko aka Keva
+    Copyright (c) 1994-2026 Andrew Kovalenko aka Keva
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -25,11 +25,11 @@
     Commercial license is available upon request.
 
     Contacts:
-      email: keva@meta.ua, keva@rambler.ru
+      email: keva@rambler.ru
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
-# include "rus/include/mlfa1049.h"
+# include <rus.h>
 # include "moonycode/codes.h"
 # include "mtc/test-it-easy.hpp"
 # include <algorithm>
@@ -49,45 +49,46 @@ public:
   }
 };
 
-class CMatch: public IMatchStemMb
+class CMatch: public IMlfaMatch
 {
   int   Attach() override {  return 1;  }
   int   Detach() override {  return 1;  }
+
 public:
-  int   Add(
-    const char* plemma,
+  int   AddLexeme(
+    const void* plemma,
     size_t      clemma,
     size_t      cchstr,
     unsigned    uclass,
-    size_t      nforms, const SStrMatch* pforms ) override
+    int         nforms, const SStrMatch* pforms ) override
   {
     (void)clemma;
     (void)cchstr;
     (void)uclass;
 
-    fprintf( stdout, "%s\t%u\t", plemma, uclass );
+    fprintf( stdout, "%s\t%u\t", std::string( (const char*)plemma, cchstr ).c_str(), uclass );
 
-    for ( size_t i = 0; i != nforms; ++i )
+    for ( int i = 0; i != nforms; ++i )
       fprintf( stdout, "\t%s\n", pforms[i].sz );
 
     return 0;
   }
 };
 
-class CMatchFormsList: public IMatchStemMb
+class CMatchFormsList: public IMlfaMatch
 {
   std::vector<std::string>  aforms;
 
-public:
   int   Attach() override {  return 1;  }
   int   Detach() override {  return 1;  }
+
 public:
-  int   Add(
-    const char* plemma,
+  int   AddLexeme(
+    const void* plemma,
     size_t      clemma,
     size_t      cchstr,
     unsigned    uclass,
-    size_t      nforms, const SStrMatch* pforms ) override
+    int         nforms, const SStrMatch* pforms ) override
   {
     (void)plemma;
     (void)clemma;
@@ -117,22 +118,22 @@ public:
   }
 };
 
-class CMatchClassList: public IMatchStemMb
+class CMatchClassList: public IMlfaMatch
 {
   std::vector<std::string>  aclass;
 
-public:
   int   Attach() override {  return 1;  }
   int   Detach() override {  return 1;  }
+
 public:
-  int   Add(
-    const char* plemma,
+  int   AddLexeme(
+    const void* plemma,
     size_t      clemma,
     size_t      cchstr,
     unsigned    uclass,
-    size_t      nforms, const SStrMatch* pforms ) override
+    int         nforms, const SStrMatch* pforms ) override
   {
-    auto  clsstr = std::string( plemma, cchstr ) + mtc::strprintf( "[%u]", uclass );
+    auto  clsstr = std::string( (const char*)plemma, cchstr ) + mtc::strprintf( "[%u]", uclass );
     auto  pfound = std::lower_bound( aclass.begin(), aclass.end(), clsstr );
 
     (void)clemma;
@@ -158,10 +159,10 @@ public:
 };
 
 auto  operator & (
-  const std::vector<SLemmInfo<SStemInfoA>>& v1,
-  const std::vector<SLemmInfo<SStemInfoA>>& v2 ) -> std::vector<SLemmInfo<SStemInfoA>>
+  const std::vector<IMlfaMbXX::lexeme>& v1,
+  const std::vector<IMlfaMbXX::lexeme>& v2 ) -> std::vector<IMlfaMbXX::lexeme>
 {
-  std::vector<SLemmInfo<SStemInfoA>>  output;
+  std::vector<IMlfaMbXX::lexeme>  output;
 
   for ( auto& s1: v1 )
     for ( auto& s2: v2 )
@@ -184,45 +185,45 @@ auto  operator & (
   return output;
 }
 
-TestItEasy::RegisterFunc  testmorphrus( []()
+TestItEasy::RegisterFunc  testmorphrusmb( []()
 {
   TEST_CASE( "fuzzy/rus" )
   {
-    IMlfaMb*  mlfaMb;
-    IMlfaWc*  mlfaWc;
+    IMlfaMbXX*  mlfaMb;
+    IMlfaWcXX*  mlfaWc;
 
     SECTION( "fuzzy morphology may be created for native codepage (1251), unicode-16 and a set of codepages supported" )
     {
       SECTION( "∙ native (1251) is created anyway" )
       {
-        REQUIRE( mlfaruLoadMbAPI( &(mlfaMb = nullptr) ) == 0 );
+        REQUIRE( mlfaruGetAPI( "windows-1251", (void**)&(mlfaMb = nullptr) ) == 0 );
         if ( REQUIRE( mlfaMb != nullptr ) )
           mlfaMb->Detach();
       }
       SECTION( "∙ named codepages are created also" )
       {
-        REQUIRE( mlfaruLoadCpAPI( &(mlfaMb = nullptr), "koi8" ) == 0 );
+        REQUIRE( mlfaruGetAPI( "koi8", (void**)&(mlfaMb = nullptr) ) == 0 );
         if ( REQUIRE( mlfaMb != nullptr ) )
           mlfaMb->Detach();
-        REQUIRE( mlfaruLoadCpAPI( &(mlfaMb = nullptr), "utf8" ) == 0 );
+        REQUIRE( mlfaruGetAPI( "utf8", (void**)&(mlfaMb = nullptr) ) == 0 );
         if ( REQUIRE( mlfaMb != nullptr ) )
           mlfaMb->Detach();
       }
       SECTION( "∙ utf16 is created" )
       {
-        REQUIRE( mlfaruLoadWcAPI( &(mlfaWc = nullptr) ) == 0 );
+        REQUIRE( mlfaruGetAPI( "utf-16", (void**)&(mlfaWc = nullptr) ) == 0 );
         if ( REQUIRE( mlfaMb != nullptr ) )
           mlfaMb->Detach();
       }
       SECTION( "∙ called with invalid codepage names it return EINVAL" )
       {
-        REQUIRE( mlfaruLoadCpAPI( &(mlfaMb = nullptr), "unknown codepage" ) == EINVAL );
+        REQUIRE( mlfaruGetAPI( "unknown codepage", (void**)&(mlfaMb = nullptr) ) == EINVAL );
       }
     }
 
-    if ( !REQUIRE( mlfaruLoadCpAPI( &mlfaMb, "utf8" ) == 0 ) )
+    if ( !REQUIRE( mlfaruGetAPI( "utf8", (void**)&mlfaMb ) == 0 ) )
       abort();
-    if ( !REQUIRE( mlfaruLoadWcAPI( &mlfaWc ) == 0 ) )
+    if ( !REQUIRE( mlfaruGetAPI( "utf-16", (void**)&mlfaWc ) == 0 ) )
       abort();
 
     SECTION( "GetWdInfo" )
@@ -250,6 +251,15 @@ TestItEasy::RegisterFunc  testmorphrus( []()
 
       SECTION( "∙ lemmatization of correct words creates lemmas" )
       {
+        SECTION( "∙ lemmatization builds lemmas" )
+        {
+          REQUIRE_NOTHROW( lemmas = mlfaMb->Lemmatize( "простой" ) );
+          if ( REQUIRE( !lemmas.empty() ) )
+          {
+            for ( auto& lemma: lemmas )
+              fprintf( stdout, "%4.2f\t%d\t%s\n", lemma.weight, lemma.pgrams->wdInfo, lemma.normal.c_str() );
+          }
+        }
         SECTION( "lemmatization results of noun:m contain at least one noun:m" )
         {
           REQUIRE_NOTHROW( lemmas = mlfaMb->Lemmatize( "кринж" ) );
@@ -349,16 +359,16 @@ TestItEasy::RegisterFunc  testmorphrus( []()
       {
         SECTION( "∙ invalid arguments result ARGUMENT_FAILED" )
         {
-          REQUIRE( mlfaMb->FindMatch( (IMatchStemMb*)nullptr, "a" ) == ARGUMENT_FAILED );
-          REQUIRE( mlfaMb->FindMatch( (IMatchStemMb*)0x12345, nullptr ) == ARGUMENT_FAILED );
+          REQUIRE( mlfaMb->FindMatch( (IMlfaMatch*)nullptr, "a" ) == ARGUMENT_FAILED );
+          REQUIRE( mlfaMb->FindMatch( (IMlfaMatch*)0x12345, nullptr ) == ARGUMENT_FAILED );
         }
         SECTION( "∙ empty string results no matches" )
         {
-          REQUIRE( mlfaMb->FindMatch( (IMatchStemMb*)0x12345, "", 0 ) == 0 );
+          REQUIRE( mlfaMb->FindMatch( (IMlfaMatch*)0x12345, "", 0 ) == 0 );
         }
         SECTION( "∙ too long string results WORDBUFF_FAILED" )
         {
-          REQUIRE( mlfaMb->FindMatch( (IMatchStemMb*)0x12345, std::string( 1024, 'a' ) ) == WORDBUFF_FAILED );
+          REQUIRE( mlfaMb->FindMatch( (IMlfaMatch*)0x12345, std::string( 1024, 'a' ) ) == WORDBUFF_FAILED );
         }
         SECTION( "∙ ? matches any one character" )
         {
