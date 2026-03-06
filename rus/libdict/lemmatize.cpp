@@ -124,15 +124,27 @@ namespace rus {
         dwsets,
         lextem, { grbuff->grInfo, grbuff->bFlags }, { szstem, size_t(inflex.str - szstem) }, suffix );
       auto  ccform = size_t{};
+      auto  fmnext = fmbuff;
+      auto  select = fmnext;
 
       if ( nforms <= 0 )
         return nforms;
 
+    // из форм слова выбрать минимальную в качестве нормальной
+      while ( --nforms > 0 )
+      {
+        while ( *fmnext++ != '\0' )
+          (void)NULL;
+
+        if ( strcmp( fmnext, select ) < 0 )
+          select = fmnext;
+      }
+
     // Привести слово к минимальной возможной капитализации
-      casing.Set( (uint8_t*)fmbuff, ccform = strlen( fmbuff ), pspMinCapValue[lextem.wdinfo & 0x3f] );
+      casing.Set( (uint8_t*)select, ccform = strlen( select ), pspMinCapValue[lextem.wdinfo & 0x3f] );
 
     // отправить на выход
-      if ( !pforms.append( fmbuff, ccform ) || !pforms.append( '\0' ) )
+      if ( !pforms.append( select, ccform ) || !pforms.append( '\0' ) )
         return LEMMBUFF_FAILED;
     }
 
