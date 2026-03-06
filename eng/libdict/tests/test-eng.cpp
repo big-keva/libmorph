@@ -29,7 +29,7 @@
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
-# include "../../include/mlma1033.h"
+# include "../../../eng.h"
 # include "../codepages.hpp"
 # include <algorithm>
 # include <string>
@@ -59,7 +59,7 @@ public:
 public:
   int   MLMAPROC  Attach() override {  return 1;  }
   int   MLMAPROC  Detach() override {  return 1;  }
-  int   MLMAPROC  RegisterLexeme( lexeme_t nlexid, int  nmatch, const SStrMatch*  pmatch ) override
+  int   MLMAPROC  AddLexeme( lexeme_t nlexid, int  nmatch, const SStrMatch*  pmatch ) override
     {
       push_back( { nlexid, {} } );
 
@@ -91,7 +91,7 @@ public:
   }
 };
 
-auto  FindMatch( IMlmaMb* mlma, const char* ptpl ) -> MatchSet
+auto  FindMatch( IMlmaMbXX* mlma, const char* ptpl ) -> MatchSet
 {
   MatchSet  match;
 
@@ -106,7 +106,7 @@ TestItEasy::RegisterFunc  testmorpheng( []()
   {
     SECTION( "morphological analyser API may be created with different mbcs codepages" )
     {
-      IMlmaMb*  mlma = nullptr;
+      IMlmaMbXX*  mlma = nullptr;
 
       SECTION( "valid string keys give access to named API" )
       {
@@ -137,13 +137,13 @@ TestItEasy::RegisterFunc  testmorpheng( []()
 
         for ( auto cpname = std::begin( cnames ); cpname != std::end( cnames ); ++cpname )
         {
-          REQUIRE_NOTHROW( mlmaenLoadCpAPI( &mlma, *cpname ) );
+          REQUIRE_NOTHROW( mlmaenGetAPI( *cpname, (void**)&mlma ) );
             REQUIRE( mlma != nullptr );
           REQUIRE_NOTHROW( mlma = mlma != nullptr ? (mlma->Detach(), nullptr) : nullptr  );
         }
       }
 
-      mlmaenLoadMbAPI( &mlma );//, "utf-8" );
+      mlmaenGetAPI( "utf-8", (void**)&mlma );
 
       SECTION( "CheckWord" )
       {
@@ -512,7 +512,7 @@ TestItEasy::RegisterFunc  testmorpheng( []()
         SECTION( "it checks arguments" )
         {
           SECTION( "called with invalid arguments, it returns ARGUMENT_FAILED " )
-            {  REQUIRE( mlma->FindMatch( nullptr, nullptr ) == ARGUMENT_FAILED );  }
+            {  REQUIRE( mlma->FindMatch( nullptr, nullptr, 0 ) == ARGUMENT_FAILED );  }
           SECTION( "with too long string, it returns WORDBUFF_FAILED" )
             {  REQUIRE( mlma->FindMatch( ms.ptr(), std::string( 257, 'a' ).c_str() ) == WORDBUFF_FAILED );  }
         }
