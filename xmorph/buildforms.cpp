@@ -2,7 +2,7 @@
 
     libmorph - morphological analysers.
 
-    Copyright (C) 1994-2025 Andrew Kovalenko aka Keva
+    Copyright (C) 1994-2026 Andrew Kovalenko aka Keva
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,7 @@ namespace libmorph {
 
  /*
   * GetFlexForms( ... )
+  *
   * Формирует массив форм слова, добавляя окончания к переданному префиксу.
   * Тиражирует префикс на нужное количество форм по мере их построения.
   * Возвращает количество построенных форм слова или -1 при переполнении
@@ -69,5 +70,34 @@ namespace libmorph {
 
     return rtrack == 0 ? ntails : rtrack;
  }
+
+ /*
+  * GetFirstFlex( ... )
+  *
+  * Строит первое попавшееся окончание слова, извлекает найденное окончание
+  * в reflex, а грамматическое описание - в fxinfo.
+  *
+  * Возвращает 1 (OK) или 0 (нет форм).
+  */
+  int   GetFirstFlex(
+    fragment&       reflex,
+    flexinfo&       fxinfo,
+    const uint8_t*  ptable )
+  {
+    uint8_t atrack[0x40];
+    int     ntails = 0;
+    auto    rtrack = Flat::GetTrack<uint8_t>( [&]( const uint8_t* tabptr, const fragment& szflex )
+    {
+      if ( ntails == 0 || szflex < reflex )
+      {
+        reflex = szflex;
+        fxinfo = { getword16( ++tabptr ), *tabptr++ };
+        ntails = 1;
+      }
+      return 0;
+    }, ptable, atrack, 0, nullptr );
+
+    return rtrack >= 0 ? ntails : rtrack;
+  }
 
 }

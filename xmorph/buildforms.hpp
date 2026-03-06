@@ -2,7 +2,7 @@
 
     libmorph - morphological analysers.
 
-    Copyright (C) 1994-2025 Andrew Kovalenko aka Keva
+    Copyright (C) 1994-2026 Andrew Kovalenko aka Keva
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -67,6 +67,10 @@ namespace libmorph {
           *outptr++ = *p++;
         return true;
       }
+    bool  append( const fragment& s )
+      {
+        return append( (const char*)s.str, s.len );
+      }
 
     bool  operator == ( nullptr_t ) const {  return outbeg == nullptr;  }
     bool  operator != ( nullptr_t ) const {  return !(*this == nullptr);  }
@@ -95,6 +99,19 @@ namespace libmorph {
     const flexinfo&   fxinfo,
     const fragment&   prefix,
     const fragment&   suffix = {} );
+
+ /*
+  * GetFirstFlex( ... )
+  *
+  * Строит первое попавшееся окончание слова, извлекает найденное окончание
+  * в reflex, а грамматическое описание - в fxinfo.
+  *
+  * Возвращает 1 (OK) или 0 (нет форм).
+  */
+  int   GetFirstFlex(
+    fragment&         szflex,
+    flexinfo&         fxinfo,
+    const uint8_t*    ptable );
 
 }
 
