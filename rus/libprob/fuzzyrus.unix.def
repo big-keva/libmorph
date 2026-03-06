@@ -1,6 +1,8 @@
 _mlmaruLoadCpAPI
 _mlmaruLoadMbAPI
 _mlmaruLoadWcAPI
+_mlfaruGetAPI
 mlfaruLoadCpAPI
 mlfaruLoadMbAPI
 mlfaruLoadWcAPI
+mlfaruGetAPI
