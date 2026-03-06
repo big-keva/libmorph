@@ -50,6 +50,13 @@ namespace rus {
   {
     auto  ptflex = (const uint8_t*){};
 
+    if ( (ptflex = stinfo.GetFlexTable()) == nullptr )
+    {
+      return output.append( prefix )
+          && output.append( suffix )
+          && output.append( '\0' ) ? 1 : -1;
+    }
+
     if ( stinfo.mtoffs != 0 )
     {
       auto    mixtab = stinfo.GetSwapTable();
@@ -77,19 +84,70 @@ namespace rus {
       }
       return 0;
     }
-      else
-    if ( (ptflex = stinfo.GetFlexTable()) == nullptr )
-    {
-      return output.append( (const char*)prefix.begin(), prefix.size() )
-        && output.append( (const char*)suffix.begin(), suffix.size() )
-        && output.append( '\0' ) ? 1 : -1;
-    }
-      else
+
     return GetFlexForms( output, ptflex, fxinfo, prefix, suffix );
   }
 
  /*
-  * Meth: GetDictF orms
+  * GetFirstForm(...)
+  *
+  * Синтезирует первую попавшуюся форму слова.
+  * Возвращает количество построенных вариантов.
+  */
+  int   GetFirstForm(
+    Collector&      output,
+    const steminfo& stinfo,
+    const fragment& prefix,
+    const fragment& suffix )
+  {
+    auto  ptflex = (const uint8_t*){};
+    auto  szflex = fragment();
+    auto  fxinfo = flexinfo();
+    int   nforms;
+
+    if ( (ptflex = stinfo.GetFlexTable()) == nullptr )
+    {
+      return output.append( prefix )
+          && output.append( suffix )
+          && output.append( '\0' ) ? 1 : -1;
+    }
+
+    if ( (nforms = GetFirstFlex( szflex, fxinfo, ptflex )) <= 0 )
+      return nforms;
+
+    if ( stinfo.mtoffs != 0 )
+    {
+      auto    mixtab = stinfo.GetSwapTable();
+      int     mpmask = 0x08 << stinfo.GetSwapLevel( fxinfo.gramm, fxinfo.flags );
+      auto    mcount = *mixtab++;
+      auto    mixstr = (const uint8_t*)nullptr;
+
+      // найти ступень чередования
+      while ( mixstr == nullptr && mcount-- > 0 )
+      {
+        if ( (*mixtab & mpmask) != 0 )  mixstr = mixtab;
+          else {  auto mixlen = *mixtab++ & 0x0f;  mixtab += mixlen;  }
+      }
+
+      // добавить к префиксу
+      if ( mixstr == nullptr )
+        return 0;
+
+      return output.append( prefix )
+          && output.append( (const char*)mixstr + 1, *mixstr )
+          && output.append( szflex )
+          && output.append( suffix )
+          && output.append( '\0' ) ? 1 : -1;
+    }
+
+    return output.append( prefix )
+        && output.append( szflex )
+        && output.append( suffix )
+        && output.append( '\0' ) ? 1 : -1;
+  }
+
+  /*
+  * Meth: GetDictForms
   * Строит варианты флективной части слова, исходя из его части речи, чередований,
   * окончаний и грамматической информации о форме.
   * Возвращает количество построенных вариантов.
@@ -109,17 +167,15 @@ namespace rus {
     if ( (nforms = GetWordForms( output, stinfo, nfinfo, prefix, suffix )) != 0 )
       return nforms;
 
-  // check if is inreverce - nothing to do on reverce forms
-    if ( (nfinfo.gramm & gfRetForms) != 0 )
-      return 0;
-    
-  // check if verb or adjective
-    if ( !IsVerb( stinfo.wdinfo ) && !IsAdjective( stinfo.wdinfo ) )
-      return 0;
+  // check if is inreflective verb or adjective form; try build reverse
+    if ( (nfinfo.gramm & gfRetForms) == 0 && (IsVerb( stinfo.wdinfo ) || IsAdjective( stinfo.wdinfo )) )
+    {
+      if ( (nforms = GetWordForms( output, stinfo, { uint16_t(nfinfo.gramm | gfRetForms), nfinfo.flags }, prefix, suffix )) != 0 )
+        return nforms;
+    }
 
-  // try build reverce
-    return GetWordForms( output, stinfo, { uint16_t(nfinfo.gramm | gfRetForms), nfinfo.flags },
-      prefix, suffix );
+  // for words with incomplete form lists, try build any word form of available
+    return GetFirstForm( output, stinfo, prefix, suffix );
   }
 
   // FormBuild implementation
