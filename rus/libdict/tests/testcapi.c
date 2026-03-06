@@ -29,11 +29,11 @@
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
-# include "../../include/mlma1049.h"
+# include "../../../rus.h"
 # include <stdarg.h>
 # include <string.h>
 
-const char* TestLemmatize( const char*  szform, unsigned  dwsets, int nitems, ... )
+const char* TestLemmatize( const char*  szform, const char* cp, unsigned  dwsets, int nitems, ... )
 {
   SLemmInfoA  lemmas[0x20];
   char        normal[0x100];
@@ -43,7 +43,7 @@ const char* TestLemmatize( const char*  szform, unsigned  dwsets, int nitems, ..
   int         nindex;
   va_list     valist;
 
-  mlmaruLoadMbAPI( &pmorph );
+  mlmaruGetAPI( cp, (void**)&pmorph );
 
   if ( (nlemma = pmorph->vtbl->Lemmatize( pmorph, szform, (size_t)-1, lemmas, 0x20, normal, 0x100, agrams, 0x40, dwsets )) != nitems )
     return "Lemmatization: result lexeme count mismatch!";

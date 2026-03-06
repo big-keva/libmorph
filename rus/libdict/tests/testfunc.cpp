@@ -29,7 +29,7 @@
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
-# include "../../include/mlma1049.h"
+# include "../../../rus.h"
 # include "../codepages.hpp"
 # include <algorithm>
 # include <string>
@@ -92,6 +92,8 @@ public:
   }
 };
 
+extern "C" const char* TestLemmatize( const char*  szform, const char* cp, unsigned  dwsets, int nitems, ... );
+
 TestItEasy::RegisterFunc  testmorphrusmb( []()
 {
   TEST_CASE( "morph/rus/IMlmaMb" )
@@ -129,13 +131,13 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
 
         for ( auto cpname = std::begin( cnames ); cpname != std::end( cnames ); ++cpname )
         {
-          REQUIRE_NOTHROW( mlmaruLoadCpAPI( &mlma, *cpname ) );
+          REQUIRE_NOTHROW( mlmaruGetAPI( *cpname, (void**)&mlma ) );
             REQUIRE( mlma != nullptr );
           REQUIRE_NOTHROW( mlma = mlma != nullptr ? (mlma->Detach(), nullptr) : nullptr  );
         }
       }
 
-      mlmaruLoadCpAPI( &mlma, "utf-8" );
+      mlmaruGetAPI( "utf-8", (void**)&mlma );
 
       SECTION( "CheckWord" )
       {
@@ -205,6 +207,16 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
         SECTION( "complete lemmatization builds strings, gets lemmas and grammatical descriptions" )
         {
           REQUIRE( mlma->Lemmatize( "простой", alemms, aforms, agrams ) == 3 );
+          REQUIRE( mlma->Lemmatize( "базедовой", alemms, aforms, agrams ) == 1 );
+          REQUIRE( mlma->Lemmatize( "программирование", alemms, aforms, agrams ) == 1 );
+          REQUIRE( mlma->Lemmatize( "уповаешь", alemms, aforms, agrams ) == 1 );
+        }
+        SECTION( "multi-stem forms generate 1 result" )
+        {
+          if ( REQUIRE( mlma->Lemmatize( "струдель", alemms, aforms, agrams ) == 1 ) )
+            REQUIRE( alemms[0].nlexid == 39988 );
+          if ( REQUIRE( mlma->Lemmatize( "штрудель", alemms, aforms, agrams ) == 1 ) )
+            REQUIRE( alemms[0].nlexid == 39988 );
         }
         SECTION( "overflows result errors:" )
         {
@@ -457,6 +469,12 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
       }
       SECTION( "FindMatch" )
       {
+        mlma->FindMatch( "чиc*ить", []( lexeme_t lex, int, const SStrMatch* p )
+          {
+            fprintf( stdout, "%u\t%s\n", lex, std::string(p->sz, p->cc).c_str());
+            return 0;
+          } );
+
         SECTION( "it checks arguments" )
         {
           SECTION( "called with invalid arguments, it returns ARGUMENT_FAILED " )
@@ -589,7 +607,7 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
       {
         IMlmaMb*  mlma;
 
-        mlmaruLoadCpAPI( &mlma, "utf-8" );
+        mlmaruGetAPI( "utf-8", (void**)&mlma );
 
         for ( lexeme_t nlexid = 0; nlexid != 2256000; ++nlexid )
         {
@@ -633,7 +651,7 @@ TestItEasy::RegisterFunc  testmorphrusws( []()
     {
       IMlmaWcXX*  mlma = nullptr;
 
-      if ( REQUIRE_NOTHROW( mlmaruLoadWcAPI( &mlma ) ) && REQUIRE( mlma != nullptr ) )
+      if ( REQUIRE_NOTHROW( mlmaruGetAPI( "utf-16", (void**)&mlma ) ) && REQUIRE( mlma != nullptr ) )
       {
         SECTION( "CheckWord" )
         {
@@ -810,5 +828,12 @@ TestItEasy::RegisterFunc  testmorphrusws( []()
 
 int   main()
 {
+  if ( TestLemmatize( "стали", "utf-8", sfIgnoreCapitals, 2,
+    78434, "сталь",
+    18712, "стать" ) != nullptr )
+  {
+    fprintf( stderr, "C-style lemmatization failt!\n" );
+  }
+
   return TestItEasy::Conclusion();
 }
