@@ -31,8 +31,8 @@
 ******************************************************************************/
 # if !defined( __gramap_h__ )
 # define  __gramap_h__
-# include "../rus/include/mlma1049.h"
-# include "../ukr/include/mlma1058.h"
+# include "../rus.h"
+# include "../ukr.h"
 
 struct  graminfo
 {
