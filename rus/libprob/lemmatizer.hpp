@@ -26,12 +26,12 @@
 
     Contacts:
       email: keva@rambler.ru
-      Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
+      Phone: +7(495)648-4058, +7(926)513-2991
 
 ******************************************************************************/
 # if !defined( __libfuzzy_rus_lemmatizer_hpp__ )
 # define __libfuzzy_rus_lemmatizer_hpp__
-# include "rus/include/mlfa1049.h"
+# include <rus.h>
 # include "rus/chartype.h"
 # include "classtable.hpp"
 # include "mtc/serialize.h"
@@ -128,7 +128,7 @@ namespace rus {
       // если требуется восстановить нормальные формы слов, построить её
         if ( pforms.getptr() != nullptr )
           if ( (nerror = BuildNormalStr( plemma, clemma + 2, pclass, partsp )) != 0 )
-          return nerror;
+            return nerror;
       }
 
     // если требуется восстановить грамматические описания, проверить, умещаются ли они
@@ -187,7 +187,7 @@ namespace rus {
         pclass, ccflex );
 
     // set minimal capitalization
-      casing.Set( (uint8_t*)szform, scheme >> 8, partSp );
+      casing.Set( (uint8_t*)szform, scheme >> 8, pspMinCapValue[partSp] );
 
     // encode to output
       if ( !pforms.append( szform, ccform ) || !pforms.append( '\0' ) )
