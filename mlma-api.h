@@ -1,6 +1,6 @@
 /******************************************************************************
 
-    libmorphrus - dictionary-based morphological analyser for Russian.
+    libmorph - dictionary-based morphological analysers.
 
     Copyright (c) 1994-2026 Andrew Kovalenko aka Keva
 
@@ -29,12 +29,8 @@
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
-# if !defined( _mlma1049_h_ )
-# define _mlma1049_h_
-
-# if defined( _WIN32 )
-#   include <pshpack1.h>
-# endif
+# if !defined( _mlma_api_h_ )
+# define _mlma_api_h_
 
 # include <limits.h>
 # include <stdint.h>
@@ -76,16 +72,16 @@
 
 # if !defined( mlma_strmatch_defined )
 #   define  mlma_strmatch_defined
-    typedef struct
+  typedef struct
+  {
+    union
     {
-      union
-      {
-        const char*     sz;
-        const widechar* ws;
-      };
-      size_t            cc;
-      formid_t          id;
-    } SStrMatch;
+      const char*     sz;
+      const widechar* ws;
+    };
+    size_t            cc;
+    formid_t          id;
+  } SStrMatch;
 # endif // mlma_strmatch_defined
 
 # if !defined( lemmatize_errors_defined )
@@ -102,13 +98,6 @@
 #   define mlma_search_flags_defined
 #   define sfStopAfterFirst  0x0001    // Достаточно одного отождествления
 #   define sfIgnoreCapitals  0x0002    // Плевать на схему капитализации
-# endif
-
-# if !defined( mlmaru_search_flags_defined )
-#   define mlmaru_search_flags_defined
-#   define sfHardForms       0x0004    // Затрудненные словоформы
-#   define sfConnectorVowels 0x0008    // Отождествлять соединительные гласные
-#   define nfAdjVerbs        0x0100    // Нормализация до причастия
 # endif
 
 # if !defined( mlma_grammarecord_defined )
@@ -144,91 +133,6 @@
   } SLemmInfoW;
 
 # endif  // ! mlma_lexemerecord_defined
-
-/**************************************************************************/
-/*            Грамматическая информация из таблиц окончаний               */
-/*                                                                        */
-/*                                *******                                 */
-/*                                                                        */
-/* Склоняющиеся слова, младшие 2 байта. Грамматическая информация.        */
-/*                                                                        */
-/* @+++++++ ++++++++ - возвратная форма (глаголы и прилагательные)        */
-/* +@@@++++ ++++++++ - падеж                                              */
-/* ++++@+++ ++++++++ - число                                              */
-/* +++++@@+ ++++++++ - род                                                */
-/* +++++++@ ++++++++ - краткая форма (для прил. и прич.)                  */
-/* ++++++++ @+++++++ - сравнительная степень                              */
-/* ++++++++ +@@+++++ - причастие, деепричастие, страдательное причастие   */
-/* ++++++++ +++@@+++ - лицо (для глаголов и их форм)                      */
-/* ++++++++ +++++@@@ - временн'ая характеристика глагольной формы         */
-/*                                                                        */
-/* Ниже документирован дополнительный "информационный" байт, сопутству-   */
-/* ющий каждому элементу таблиц окончаний:                                */
-/*                                                                        */
-/*          +++++++@ - окончание для одушевленного имени                  */
-/*          ++++++@+ - окончание для неодушевленного имени                */
-/**************************************************************************/
-
-# if !defined( russian_gram_info_defined )
-#   define russian_gram_info_defined
-
-#   define afAnimated     0x01          /*                       */
-#   define afNotAlive     0x02          /*                       */
-#   define afLifeless     0x02          /* синоним               */
-
-#   define afHardForm     0x04          /* Затрудненная форма    */
-#   define afJoiningC     0x08          /* Соед. гласная         */
-
-#   define gfRetForms     0x8000        /* Возвратная форма      */
-#   define gfFormMask     0x7000        /* Маска для падежей     */
-#   define gfMultiple     0x0800        /* Множественное число   */
-#   define gfGendMask     0x0600        /* Род                   */
-#   define gfShortOne     0x0100        /* Краткая форма         */
-#   define gfCompared     0x0080        /* Сравнительная степень */
-#   define gfVerbForm     0x0060        /* Причастная информация */
-#   define gfAdverb       0x0040        /* Наречие от прил.      */
-#   define gfVerbFace     0x0018        /* Лицо                  */
-#   define gfVerbTime     0x0007        /* Время                 */
-
-#   define vtInfinitiv    0x0001        /* Инфинитив             */
-#   define vtImperativ    0x0002        /* Повелит. наклонение   */
-#   define vtFuture       0x0003        /* Будущее время         */
-#   define vtPresent      0x0004        /* Настоящее время       */
-#   define vtPast         0x0005        /* Прошедшее время       */
-
-#   define vbFirstFace    0x0008        /* Первое лицо           */
-#   define vbSecondFace   0x0010        /* Второе лицо           */
-#   define vbThirdFace    0x0018        /* Третье лицо           */
-
-#   define vfVerb         0x0000        /* Глагольная форма      */
-#   define vfVerbActive   0x0020        /* Действит. причастие   */
-#   define vfVerbPassiv   0x0040        /* Страд. причастие      */
-#   define vfVerbDoing    0x0060        /* Деепричастие          */
-
-# endif  /* russian_gram_info_defined */
-
-#   define wfMultiple   0x0040          /* Множественное число   */
-#   define wfPlural     0x0040          /* Множественное число   */
-
-# if !defined( wfUnionS )
-#   define wfUnionS     0x0040
-# endif
-
-# if !defined( wfExcellent )
-#   define wfExcellent  0x0080
-# endif
-
-# if !defined( wfCountable )
-#   define wfCountable  0x0100
-# endif
-
-# if !defined( wfInformal )
-#   define wfInformal   0x0200
-# endif
-
-# if !defined( wfObscene )
-#   define wfObscene    0x0400
-# endif
 
 # if !defined( EXPORT )
 #   if defined( WIN16 )
@@ -606,55 +510,14 @@
     return this->FindMatch( &pmatch, szword.t, szword.l );
   }
 
-# else
-
-#   define  mlma_CheckWord( module, pszstr, cchstr, dwsets )    \
-      module->vtbl->CheckWord( (module), (pszstr), (cchstr), (dwsets) )
-
-#   define  mlma_Lemmatize( module, pszstr, cchstr, plexid,     \
-            clexid, plemma, clemma, pgrams, ngrams, dwsets )    \
-      module->vtbl->Lemmatize( (module), (pszstr), (cchstr),    \
-                                         (plexid), (clexid),    \
-                                         (plemma), (clemma),    \
-                                         (pgrams), (ngrams), (dwsets) )
-
-#   define  mlma_BuildForm( module, output, cchout, nlexid, idform )  \
-      module->vtbl->BuildForm( (module), (output), (cchout),          \
-                                         (nlexid), (idform) )
-
-#   define  mlma_FindForms( module, output, cchout, pszstr, cchstr, idform )  \
-      module->vtbl->FindForms( (module), (output), (cchout),                  \
-                                         (pszstr), (cchstr), (idform) )
-
-#   define  mlma_CheckHelp( module, output, cchout, pszstr, cchstr )  \
-      module->vtbl->CheckHelp( (module), (output), (cchout),          \
-                                         (pszstr), (cchstr) )
-
-# endif  // !__cplusplus
-
+# endif  /* __cplusplus */
 # endif  /* !mlma_interface_defined */
 
-# if defined( __cplusplus )
-extern "C" {
-# endif /* __cplusplus */
+# if !defined( mlma_getapi_defined )
+# define mlma_getapi_defined
 
-  int   MLMAPROC  mlmaruLoadMbAPI( IMlmaMb** );
-  int   MLMAPROC  mlmaruLoadCpAPI( IMlmaMb**, const char* codepage );
-  int   MLMAPROC  mlmaruLoadWcAPI( IMlmaWc** );
+typedef int (MLMAPROC *libmorphGetAPI)( const char* apiKey, void** ppvAPI );
 
-# if defined( __cplusplus )
-}
-  template <class T>  int   mlmaruLoadMbAPI( T** pp )
-    {  return mlmaruLoadMbAPI( (IMlmaMb**)pp );  }
-  template <class T>  int   mlmaruLoadCpAPI( T** pp, const char* cp )
-    {  return mlmaruLoadCpAPI( (IMlmaMb**)pp, cp );  }
-  template <class T>  int   mlmaruLoadWcAPI( T** pp )
-    {  return mlmaruLoadWcAPI( (IMlmaWc**)pp );  }
+# endif  /* !mlma_getapi_defined */
 
-# endif /* __cplusplus */
-
-# if defined( _WIN32 )
-#   include <poppack.h>
-# endif
-
-# endif /* _mlma1049_h_ */
+# endif /* _mlma_api_h_ */

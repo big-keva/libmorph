@@ -1,6 +1,6 @@
 /******************************************************************************
 
-    libfuzzyrus - fuzzy morphological analyser for Russian.
+    libfuzzy - fuzzy morphological analyser.
 
     Copyright (c) 1994-2026 Andrew Kovalenko aka Keva
 
@@ -29,16 +29,14 @@
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
-# if !defined( _mlfa1049_h_ )
-# define _mlfa1049_h_
-# include "mlma1049.h"
-# if defined( __cplusplus )
-#   include <stdexcept>
-# endif
+# if !defined( _mlfa_api_h_ )
+# define _mlfa_api_h_
+# include "mlma-api.h"
 
-// the main interface structure declaration - describes SStemInfo structure
-// similar to SLemmInfo but providing stem length instead of lexeme
-//
+/*
+ * The main interface structure declaration - describes SStemInfo structure
+ * similar to SLemmInfo but providing stem length instead of lexeme
+ */
 # if !defined( mlfa_lexemerecord_defined )
 # define  mlfa_lexemerecord_defined
 
@@ -128,9 +126,10 @@
   MLMA_END;
 
 # if defined( __cplusplus )
-  template <class Mlfa, class CharType>
+  template <class Mlfa, class Char>
   struct IMlfaXX: Mlfa
   {
+    using CharType = Char;
     using StemType = typename std::conditional<std::is_same<CharType, char>::value,
       SStemInfoA, SStemInfoW>::type;
     using GramType = SGramInfo;
@@ -203,7 +202,7 @@
     lexeme( const StemType& lx ): StemType( lx )
     {
       if ( lx.plemma != nullptr )
-        this->plemma = (normal = string( lx.plemma, lx.ccstem )).c_str();
+        this->plemma = (normal = string( lx.plemma )).c_str();
       if ( lx.ngrams != 0 )
         this->pgrams = (agrams = std::vector<SGramInfo>( lx.pgrams, lx.pgrams + lx.ngrams )).data();
     }
@@ -357,22 +356,4 @@
 
 # endif  /* !mlfa_interface_defined */
 
-# if defined( __cplusplus )
-extern "C" {
-# endif /* __cplusplus */
-
-  int   MLMAPROC        mlfaruLoadMbAPI( IMlfaMb** );
-  int   MLMAPROC        mlfaruLoadCpAPI( IMlfaMb**, const char* codepage );
-  int   MLMAPROC        mlfaruLoadWcAPI( IMlfaWc** );
-
-# if defined( __cplusplus )
-}
-  template <class T>  int   mlfaruLoadMbAPI( T** pp )
-    {  return mlfaruLoadMbAPI( (IMlfaMb**)pp );  }
-  template <class T>  int   mlfaruLoadCpAPI( T** pp, const char* cp )
-    {  return mlfaruLoadCpAPI( (IMlfaMb**)pp, cp );  }
-  template <class T>  int   mlfaruLoadWcAPI( T** pp )
-    {  return mlfaruLoadWcAPI( (IMlfaWc**)pp );  }
-# endif /* __cplusplus */
-
-# endif /* _mlfa1049_h_ */
+# endif /* _mlfa_h_ */
