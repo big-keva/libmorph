@@ -31,9 +31,9 @@
 ******************************************************************************/
 # include "xmorph/wildscan.h"
 # include "xmorph/charlist.h"
-# include "../include/mlma1049.h"
-# include "../codepages.hpp"
+# include "../../rus.h"
 # include "../chartype.h"
+# include "../codepages.hpp"
 # include "mlmadefs.h"
 # include "scanClass.hpp"
 # include "wildClass.hpp"
@@ -41,7 +41,6 @@
 # include "buildform.hpp"
 # include <cstdlib>
 # include <cstring>
-# include <errno.h>
 
 # if !defined( _WIN32_WCE )
   # define  CATCH_ALL         try {
@@ -73,8 +72,8 @@ namespace rus {
   //
   struct  CMlmaMb: public IMlmaMb
   {
-    int MLMAPROC  Attach() override {  return 0;  }
-    int MLMAPROC  Detach() override {  return 0;  }
+    int MLMAPROC  Attach() override {  return 1;  }
+    int MLMAPROC  Detach() override {  return 1;  }
 
     int MLMAPROC  CheckWord( const char*    pszstr, size_t    cchstr,
                              unsigned       dwsets )                   override;
@@ -108,16 +107,16 @@ namespace rus {
 
   };
 
-  struct  CMlmaCp final: public CMlmaMb
+  class CMlmaCp final: public CMlmaMb
   {
-    virtual int MLMAPROC  Attach();
-    virtual int MLMAPROC  Detach();
+    int MLMAPROC  Attach() override;
+    int MLMAPROC  Detach() override;
 
   public:     // construction
-    CMlmaCp( unsigned cp ): CMlmaMb( cp ), refcount( 0 ) {}
+    CMlmaCp( unsigned cp ): CMlmaMb( cp ) {}
 
   protected:  // codepage
-    long      refcount;
+    long      refcount = 0;
 
   };
 
@@ -126,8 +125,8 @@ namespace rus {
     class WcMatch;
 
   public:
-    int MLMAPROC  Attach() override {  return 0;  }
-    int MLMAPROC  Detach() override {  return 0;  }
+    int MLMAPROC  Attach() override {  return 1;  }
+    int MLMAPROC  Detach() override {  return 1;  }
 
     int MLMAPROC  CheckWord( const widechar*  pszstr, size_t    cchstr,
                              unsigned         dwsets )  override;
@@ -496,10 +495,7 @@ namespace rus {
     long  rcount;
     
     if ( (rcount = --refcount) == 0 )
-    {
-      this->~CMlmaCp();
-      free( this );
-    }
+      delete this;
     return rcount;
   }
 
@@ -686,10 +682,10 @@ namespace rus {
     return client->AddLexeme( nlexid, nforms, amatch );
   }
 
-  struct
+  static const struct
   {
-    unsigned    idcodepage;
-    const char* szcodepage;
+    const unsigned    codepageId;
+    const char* const codepageSz;
   } codepageList[] =
   {
     { codepages::codepage_1251, "Windows-1251" },
@@ -713,49 +709,101 @@ namespace rus {
     { codepages::codepage_iso,  "mac" },
     { codepages::codepage_utf8, "65001" },
     { codepages::codepage_utf8, "utf-8" },
-    { codepages::codepage_utf8, "utf8" }
+    { codepages::codepage_utf8, "utf8" },
+    { unsigned(-1),             "utf-16" },
+    { unsigned(-1),             "utf16" }
   };
 
 }}
 
+/*
+ * declare old-style api functions
+ */
+extern "C"  int   MLMAPROC  mlmaruLoadMbAPI( IMlmaMb** );
+extern "C"  int   MLMAPROC  mlmaruLoadCpAPI( IMlmaMb**, const char* );
+extern "C"  int   MLMAPROC  mlmaruLoadWcAPI( IMlmaWc** );
+
+/*
+ * declare public style api function
+ */
+extern "C"  int   MLMAPROC  mlmaruGetAPI( const char*, void** );
+
 using namespace libmorph::rus;
 
-int   MLMAPROC        mlmaruLoadMbAPI( IMlmaMb**  ptrAPI )
+extern "C"  int   MLMAPROC  mlmaruLoadMbAPI( IMlmaMb**  ptrAPI )
 {
   if ( ptrAPI == nullptr )
-    return -1;
+    return EINVAL;
   *ptrAPI = (IMlmaMb*)&mlmaMbInstance;
     return 0;
 }
 
-int   MLMAPROC        mlmaruLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
+extern "C"  int   MLMAPROC  mlmaruLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
 {
   CMlmaMb*  palloc;
-  unsigned  pageid = (unsigned)-1;
 
-  for ( auto& page: codepageList )
-    if ( strcasecmp( page.szcodepage, codepage ) == 0 )
-      {  pageid = page.idcodepage;  break;  }
-
-  if ( pageid == (unsigned)-1 || ptrAPI == nullptr )
+// check API pointer
+  if ( ptrAPI == nullptr || codepage == nullptr || *codepage == '\0' )
     return EINVAL;
 
-  if ( pageid == codepages::codepage_1251 )
-    return mlmaruLoadMbAPI( ptrAPI );
+// detect the codepage
+  for ( auto& page: codepageList )
+    if ( strcasecmp( page.codepageSz, codepage ) == 0 )
+    {
+    // check invalid codepage
+      if ( page.codepageId == unsigned(-1) )
+        return EINVAL;
 
-  if ( (palloc = (CMlmaMb*)malloc( sizeof(*palloc) )) == nullptr )
-    return ENOMEM;
+    // check simple api id
+      if ( page.codepageId == codepages::codepage_1251 )
+        return mlmaruLoadMbAPI( ptrAPI );
 
-  ((IMlmaMb*)new( palloc ) CMlmaMb( pageid ))->Attach();
+    // create new api object
+      if ( (palloc = new ( std::nothrow ) CMlmaCp( page.codepageId )) == nullptr )
+        return ENOMEM;
 
-  return *ptrAPI = palloc, 0;
+    // return the result
+      return (*ptrAPI = palloc)->Attach(), 0;
+    }
+
+  return *ptrAPI = nullptr, EINVAL;
 }
 
-int   MLMAPROC        mlmaruLoadWcAPI( IMlmaWc**  ptrAPI )
+extern "C"  int   MLMAPROC  mlmaruLoadWcAPI( IMlmaWc**  ptrAPI )
 {
   if ( ptrAPI == nullptr )
-    return -1;
+    return EINVAL;
   *ptrAPI = (IMlmaWc*)&mlmaWcInstance;
     return 0;
 }
 
+extern "C"  int   MLMAPROC  mlmaruGetAPI( const char* strKey, void** ppvAPI )
+{
+  CMlmaMb*  palloc;
+
+// check call parameters
+  if ( ppvAPI == nullptr || strKey == nullptr || *strKey == '\0' )
+    return EINVAL;
+
+  // detect the codepage
+  for ( auto& page: codepageList )
+    if ( strcasecmp( page.codepageSz, strKey ) == 0 )
+    {
+      // check invalid codepage
+      if ( page.codepageId == unsigned(-1) )
+        return mlmaruLoadWcAPI( (IMlmaWc**)ppvAPI );
+
+      // check simple api id
+      if ( page.codepageId == codepages::codepage_1251 )
+        return mlmaruLoadMbAPI( (IMlmaMb**)ppvAPI );
+
+      // create new api object
+      if ( (palloc = new ( std::nothrow ) CMlmaCp( page.codepageId )) == nullptr )
+        return ENOMEM;
+
+      // return the result
+      return static_cast<IMlmaMb*>( *ppvAPI = palloc )->Attach(), 0;
+    }
+
+  return *ppvAPI = nullptr, EINVAL;
+}
