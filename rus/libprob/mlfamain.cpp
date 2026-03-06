@@ -25,8 +25,8 @@
     Commercial license is available upon request.
 
     Contacts:
-      email: keva@meta.ua, keva@rambler.ru
-      Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
+      email: keva@rambler.ru
+      Phone: +7(495)648-4058, +7(926)513-2991
 
 ******************************************************************************/
 # include "scandict.hpp"
@@ -59,7 +59,7 @@ namespace rus {
     CMlfaMb( unsigned cp = CPS_1251 ): codepage( cp ) {}
 
   public:
-    int MLMAPROC  Attach() override {  return 0;  }
+    int MLMAPROC  Attach() override {  return 1;  }
     int MLMAPROC  Detach() override {  return 1;  }
 
   public:     // overridables
@@ -78,7 +78,7 @@ namespace rus {
       const char*   lpstem, size_t    ccstem,
       unsigned      nclass, formid_t  idform ) override;
     int MLMAPROC  FindMatch(
-      IMatchStemMb* pmatch,
+      IMlfaMatch*   pmatch,
       const char*   pszstr, size_t    cchstr ) override;
 
   protected:
@@ -102,31 +102,32 @@ namespace rus {
 
   class CMlfaWc: public IMlfaWc
   {
-    class MatchTranslate: public IMatchStemMb
+    class MatchTranslate: public IMlfaMatch
     {
-      int MLMAPROC  Attach()  override  {  return 0;  }
+      int MLMAPROC  Attach()  override  {  return 1;  }
       int MLMAPROC  Detach()  override  {  return 1;  }
 
     public:
-      MatchTranslate( IMatchStemWc* to ):
+      MatchTranslate( IMlfaMatch* to ):
         imatch( to )  {}
-      auto  ptr() -> IMatchStemMb*
+      auto  ptr() -> IMlfaMatch*
         {  return this;  }
+
     public:
-      int MLMAPROC Add(
-        const char* plemma,
+      int MLMAPROC AddLexeme(
+        const void* plemma,
         size_t      clemma,
         size_t      cchstr,
         unsigned    uclass,
-        size_t      nforms, const SStrMatch* pforms ) override;
+        int         nforms, const SStrMatch* pforms ) override;
 
     protected:
-      IMatchStemWc* imatch;
+      IMlfaMatch*   imatch;
 
     };
 
   public:     // lifetime control
-    int MLMAPROC  Attach()  override  {  return 0;  }
+    int MLMAPROC  Attach()  override  {  return 1;  }
     int MLMAPROC  Detach()  override  {  return 1;  }
 
   public:     // overridables
@@ -145,7 +146,7 @@ namespace rus {
       const widechar* lpstem, size_t    ccstem,
       unsigned        nclass, formid_t  idform ) override;
     int MLMAPROC  FindMatch(
-      IMatchStemWc*   pmatch,
+      IMlfaMatch*     pmatch,
       const widechar* pszstr, size_t    cchstr ) override;
 
   };
@@ -267,7 +268,7 @@ namespace rus {
     catch ( ... ) {  return -1;  }
   }
 
-  int   CMlfaMb::FindMatch( IMatchStemMb* pmatch, const char* pszstr, size_t  cchstr )
+  int   CMlfaMb::FindMatch( IMlfaMatch* pmatch, const char* pszstr, size_t  cchstr )
   {
     CATCH_ALL
       uint8_t   locase[256];
@@ -293,7 +294,7 @@ namespace rus {
         for ( auto p = slemma, e = slemma + clemma; p != e; ++p )
           cbytes += libmorph::ToCodepage( codepage, encode + cbytes, sizeof(encode) - cbytes, p, 1 );
 
-        pmatch->Add( encode, clemma, cbytes, cclass, cmatch, amatch );
+        pmatch->AddLexeme( encode, clemma, cbytes, cclass, cmatch, amatch );
       };
       auto      reglex = [&](
         const fragment& szstem,
@@ -396,26 +397,24 @@ namespace rus {
     long  rcount;
     
     if ( (rcount = --refcount) == 0 )
-    {
-      this->~CMlfaCp();
-      free( this );
-    }
+      delete this;
+
     return rcount;
   }
 
   // CMlfaWc wrapper implementation
 
-  int   CMlfaWc::MatchTranslate::Add(
-    const char* plemma,
+  int   CMlfaWc::MatchTranslate::AddLexeme(
+    const void* plemma,
     size_t      clemma,
     size_t    /*cchstr*/,
     unsigned    uclass,
-    size_t      nforms, const SStrMatch* pforms )
+    int         nforms, const SStrMatch* pforms )
   {
     widechar  wlemma[0x100];
-    size_t    llemma = ToWidechar( wlemma, plemma, clemma );
+    size_t    llemma = ToWidechar( wlemma, (const char*)plemma, clemma );
 
-    return imatch->Add( wlemma, llemma, llemma, uclass, nforms, pforms );
+    return imatch->AddLexeme( wlemma, llemma, llemma, uclass, nforms, pforms );
   }
 
   int   CMlfaWc::GetWdInfo(
@@ -525,7 +524,7 @@ namespace rus {
   }
 
   int   CMlfaWc::FindMatch(
-    IMatchStemWc*   pmatch,
+    IMlfaMatch*     pmatch,
     const widechar* pwsstr,
     size_t          cchstr )
   {
@@ -550,8 +549,8 @@ namespace rus {
 
   struct
   {
-    unsigned    idcodepage;
-    const char* szcodepage;
+    unsigned    codepageId;
+    const char* codepageSz;
   } codepageList[] =
   {
     { codepages::codepage_1251, "Windows-1251" },
@@ -575,14 +574,28 @@ namespace rus {
     { codepages::codepage_iso,  "mac" },
     { codepages::codepage_utf8, "65001" },
     { codepages::codepage_utf8, "utf-8" },
-    { codepages::codepage_utf8, "utf8" }
+    { codepages::codepage_utf8, "utf8" },
+    { unsigned(-1),             "utf-16" },
+    { unsigned(-1),             "utf16" }
   };
 
 }}
 
+/*
+ * declare old-style api functions
+ */
+extern "C"  int   MLMAPROC  mlfaruLoadMbAPI( IMlfaMb** );
+extern "C"  int   MLMAPROC  mlfaruLoadCpAPI( IMlfaMb**, const char* );
+extern "C"  int   MLMAPROC  mlfaruLoadWcAPI( IMlfaWc** );
+
+/*
+ * declare public style api function
+ */
+extern "C"  int   MLMAPROC  mlfaruGetAPI( const char*, void** );
+
 using namespace libmorph::rus;
 
-int   MLMAPROC        mlfaruLoadMbAPI( IMlfaMb**  ptrAPI )
+extern "C"  int   MLMAPROC  mlfaruLoadMbAPI( IMlfaMb**  ptrAPI )
 {
   if ( ptrAPI == nullptr )
     return -1;
@@ -590,31 +603,72 @@ int   MLMAPROC        mlfaruLoadMbAPI( IMlfaMb**  ptrAPI )
     return 0;
 }
 
-int   MLMAPROC        mlfaruLoadCpAPI( IMlfaMb**  ptrAPI, const char* codepage )
+extern "C"  int   MLMAPROC  mlfaruLoadCpAPI( IMlfaMb**  ptrAPI, const char* codepage )
 {
   CMlfaMb*  palloc;
-  unsigned  pageid = (unsigned)-1;
 
-  for ( auto& page: codepageList )
-    if ( strcasecmp( page.szcodepage, codepage ) == 0 )
-      {  pageid = page.idcodepage;  break;  }
-
-  if ( pageid == (unsigned)-1 || ptrAPI == nullptr )
+  // check API pointer
+  if ( ptrAPI == nullptr || codepage == nullptr || *codepage == '\0' )
     return EINVAL;
 
-  if ( pageid == codepages::codepage_1251 )
-    return mlfaruLoadMbAPI( ptrAPI );
+  // detect the codepage
+  for ( auto& page: codepageList )
+    if ( strcasecmp( page.codepageSz, codepage ) == 0 )
+    {
+      // check invalid codepage
+      if ( page.codepageId == unsigned(-1) )
+        return EINVAL;
 
-  if ( (palloc = new( std::nothrow ) CMlfaMb( pageid )) == nullptr )
-    return ENOMEM;
-  (*ptrAPI = (IMlfaMb*)palloc)->Attach();
-    return 0;
+      // check simple api id
+      if ( page.codepageId == codepages::codepage_1251 )
+        return mlfaruLoadMbAPI( ptrAPI );
+
+      // create new api object
+      if ( (palloc = new ( std::nothrow ) CMlfaCp( page.codepageId )) == nullptr )
+        return ENOMEM;
+
+      // return the result
+      return (*ptrAPI = palloc)->Attach(), 0;
+    }
+
+  return *ptrAPI = nullptr, EINVAL;
 }
 
-int   MLMAPROC  mlfaruLoadWcAPI( IMlfaWc**  ptrAPI )
+extern "C"  int   MLMAPROC  mlfaruLoadWcAPI( IMlfaWc**  ptrAPI )
 {
   if ( ptrAPI == nullptr )
     return -1;
   *ptrAPI = (IMlfaWc*)&mlfaWcInstance;
     return 0;
+}
+
+extern "C"  int   MLMAPROC  mlfaruGetAPI( const char* strKey, void** ppvAPI )
+{
+  CMlfaMb*  palloc;
+
+  // check call parameters
+  if ( ppvAPI == nullptr || strKey == nullptr || *strKey == '\0' )
+    return EINVAL;
+
+  // detect the codepage
+  for ( auto& page: codepageList )
+    if ( strcasecmp( page.codepageSz, strKey ) == 0 )
+    {
+      // check invalid codepage
+      if ( page.codepageId == unsigned(-1) )
+        return mlfaruLoadWcAPI( (IMlfaWc**)ppvAPI );
+
+      // check simple api id
+      if ( page.codepageId == codepages::codepage_1251 )
+        return mlfaruLoadMbAPI( (IMlfaMb**)ppvAPI );
+
+      // create new api object
+      if ( (palloc = new ( std::nothrow ) CMlfaCp( page.codepageId )) == nullptr )
+        return ENOMEM;
+
+      // return the result
+      return static_cast<IMlfaMb*>( *ppvAPI = palloc )->Attach(), 0;
+    }
+
+  return *ppvAPI = nullptr, EINVAL;
 }
