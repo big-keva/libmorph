@@ -217,7 +217,7 @@ namespace rus {
     // for asterisk, check if 0 match
       if ( (nerror = SwapSearch( target, filter, smatch, nmatch, inflex.next(), suffix, szswap, ptable )) != 0 )
         return nerror;
-      if ( (nerror = SwapSearch( target, filter, smatch, nmatch, inflex, suffix, szswap.next(), ptable )) != 0 )
+      if ( (nerror = SwapSearch( target, filter, smatch, nmatch + 1, inflex, suffix, szswap.next(), ptable )) != 0 )
         return nerror;
 
       return 0;
