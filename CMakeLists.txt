@@ -96,7 +96,7 @@ endif()
 #
 if(BUILD_MORPHRUS OR BUILD_FUZZYRUS)
   message(STATUS "libmorph:rus building enabled")
-  add_subdirectory(rus)
+  add_subdirectory(lang-rus)
 endif()
 
 #
@@ -104,7 +104,7 @@ endif()
 #
 if(BUILD_MORPHENG OR BUILD_FUZZYENG)
   message(STATUS "libmorph:eng building enabled")
-  add_subdirectory(eng)
+  add_subdirectory(lang-eng)
 endif()
 
 #if(BUILD_MORPHUKR OR BUILD_FUZZYUKR)
@@ -127,22 +127,22 @@ endif()
 if(BUILD_MORPHRUS OR BUILD_MORPHUKR)
   message(STATUS "libmorph:tfc building enabled")
 
-  add_executable(tfc
-    tfc/ftable.cpp
-    tfc/gramap.cpp
-    tfc/tfc.cpp)
-  target_link_libraries(tfc moonycode)
+  add_executable(libmorph-tfc
+    utils/tfc/ftable.cpp
+    utils/tfc/gramap.cpp
+    utils/tfc/tfc.cpp)
+  target_link_libraries(libmorph-tfc moonycode)
 endif()
 
 #
-# package libmorph-common
+# package libmorph-api
 #
 # install section
 #
 install(
   FILES morphapi.h fuzzyapi.h
   DESTINATION include/libmorph
-  COMPONENT api)
+  COMPONENT API)
 
 #
 # CPack
