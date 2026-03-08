@@ -1,0 +1,49 @@
+name: Build and Release Libmorph
+
+on:
+  push:
+    tags:
+      - 'v*' # auto-build on push tags v*
+
+permissions:
+  contents: write
+
+jobs:
+  build-pkgs:
+    runs-on: ubuntu-latest
+    container: ubuntu:20.04
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          apt-get update
+          # rpm нужен для сборки .rpm пакетов через CPack
+          apt-get install -y cmake build-essential rpm
+
+      - name: Configure and Build (Russian)
+        run: |
+          mkdir build && cd build
+          # Включаем только нужные модули
+          cmake -DBUILD_MORPHRUS=ON -DBUILD_ENG=OFF -DBUILD_UKR=OFF ..
+          # Собираем конкретные таргеты
+          make morphrus-shared morphrus-static
+
+      - name: Pack DEB and RPM
+        working-directory: ./build
+        run: |
+          # Упаковываем только нужные компоненты
+          cpack -G DEB -D CPACK_COMPONENTS_ALL="api;rus;rus-dev"
+          cpack -G RPM -D CPACK_COMPONENTS_ALL="api;rus;rus-dev"
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          # Загружаем все сгенерированные пакеты из папки build
+          files: |
+            build/*.deb
+            build/*.rpm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
