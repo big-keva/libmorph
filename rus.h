@@ -32,8 +32,8 @@
 # if !defined( _libmorph_rus_h_ )
 # define _libmorph_rus_h_
 
-# include "mlma-api.h"
-# include "mlfa-api.h"
+# include "morphapi.h"
+# include "fuzzyapi.h"
 
 # if !defined( sfHardForms)
 #   define sfHardForms       0x0004    /* Затрудненные словоформы         */
