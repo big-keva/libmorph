@@ -95,8 +95,8 @@ add_custom_command(OUTPUT ${DicCPP}
 # compile flexion tables
 #
 add_custom_command(OUTPUT ${FlexTab} ${FlexIdx}
-	COMMAND tfc -lang:rus ${FlexSrc} ${FlexTab} ${FlexIdx}
-	DEPENDS tfc ${FlexSrc} tmp)
+	COMMAND libmorph-tfc -lang:rus ${FlexSrc} ${FlexTab} ${FlexIdx}
+	DEPENDS libmorph-tfc ${FlexSrc} tmp)
 
 #
 # compile stem interchanges
