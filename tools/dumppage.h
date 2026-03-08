@@ -32,7 +32,7 @@
 # pragma once
 # if !defined( __dumppage_h__ )
 # define __dumppage_h__
-# include "mtc/serialize.h"
+# include <mtc/serialize.h>
 # include <stdexcept>
 # include <cstdarg>
 # include <cstring>

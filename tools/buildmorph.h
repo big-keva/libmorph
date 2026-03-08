@@ -36,7 +36,6 @@
 # include "sweets.h"
 # include "moonycode/codes.h"
 # include <stdexcept>
-# include <algorithm>
 # include <vector>
 
 inline  size_t  lexkeybuf( char* lexbuf, unsigned nlexid )

@@ -31,7 +31,7 @@
 ******************************************************************************/
 # if !defined( __libmorph_wildscan_h__ )
 # define __libmorph_wildscan_h__
-# include "mlmadefs.h"
+# include <mlmadefs.h>
 # include "scandict.h"
 # include <cstring>
 

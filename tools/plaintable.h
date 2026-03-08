@@ -32,7 +32,7 @@
 # pragma once
 # if !defined( __plaintable_h__ )
 # define __plaintable_h__
-# include "mtc/serialize.h"
+# include <mtc/serialize.h>
 # include <algorithm>
 # include <cstdint>
 # include <cstddef>

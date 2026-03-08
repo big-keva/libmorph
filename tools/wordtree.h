@@ -32,7 +32,7 @@
 # pragma once
 # if !defined( __libmorph_wordtree_h__ )
 # define  __libmorph_wordtree_h__
-# include "mtc/serialize.h"
+# include <mtc/serialize.h>
 # include <climits>
 # include <cassert>
 # include <memory>
