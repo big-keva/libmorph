@@ -30,13 +30,13 @@
 
 ******************************************************************************/
 # include "../../../eng.h"
-# include "../codepages.hpp"
+# include <xmorph/codepages.hpp>
+# include <mtc/test-it-easy.hpp>
 # include <algorithm>
 # include <string>
 # include <cstring>
 # include <vector>
 # include <cstdio>
-# include <mtc/test-it-easy.hpp>
 # include <thread>
 
 struct  StrMatch

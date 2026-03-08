@@ -15,6 +15,8 @@ elseif(BUILD_SHARED_LIBS)
   endif()
 endif()
 
+include_directories(.)
+
 set(Namespace libmorpheng)
 
 set(DicCPP

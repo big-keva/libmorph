@@ -33,8 +33,8 @@
 # define __libmorph_eng_buildform_hpp__
 # include "mlmadefs.h"
 # include "xmorph/buildforms.hpp"
+# include "xmorph/codepages.hpp"
 # include "xmorph/capsheme.h"
-# include "../../codepages.hpp"
 
 namespace libmorph {
 namespace eng {

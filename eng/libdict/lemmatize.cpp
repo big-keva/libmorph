@@ -31,11 +31,9 @@
 ******************************************************************************/
 # include "lemmatize.hpp"
 # include "buildform.hpp"
-# include "grammap.h"
-# include "codepages.hpp"
 # include "xmorph/buildforms.hpp"
+# include "xmorph/codepages.hpp"
 # include "xmorph/capsheme.h"
-# include "moonycode/codes.h"
 # include <algorithm>
 
 namespace libmorph {

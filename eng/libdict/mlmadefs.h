@@ -36,6 +36,8 @@
 # include "../../eng.h"
 # include "xmorph/typedefs.h"
 
+# define wfPostSt   0x8000       /* Stem has post-text definition          */
+
 namespace libmorpheng {
   extern unsigned char  flexTree[];
   extern unsigned char  classmap[];

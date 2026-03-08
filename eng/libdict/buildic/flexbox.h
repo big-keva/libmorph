@@ -31,6 +31,8 @@
 ******************************************************************************/
 # if !defined( __flexbox_h__ )
 # define  __flexbox_h__
+# include <mtc/serialize.h>
+# include <algorithm>
 # include <cstdint>
 # include <vector>
 # include <string>

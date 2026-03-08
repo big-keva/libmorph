@@ -29,9 +29,9 @@
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
+# include "xmorph/codepages.hpp"
 # include "xmorph/wildscan.h"
 # include "xmorph/charlist.h"
-# include "../../codepages.hpp"
 # include "../chartype.h"
 # include "mlmadefs.h"
 # include "scanClass.hpp"
@@ -40,7 +40,6 @@
 # include "buildform.hpp"
 # include <cstdlib>
 # include <cstring>
-# include <errno.h>
 
 # if !defined( _WIN32_WCE )
   # define  CATCH_ALL         try {

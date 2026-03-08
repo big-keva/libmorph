@@ -29,11 +29,11 @@
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
-# include <mlmadefs.h>
-# include "../../license.h"
-# include "../../tools/buildmorph.h"
-# include "../../chartype.h"
 # include "flexbox.h"
+# include "../mlmadefs.h"
+# include "../../license.h"
+# include "../../chartype.h"
+# include <tools/buildmorph.h>
 # include <mtc/wcsstr.h>
 
 # define MAX_STRING_LEN    256

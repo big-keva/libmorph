@@ -32,7 +32,6 @@
 # if !defined( __libmorph_eng_wildClass_hpp__ )
 # define __libmorph_eng_wildClass_hpp__
 # include "scanClass.hpp"
-# include "grammap.h"
 
 namespace libmorph {
 namespace eng {
