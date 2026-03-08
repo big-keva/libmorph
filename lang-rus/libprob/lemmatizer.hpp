@@ -32,7 +32,7 @@
 # if !defined( __libfuzzy_rus_lemmatizer_hpp__ )
 # define __libfuzzy_rus_lemmatizer_hpp__
 # include <rus.h>
-# include "rus/chartype.h"
+# include "../chartype.h"
 # include "classtable.hpp"
 # include <mtc/serialize.h>
 # include <algorithm>
