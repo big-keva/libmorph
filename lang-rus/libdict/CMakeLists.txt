@@ -150,7 +150,19 @@ install(
   DESTINATION include/libmorph COMPONENT rus-dev)
 
 #
+# deb summary
+#
+set(CPACK_COMPONENT_RUS_DESCRIPTION "Russian morphological analysis library (shared)")
+set(CPACK_COMPONENT_RUS-DEV_DESCRIPTION "Development files for Russian morphological analysis (headers and static lib)")
+
+set(CPACK_RPM_API_PACKAGE_SUMMARY "Common API for libmorph")
+set(CPACK_RPM_RUS_PACKAGE_SUMMARY "Russian morphological analysis library (shared)")
+set(CPACK_RPM_RUS-DEV_PACKAGE_SUMMARY "Development files for Russian morphological analysis (headers and static lib)")
+
+#
 # dependencies
 #
-set(CPACK_DEBIAN_RUS-DEV_PACKAGE_DEPENDS "libmorph-api, libmorphrus")
-set(CPACK_DEBIAN_RUS-DEV_PACKAGE_DEPENDS "libmorphrus (= ${CPACK_PACKAGE_VERSION})")
+set(CPACK_DEBIAN_RUS-DEV_PACKAGE_DEPENDS "libmorph-api, libmorphrus (= ${CPACK_PACKAGE_VERSION})")
+
+set(CPACK_RPM_RUS_PACKAGE_REQUIRES "libmorph-api= ${CPACK_PACKAGE_VERSION}")
+set(CPACK_RPM_RUS_DEV_PACKAGE_REQUIRES "libmorphrus = ${CPACK_PACKAGE_VERSION}, libmorph-api")

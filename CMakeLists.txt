@@ -142,16 +142,25 @@ endif()
 install(
   FILES morphapi.h fuzzyapi.h
   DESTINATION include/libmorph
-  COMPONENT API)
+  COMPONENT api)
 
 #
 # CPack
 #
 set(CPACK_GENERATOR "DEB;RPM")
+
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Morphological analysis libraries (libmorph)")
+
+set(CPACK_COMPONENT_API_DESCRIPTION "API headers for libmorph libraries")
+set(CPACK_RPM_API_PACKAGE_SUMMARY "API headers for libmorph libraries")
+
 set(CPACK_DEB_COMPONENT_INSTALL ON)
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
-
 set(CPACK_DEBIAN_API_PACKAGE_ARCHITECTURE "all")
+
+set(CPACK_RPM_COMPONENT_INSTALL ON)
+set(CPACK_RPM_FILE_NAME "RPM-DEFAULT")
+set(CPACK_RPM_API_PACKAGE_ARCHITECTURE "noarch")
 
 #
 # package manifest
