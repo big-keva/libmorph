@@ -35,6 +35,8 @@ set(SYMBOLS_FILE ${PROJECT_SOURCE_DIR}/morphrus.unix.def)
 set(CMAKE_SHARED_LINKER_FLAGS
   "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-retain-symbols-file -Wl,${SYMBOLS_FILE} -static-libgcc -static-libstdc++" )
 
+include_directories(.)
+
 #
 # create objects for building libraries
 #
@@ -44,7 +46,7 @@ add_library(morphrus-objset OBJECT
     lemmatize.cpp
     ${LIBMORPH_SOURCE_DIR}/xmorph/capsheme.cpp
     ${LIBMORPH_SOURCE_DIR}/xmorph/buildforms.cpp
-    ${MORPHRUS_SOURCE_DIR}/chartype.cpp
+    ../chartype.cpp
     ${DicCPP})
 
 set_target_properties(morphrus-objset PROPERTIES
@@ -100,41 +102,55 @@ add_custom_command(OUTPUT ${FlexTab} ${FlexIdx}
 # compile stem interchanges
 #
 add_custom_command(OUTPUT ${IntrTab} ${IntrIdx}
-	COMMAND ${MakeIch} ${IntrSrc} ${IntrTab} ${IntrIdx}
-	DEPENDS ${MakeIch} ${IntrSrc} tmp)
+  COMMAND ${MakeIch} ${IntrSrc} ${IntrTab} ${IntrIdx}
+  DEPENDS ${MakeIch} ${IntrSrc} tmp)
 
 add_executable(${MakeIch}
-	tools/makeich/makeich.cpp)
+  tools/makeich/makeich.cpp)
 
 add_executable(${BuilDic}
-	tools/buildic/lresolve.cpp
-	tools/buildic/makerus.cpp
-	tools/buildic/mtables.cpp)
+  tools/buildic/lresolve.cpp
+  tools/buildic/makerus.cpp
+  tools/buildic/mtables.cpp)
 
 # directories in build tree for custom built files:
 #   * inflextion tables;
 #   * dictionary sources.
 add_custom_target(dictree ALL
-	COMMAND ${CMAKE_COMMAND} -E make_directory dictree)
+  COMMAND ${CMAKE_COMMAND} -E make_directory dictree)
 
 add_custom_target(tmp ALL
-	COMMAND ${CMAKE_COMMAND} -E make_directory tmp)
-
-# install
-#install(TARGETS morphrus DESTINATION lib)
-#
-#install(
-#  FILES
-#    ../include/mlma1049.h
-#  DESTINATION include/libmorph/rus/include)
+  COMMAND ${CMAKE_COMMAND} -E make_directory tmp)
 
 add_executable(morphrus-test
-	tests/testcapi.c
-	tests/testfunc.cpp)
+  tests/testcapi.c
+  tests/testfunc.cpp)
 
 target_link_libraries(morphrus-test
     morphrus-shared
     moonycode mtc)
 
-target_link_libraries(${BuilDic}    moonycode)
-target_link_libraries(${MakeIch}	moonycode)
+target_link_libraries(${BuilDic} moonycode)
+target_link_libraries(${MakeIch} moonycode)
+
+
+#
+# install section
+#
+# components:
+#   libmorphrus
+#   libmorphrus-dev
+#
+install(TARGETS morphrus-shared
+  DESTINATION lib COMPONENT rus)
+install(TARGETS morphrus-static
+  DESTINATION lib COMPONENT rus-dev)
+install(
+  FILES ../../rus.h
+  DESTINATION include/libmorph COMPONENT rus-dev)
+
+#
+# dependencies
+#
+set(CPACK_DEBIAN_RUS-DEV_PACKAGE_DEPENDS "libmorph-api, libmorphrus")
+set(CPACK_DEBIAN_RUS-DEV_PACKAGE_DEPENDS "libmorphrus (= ${CPACK_PACKAGE_VERSION})")

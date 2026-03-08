@@ -31,9 +31,9 @@
 ******************************************************************************/
 # if !defined( __libfuzzy_rus_scandict_hpp__ )
 # define __libfuzzy_rus_scandict_hpp__
-# include "mtc/serialize.h"
 # include "xmorph/typedefs.h"
-# include "moonycode/codes.h"
+# include <moonycode/codes.h>
+# include <mtc/serialize.h>
 
 namespace libfuzzy {
 namespace rus {

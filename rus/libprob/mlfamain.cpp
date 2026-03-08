@@ -467,8 +467,8 @@ namespace rus {
       for ( auto mbstem = stbuff; mbstem != stbuff + lcount; ++mbstem )
       {
         *output++ = {
-          mbstem->ccstem, mbstem->nclass,
           mbstem->plemma != nullptr ? plemma + (mbstem->plemma - szlemm) : nullptr,
+          mbstem->ccstem, mbstem->nclass,
           mbstem->pgrams, mbstem->ngrams, mbstem->weight };
       }
 

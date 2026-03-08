@@ -34,7 +34,7 @@ if (FUZZYRUS_BUILD_AS_SHARED_LIBRARY)
   add_library(fuzzyrus SHARED
     mlfamain.cpp
     ${LIBMORPH_SOURCE_DIR}/xmorph/capsheme.cpp
-    ${MORPHRUS_SOURCE_DIR}/chartype.cpp
+    ../chartype.cpp
     ${InflexCPP} )
 
   target_link_libraries(fuzzyrus moonycode)
@@ -44,7 +44,7 @@ else()
   add_library(fuzzyrus STATIC
     mlfamain.cpp
     ${LIBMORPH_SOURCE_DIR}/xmorph/capsheme.cpp
-    ${MORPHRUS_SOURCE_DIR}/chartype.cpp
+    ../chartype.cpp
     ${InflexCPP} )
 
 endif()
@@ -80,7 +80,7 @@ add_executable(${CompileDict}	tools/compile-dict.cpp)
 add_executable(${MakeClasses}	tools/make-classes.cpp)
 
 target_link_libraries(${CompileDict}	moonycode mtc)
-target_link_libraries(${MakeClasses}	morphrus moonycode mtc)
+target_link_libraries(${MakeClasses}	morphrus-objset moonycode mtc)
 
 # install
 install(TARGETS fuzzyrus DESTINATION lib)

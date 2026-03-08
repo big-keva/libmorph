@@ -30,7 +30,7 @@
 
 ******************************************************************************/
 # include "../../../rus.h"
-# include "../codepages.hpp"
+# include "xmorph/codepages.hpp"
 # include <algorithm>
 # include <string>
 # include <cstring>

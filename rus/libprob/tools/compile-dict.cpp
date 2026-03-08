@@ -29,10 +29,10 @@
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
-# include "../../tools/dumppage.h"
-# include "moonycode/codes.h"
-# include "mtc/patricia.h"
-# include "mtc/json.h"
+# include <tools/dumppage.h>
+# include <moonycode/codes.h>
+# include <mtc/patricia.h>
+# include <mtc/json.h>
 
 template <>
 std::string*  Serialize( std::string* o, const void* p, size_t l )

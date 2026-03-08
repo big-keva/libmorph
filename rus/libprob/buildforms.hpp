@@ -31,12 +31,11 @@
 ******************************************************************************/
 # if !defined( __libfuzzy_rus_buildforms_hpp__ )
 # define __libfuzzy_rus_buildforms_hpp__
-# include <rus.h>
-# include "codepages.hpp"
+# include "../../rus.h"
+# include "xmorph/codepages.hpp"
 # include "xmorph/capsheme.h"
 # include "classtable.hpp"
-# include "mtc/serialize.h"
-# include <algorithm>
+# include <mtc/serialize.h>
 
 namespace libfuzzy {
 namespace rus {

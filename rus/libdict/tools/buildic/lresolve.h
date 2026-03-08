@@ -31,10 +31,9 @@
 ******************************************************************************/
 #if !defined( __lresolve_h__ )
 #define __lresolve_h__
-# include "../libdict/mlmadefs.h"
-# include "../../tools/references.h"
+# include "../../mlmadefs.h"
+# include <tools/references.h>
 # include "mtables.h"
-# include <cassert>
 
 struct  morphclass
 {

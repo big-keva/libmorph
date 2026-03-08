@@ -177,9 +177,9 @@ auto  operator & (
               grlist[ngrams++] = *g1;
 
         output.push_back( SStemInfoA{
+          s1.plemma,
           s1.ccstem,
-          s1.nclass,
-          s1.plemma, grlist, ngrams, s1.weight } );
+          s1.nclass, grlist, ngrams, s1.weight } );
       }
 
   return output;

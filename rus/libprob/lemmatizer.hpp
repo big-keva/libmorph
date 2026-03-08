@@ -34,7 +34,7 @@
 # include <rus.h>
 # include "rus/chartype.h"
 # include "classtable.hpp"
-# include "mtc/serialize.h"
+# include <mtc/serialize.h>
 # include <algorithm>
 # include <cmath>
 
@@ -121,8 +121,7 @@ namespace rus {
           astems[nbuilt - 1].ngrams = pgrams.cur - astems[nbuilt - 1].pgrams;
 
       // добавить новую лемму
-        astems[nbuilt++] = { (unsigned)clemma + 2, uclass,
-          pforms.getptr(),
+        astems[nbuilt++] = { pforms.getptr(), (unsigned)clemma + 2, uclass,
           pgrams.cur, 0, float( log( uoccur ) / log( 10000 ) * sin( atan( 0.4 * (cchstr - clemma) ) ) ) };   // глубина сканирования окончания*/
 
       // если требуется восстановить нормальные формы слов, построить её

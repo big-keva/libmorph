@@ -31,7 +31,7 @@
 ******************************************************************************/
 # if !defined( __conditions_h__ )
 # define  __conditions_h__
-# include "mtc/serialize.h"
+# include <mtc/serialize.h>
 # include <cstdint>
 # include <cassert>
 # include <string>

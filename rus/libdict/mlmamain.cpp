@@ -29,11 +29,11 @@
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
-# include "xmorph/wildscan.h"
-# include "xmorph/charlist.h"
 # include "../../rus.h"
 # include "../chartype.h"
-# include "../codepages.hpp"
+# include "xmorph/codepages.hpp"
+# include "xmorph/wildscan.h"
+# include "xmorph/charlist.h"
 # include "mlmadefs.h"
 # include "scanClass.hpp"
 # include "wildClass.hpp"

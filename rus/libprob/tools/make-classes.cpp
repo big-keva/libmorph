@@ -29,8 +29,8 @@
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
-# include <moonycode/codes.h>
 # include <rus.h>
+# include <moonycode/codes.h>
 # include <mtc/serialize.h>
 # include <algorithm>
 # include <stdexcept>
