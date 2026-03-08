@@ -29,9 +29,9 @@
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
-# if !defined( _mlfa_api_h_ )
-# define _mlfa_api_h_
-# include "mlma-api.h"
+# if !defined( _libmorph_fuzzyapi_h_ )
+# define _libmorph_fuzzyapi_h_
+# include "morphapi.h"
 
 /*
  * The main interface structure declaration - describes SStemInfo structure
@@ -42,9 +42,9 @@
 
   typedef struct
   {
+    const char*     plemma;
     unsigned        ccstem;
     unsigned        nclass;
-    const char*     plemma;
     SGramInfo*      pgrams;
     unsigned        ngrams;
     float           weight;
@@ -52,9 +52,9 @@
 
   typedef struct
   {
+    const widechar* plemma;
     unsigned        ccstem;
     unsigned        nclass;
-    const widechar* plemma;
     SGramInfo*      pgrams;
     unsigned        ngrams;
     float           weight;
@@ -356,4 +356,4 @@
 
 # endif  /* !mlfa_interface_defined */
 
-# endif /* _mlfa_h_ */
+# endif /* _libmorph_fuzzyapi_h_ */

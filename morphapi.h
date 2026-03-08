@@ -29,8 +29,8 @@
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
-# if !defined( _mlma_api_h_ )
-# define _mlma_api_h_
+# if !defined( _libmorph_morphapi_h_ )
+# define _libmorph_morphapi_h_
 
 # include <limits.h>
 # include <stdint.h>
@@ -520,4 +520,4 @@ typedef int (MLMAPROC *libmorphGetAPI)( const char* apiKey, void** ppvAPI );
 
 # endif  /* !mlma_getapi_defined */
 
-# endif /* _mlma_api_h_ */
+# endif /* _libmorph_morphapi_h_ */
