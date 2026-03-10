@@ -8,6 +8,10 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
 endif()
 
+if(MSVC)
+  set(STATIC_LIB_PREFIX "lib")
+endif()
+
 #
 # DEVELOPER_MODE enforces building all the targets in CMakeLists;
 #
@@ -25,7 +29,6 @@ if(NOT DEFINED DEVELOPER_MODE)
   else()
     set(DEVELOPER_MODE FALSE CACHE BOOL "" FORCE)
   endif()
-
 endif()
 
 #
@@ -79,18 +82,15 @@ endif()
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
-add_compile_options(-W -Wall -Wextra)
+if(NOT MSVC)
+  add_compile_options(-W -Wall -Wextra)
+  add_compile_options(-fPIC)
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  add_compile_options(-O0)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
-elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-  add_compile_options("-U_FORTIFY_SOURCE")
-
-  add_compile_options(-fno-stack-protector -D_FORTIFY_SOURCE=0)
-else()
-  add_compile_options(-fstack-protector-all -g)
+  if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_compile_options(-fno-stack-protector -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0)
+  else()
+    add_compile_options(-fstack-protector-all -g)
+  endif()
 endif()
 
 include_directories(
