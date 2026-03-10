@@ -1,0 +1,6 @@
+LIBRARY morphrus
+EXPORTS
+    mlmaruLoadMbAPI
+    mlmaruLoadCpAPI
+    mlmaruLoadWcAPI
+    mlmaruGetAPI
