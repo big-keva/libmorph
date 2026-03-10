@@ -1,0 +1,9 @@
+Package: libmorph-rus
+Version: @VERSION@
+Section: libdevel
+Priority: optional
+Architecture: amd64
+Depends: libc6 (>= 2.17)
+Maintainer: Andrey Kovalenko aka Keva <keva@rambler.ru>
+Description: libmorphrus shared runtime library
+  This package contains russian morphological analyser shared library.

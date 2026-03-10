@@ -1,0 +1,10 @@
+Package: libmorph-api
+Version: @VERSION@
+Section: libdevel
+Priority: optional
+Architecture: all
+Depends:
+Maintainer: Andrey Kovalenko aka Keva <keva@rambler.ru>
+Description: libmorph libraries common API headers
+  This package contains the common API headers (morphapi.h and fuzzyapi.h) used
+  by all libmorph libraries. These headers are required for development only.

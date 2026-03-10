@@ -1,0 +1,10 @@
+Package: libmorph-rus-dev
+Version: @VERSION@
+Section: libdevel
+Priority: optional
+Architecture: amd64
+Depends: libc6 (>= 2.17), libmorph-api
+Maintainer: Andrey Kovalenko aka Keva <keva@rambler.ru>
+Description: libmorphrus static library and headers
+  This package contains russian morphological analyser static library
+  and developer headers.
