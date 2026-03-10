@@ -50,6 +50,10 @@
   # define  ON_ERRORS( code )
 # endif  // ! _WIN32_WCE
 
+# if defined(_MSC_VER)
+#   define strcasecmp _strcmpi
+# endif   // MSVC
+
 namespace libmorph {
 namespace rus {
 
