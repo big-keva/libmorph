@@ -16,8 +16,6 @@ set(DicCPP
   dictree/mixTypes.cpp
   dictree/mxTables.cpp)
 
-add_compile_options(-fPIC)
-
 set(BuilDic morphrus-buildic)
 set(MakeIch morphrus-makeich)
 
@@ -31,10 +29,14 @@ set (IntrTab tmp/interchg.bmx)
 set (IntrIdx tmp/interchg.sym)
 set (IntrSrc ${MORPHRUS_SOURCE_DIR}/tables/mtables.mx)
 
-set(SYMBOLS_FILE ${PROJECT_SOURCE_DIR}/morphrus.unix.def)
+if(MSVC)
+  set(EXPORT_TABLE ${PROJECT_SOURCE_DIR}/morphrus.msvc.def)
+else()
+  set(SYMBOLS_FILE ${PROJECT_SOURCE_DIR}/morphrus.unix.def)
 
-set(CMAKE_SHARED_LINKER_FLAGS
-  "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-retain-symbols-file -Wl,${SYMBOLS_FILE} -static-libgcc -static-libstdc++" )
+  set(CMAKE_SHARED_LINKER_FLAGS
+    "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-retain-symbols-file -Wl,${SYMBOLS_FILE} -static-libgcc -static-libstdc++" )
+endif()
 
 include_directories(.)
 
@@ -53,7 +55,7 @@ add_library(morphrus-objset OBJECT
 set_target_properties(morphrus-objset PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
 
-if(DEV)
+if(DEVELOPER_MODE OR DEV)
   #
   # create static library
   #
@@ -61,20 +63,22 @@ if(DEV)
     $<TARGET_OBJECTS:morphrus-objset>)
 
   set_target_properties(morphrus-static PROPERTIES
-    OUTPUT_NAME "morphrus"
+    OUTPUT_NAME "${STATIC_LIB_PREFIX}morphrus"
     CLEAN_DIRECT_OUTPUT 1)
-else()
+endif()
+
+if(DEVELOPER_MODE OR NOT DEV)
   #
   # create shared library
   #
   add_library(morphrus-shared SHARED
-    $<TARGET_OBJECTS:morphrus-objset>)
+    $<TARGET_OBJECTS:morphrus-objset>
+    ${EXPORT_TABLE})
 
   set_target_properties(morphrus-shared PROPERTIES 
     OUTPUT_NAME "morphrus")
 
   target_link_libraries(morphrus-shared
-    morphrus-objset
     moonycode)
 endif()
 
@@ -82,21 +86,20 @@ endif()
 # create the dictionary
 #
 add_custom_command(OUTPUT ${DicCPP}
-	COMMAND ${BuilDic} -flex-table=${FlexTab} -flex-index=${FlexIdx}
-		-intr-table=${IntrTab} -intr-index=${IntrIdx}
-		-target-dir=dictree
-		-unknown=dictree/unknown.txt
-		-namespace=${Namespace}
-		${DicSrc}
-        DEPENDS ${BuilDic} ${DicSrc} ${FlexTab} ${FlexIdx} ${IntrTab} ${IntrIdx} dictree
-)
+  COMMAND ${BuilDic} -flex-table=${FlexTab} -flex-index=${FlexIdx}
+    -intr-table=${IntrTab} -intr-index=${IntrIdx}
+    -target-dir=dictree
+    -unknown=dictree/unknown.txt
+    -namespace=${Namespace}
+    ${DicSrc}
+  DEPENDS ${BuilDic} ${DicSrc} ${FlexTab} ${FlexIdx} ${IntrTab} ${IntrIdx} dictree)
 
 #
 # compile flexion tables
 #
 add_custom_command(OUTPUT ${FlexTab} ${FlexIdx}
-	COMMAND libmorph-tfc -lang:rus ${FlexSrc} ${FlexTab} ${FlexIdx}
-	DEPENDS libmorph-tfc ${FlexSrc} tmp)
+  COMMAND libmorph-tfc -lang:rus ${FlexSrc} ${FlexTab} ${FlexIdx}
+  DEPENDS libmorph-tfc ${FlexSrc} tmp)
 
 #
 # compile stem interchanges
