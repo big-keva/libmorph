@@ -48,7 +48,7 @@ namespace rus {
     const fragment& prefix,
     const fragment& suffix )
   {
-    auto  ptflex = (const uint8_t*){};
+    const uint8_t*  ptflex;
 
     if ( (ptflex = stinfo.GetFlexTable()) == nullptr )
     {
@@ -100,10 +100,10 @@ namespace rus {
     const fragment& prefix,
     const fragment& suffix )
   {
-    auto  ptflex = (const uint8_t*){};
-    auto  szflex = fragment();
-    auto  fxinfo = flexinfo();
-    int   nforms;
+    const uint8_t*  ptflex;
+    auto            szflex = fragment();
+    auto            fxinfo = flexinfo();
+    int             nforms;
 
     if ( (ptflex = stinfo.GetFlexTable()) == nullptr )
     {

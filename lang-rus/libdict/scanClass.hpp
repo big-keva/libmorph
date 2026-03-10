@@ -184,10 +184,10 @@ namespace rus {
     MatchClass( const Collect& out ):
       target( out ) {}
 
-    auto  SetCapitalization( uint16_t scheme ) -> MatchClass&
-      {  return this->scheme = scheme, *this;  }
-    auto  SetSearchSettings( unsigned dwsets ) -> MatchClass&
-      {  return this->dwsets = dwsets, *this;  }
+    auto  SetCapitalization( uint16_t u ) -> MatchClass&
+      {  return this->scheme = u, *this;  }
+    auto  SetSearchSettings( unsigned u ) -> MatchClass&
+      {  return this->dwsets = u, *this;  }
 
   public:
     int   operator()(

@@ -211,7 +211,7 @@ protected:
         zindex );
 
     // заменить 'ё' на 'е'
-      std::replace( sznorm, sznorm + strlen( sznorm ), 0xB8, 0xe5 );
+      std::replace( sznorm, sznorm + strlen( sznorm ), char(0xB8), char(0xe5) );
 
     // try recolve class
       if ( (lexinf = ResolveClassInfo( sznorm, szdies, sztype, zindex, string,

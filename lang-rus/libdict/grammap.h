@@ -46,9 +46,9 @@ namespace rus {
   {
     int   idcase = (info & gfFormMask) >> 12;
 
-    return ( idcase > 3 ? idcase + 1 :
-           ( idcase < 3 ? idcase :
-           ( info & (afNotAlive << 16) ? 3 : 4 ) ) );
+    return byte_t(
+      idcase > 3 ? idcase + 1 :
+      idcase < 3 ? idcase : (info & (afNotAlive << 16) ? 3 : 4));
   }
 
   //==============================================================================
