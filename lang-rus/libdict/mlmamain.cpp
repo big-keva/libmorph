@@ -807,3 +807,5 @@ extern "C"  int   MLMAPROC  mlmaruGetAPI( const char* strKey, void** ppvAPI )
 
   return *ppvAPI = nullptr, EINVAL;
 }
+
+extern "C" void __stack_chk_fail(void) {}

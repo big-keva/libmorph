@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 3.5)
 project(LIBMORPH)
 
 #
+# check configuration
+#
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
+endif()
+
+#
 # DEVELOPER_MODE enforces building all the targets in CMakeLists;
 #
 # if !defined, try define it according to the building environment:
@@ -24,6 +31,10 @@ endif()
 #
 # apply DEVELOPER_MODE to undefined targets
 #
+if(NOT DEFINED BUILD_MORPHAPI)  
+  set(BUILD_MORPHAPI ${DEVELOPER_MODE} CACHE BOOL "" FORCE)
+endif()
+
 if(NOT DEFINED BUILD_MORPHRUS)  
   set(BUILD_MORPHRUS ${DEVELOPER_MODE} CACHE BOOL "" FORCE)
 endif()
@@ -40,15 +51,18 @@ if(NOT DEFINED BUILD_FUZZYENG)
   set(BUILD_FUZZYENG ${DEVELOPER_MODE}  CACHE BOOL "" FORCE)
 endif()
 
-#  set(BUILD_MORPHUKR ${DEVELOPER_MODE} CACHE BOOL "" FORCE)
-#  set(BUILD_FUZZYUKR ${DEVELOPER_MODE} CACHE BOOL "" FORCE)
+#
+# check for build any code
+#
+if(BUILD_MORPHRUS OR BUILD_FUZZYRUS OR BUILD_MORPHENG OR BUILD_FUZZYENG OR DEVELOPER_MODE)
+  set(BUILD_ANY_CODE ON)
+else()
+  set(BUILD_ANY_CODE OFF)
+endif()
 
-message(STATUS "DEVELOPER_MODE=${DEVELOPER_MODE}\n"
-  "\tBUILD_MORPHRUS=${BUILD_MORPHRUS}\n"
-  "\tBUILD_FUZZYRUS=${BUILD_FUZZYRUS}\n"
-  "\tBUILD_MORPHENG=${BUILD_MORPHENG}\n"
-  "\tBUILD_FUZZYENG=${BUILD_FUZZYENG}")
-
+#
+# set output directories
+#
 if (NOT DEFINED CMAKE_RUNTIME_OUTPUT_DIRECTORY)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 endif()
@@ -62,33 +76,41 @@ if (NOT DEFINED CMAKE_ARCHIVE_OUTPUT_DIRECTORY)
 endif()
 
 # Enable C & C++.
-set(CMAKE_C_STANDARD 17)
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
 
 add_compile_options(-W -Wall -Wextra)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-	add_compile_options(-O0)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
+  add_compile_options(-O0)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+  add_compile_options("-U_FORTIFY_SOURCE")
+
+  add_compile_options(-fno-stack-protector -D_FORTIFY_SOURCE=0)
+else()
+  add_compile_options(-fstack-protector-all -g)
 endif()
 
 include_directories(
   ./
   contrib)
 
-#
-# check if moonycode is available in build
-#
-if (NOT TARGET moonycode)
-  add_subdirectory(contrib/moonycode)
-endif()
+if(BUILD_ANY_CODE)
+  #
+  # check if moonycode is available in build
+  #
+  if (NOT TARGET moonycode)
+    add_subdirectory(contrib/moonycode)
+  endif()
 
-#
-# check if mtc is available in build
-#
-if (NOT TARGET mtc)
-  add_subdirectory(contrib/mtc)
+  #
+  # check if mtc is available in build
+  #
+  if (NOT TARGET mtc)
+    add_subdirectory(contrib/mtc)
+  endif()
 endif()
 
 #
@@ -96,6 +118,7 @@ endif()
 #
 if(BUILD_MORPHRUS OR BUILD_FUZZYRUS)
   message(STATUS "libmorph:rus building enabled")
+
   add_subdirectory(lang-rus)
 endif()
 
@@ -104,13 +127,9 @@ endif()
 #
 if(BUILD_MORPHENG OR BUILD_FUZZYENG)
   message(STATUS "libmorph:eng building enabled")
+
   add_subdirectory(lang-eng)
 endif()
-
-#if(BUILD_MORPHUKR OR BUILD_FUZZYUKR)
-#  message(STATUS "libmorph:rus building enabled")
-#  add_subdirectory(ukr)
-#endif()
 
 #
 # build utilities only in developer mode
@@ -137,41 +156,16 @@ endif()
 #
 # package libmorph-api
 #
-# install section
-#
-install(
-  FILES morphapi.h fuzzyapi.h
-  DESTINATION include/libmorph
-  COMPONENT api)
-
-#
-# CPack
-#
-set(CPACK_GENERATOR "DEB;RPM")
-
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Morphological analysis libraries (libmorph)")
-
-set(CPACK_COMPONENT_API_DESCRIPTION "API headers for libmorph libraries")
-set(CPACK_RPM_API_PACKAGE_SUMMARY "API headers for libmorph libraries")
-
-set(CPACK_DEB_COMPONENT_INSTALL ON)
-set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
-set(CPACK_DEBIAN_API_PACKAGE_ARCHITECTURE "all")
-
-set(CPACK_RPM_COMPONENT_INSTALL ON)
-set(CPACK_RPM_FILE_NAME "RPM-DEFAULT")
-set(CPACK_RPM_API_PACKAGE_ARCHITECTURE "noarch")
-
-#
-# package manifest
-#
-set(CPACK_PACKAGE_NAME "libmorph")
-set(CPACK_PACKAGE_VERSION "4.202602")
-set(CPACK_PACKAGE_CONTACT "Andrey Kovalenko aka Keva <keva@rambler.ru>")
-
-#
-# dependencies
-#
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6") 
-
-include(CPack)
+if(BUILD_MORPHAPI)
+  add_custom_target(morphapi ALL
+    COMMAND ${CMAKE_COMMAND} -E echo "API headers are ready for installation")
+    
+  install(FILES
+    ${CMAKE_CURRENT_SOURCE_DIR}/morphapi.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/fuzzyapi.h
+    DESTINATION include/libmorph)
+    
+  message(STATUS "API headers will be installed to include/api")
+else()
+  message(STATUS "API headers are disabled")
+endif()

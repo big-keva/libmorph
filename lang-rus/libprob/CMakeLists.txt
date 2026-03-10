@@ -22,8 +22,6 @@ set(Namespace	libfuzzyrus)
 set(InflexCPP	fuzzydic.cpp)
 set(InflexSRC	${PROJECT_SOURCE_DIR}/class/inflex.json)
 
-add_compile_options(-W -Wall -Wextra -fPIC)
-
 set(MakeClasses	fuzzyrus-makeClasses)
 set(CompileDict	fuzzyrus-compile-dic)
 	

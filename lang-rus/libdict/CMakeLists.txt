@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.5)
 
 project(RUS_DICT
-  VERSION 3.0.1
   DESCRIPTION "Dictionary-based morphological analyser for Russian"
   LANGUAGES CXX)
+
+message(STATUS "libmorph:rus building enabled, version ${API_VERSION}.${MORPHRUS_DICT_VER}.${MORPHRUS_CODE_VER}")
 
 set(Namespace libmorphrus)
 
@@ -15,7 +16,7 @@ set(DicCPP
   dictree/mixTypes.cpp
   dictree/mxTables.cpp)
 
-add_compile_options(-W -Wall -Wextra -fPIC)
+add_compile_options(-fPIC)
 
 set(BuilDic morphrus-buildic)
 set(MakeIch morphrus-makeich)
@@ -52,31 +53,30 @@ add_library(morphrus-objset OBJECT
 set_target_properties(morphrus-objset PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
 
-#
-# create static library
-#
-add_library(morphrus-static STATIC
+if(DEV)
+  #
+  # create static library
+  #
+  add_library(morphrus-static STATIC
     $<TARGET_OBJECTS:morphrus-objset>)
 
-set_target_properties(morphrus-static PROPERTIES
+  set_target_properties(morphrus-static PROPERTIES
     OUTPUT_NAME "morphrus"
     CLEAN_DIRECT_OUTPUT 1)
-
-#
-# create shared library
-#
-add_library(morphrus-shared SHARED
+else()
+  #
+  # create shared library
+  #
+  add_library(morphrus-shared SHARED
     $<TARGET_OBJECTS:morphrus-objset>)
 
-set_target_properties(morphrus-shared PROPERTIES 
-    OUTPUT_NAME "morphrus"
-    CLEAN_DIRECT_OUTPUT 1)
-#    VERSION ${PROJECT_VERSION}      // optional: libmorphrus.so.1.0.0
-#    SOVERSION 1                     // optional: libmorphrus.so.1
+  set_target_properties(morphrus-shared PROPERTIES 
+    OUTPUT_NAME "morphrus")
 
-target_link_libraries(morphrus-shared
-    morphrus-static
+  target_link_libraries(morphrus-shared
+    morphrus-objset
     moonycode)
+endif()
 
 #
 # create the dictionary
@@ -127,8 +127,9 @@ add_executable(morphrus-test
   tests/testfunc.cpp)
 
 target_link_libraries(morphrus-test
-    morphrus-shared
-    moonycode mtc)
+  morphrus-objset
+  moonycode
+  mtc)
 
 target_link_libraries(${BuilDic} moonycode)
 target_link_libraries(${MakeIch} moonycode)
@@ -137,32 +138,13 @@ target_link_libraries(${MakeIch} moonycode)
 #
 # install section
 #
-# components:
-#   libmorphrus
-#   libmorphrus-dev
-#
-install(TARGETS morphrus-shared
-  DESTINATION lib COMPONENT rus)
-install(TARGETS morphrus-static
-  DESTINATION lib COMPONENT rus-dev)
-install(
-  FILES ../../rus.h
-  DESTINATION include/libmorph COMPONENT rus-dev)
-
-#
-# deb summary
-#
-set(CPACK_COMPONENT_RUS_DESCRIPTION "Russian morphological analysis library (shared)")
-set(CPACK_COMPONENT_RUS-DEV_DESCRIPTION "Development files for Russian morphological analysis (headers and static lib)")
-
-set(CPACK_RPM_API_PACKAGE_SUMMARY "Common API for libmorph")
-set(CPACK_RPM_RUS_PACKAGE_SUMMARY "Russian morphological analysis library (shared)")
-set(CPACK_RPM_RUS-DEV_PACKAGE_SUMMARY "Development files for Russian morphological analysis (headers and static lib)")
-
-#
-# dependencies
-#
-set(CPACK_DEBIAN_RUS-DEV_PACKAGE_DEPENDS "libmorph-api, libmorphrus (= ${CPACK_PACKAGE_VERSION})")
-
-set(CPACK_RPM_RUS_PACKAGE_REQUIRES "libmorph-api= ${CPACK_PACKAGE_VERSION}")
-set(CPACK_RPM_RUS_DEV_PACKAGE_REQUIRES "libmorphrus = ${CPACK_PACKAGE_VERSION}, libmorph-api")
+if(DEV)
+  install(TARGETS morphrus-static
+    ARCHIVE DESTINATION lib)
+  install(
+    FILES ../../rus.h
+    DESTINATION include/libmorph)
+else()
+  install(TARGETS morphrus-shared
+    LIBRARY DESTINATION lib)
+endif()

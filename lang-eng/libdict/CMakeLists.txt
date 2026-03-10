@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
 project(ENG_DICT
-  VERSION 3.0.1
   DESCRIPTION "Dictionary-based morphological analyser for English"
   LANGUAGES CXX)
 
@@ -24,8 +23,6 @@ set(DicCPP
   eng-dictree/stemtree.cpp
   eng-dictree/lidstree.cpp
   eng-dictree/flexTree.cpp)
-
-add_compile_options(-W -Wall -Wextra)
 
 set(BuilDic morpheng-buildic)
 
