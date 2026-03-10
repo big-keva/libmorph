@@ -81,10 +81,10 @@ namespace libmorph {
 
     int   compare( const fragment& f ) const
     {
-      int l = std::min( len, f.len );
-      int r = memcmp( str, f.str, l );
+      auto  l = std::min( len, f.len );
+      auto  r = memcmp( str, f.str, l );
 
-      return r != 0 ? r : len - f.len;
+      return r != 0 ? r : (len > f.len) - (len < f.len);
     }
   };
 
