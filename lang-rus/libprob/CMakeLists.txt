@@ -1,58 +1,71 @@
 cmake_minimum_required(VERSION 3.5)
 
 project(RUS_STEM
-  VERSION 1.0.1
   DESCRIPTION "Fuzzy morphological analyser for Russian"
   LANGUAGES CXX)
 
-if (DEFINED MORPHRUS_BUILD_SHARED_LIBS)
-  if (MORPHRUS_BUILD_SHARED_LIBS)
-    set(FUZZYRUS_BUILD_AS_SHARED_LIBRARY "build libfuzzyrus as .so" ON)
-  endif()
-elseif(BUILD_SHARED_LIBS)
-  if (NOT DEFINED MORPHRUS_BUILD_SHARED_LIBS OR MORPHRUS_BUILD_SHARED_LIBS)
-    set(FUZZYRUS_BUILD_AS_SHARED_LIBRARY "build libfuzzyrus as .so" ON)
-  endif()
-endif()
-
-project(LIBFUZZYRUS)
+message(STATUS "libfuzzy:rus version ${API_VERSION}.${FUZZYRUS_DICT_VER}.${FUZZYRUS_CODE_VER}")
 
 set(Namespace	libfuzzyrus)
 
 set(InflexCPP	fuzzydic.cpp)
-set(InflexSRC	${PROJECT_SOURCE_DIR}/class/inflex.json)
+set(InflexSRC	${PROJECT_SOURCE_DIR}/class/mclass.json)
 
 set(MakeClasses	fuzzyrus-makeClasses)
-set(CompileDict	fuzzyrus-compile-dic)
+set(CompileDict	fuzzyrus-compileDict)
+set(MakePsTable	fuzzyrus-makePsTable)
 	
-if (FUZZYRUS_BUILD_AS_SHARED_LIBRARY)
-  set(SYMBOLS_FILE ${PROJECT_SOURCE_DIR}/fuzzyrus.unix.def)
-  set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Wl,-retain-symbols-file -Wl,${SYMBOLS_FILE}")
-
-  add_library(fuzzyrus SHARED
-    mlfamain.cpp
-    ${LIBMORPH_SOURCE_DIR}/xmorph/capsheme.cpp
-    ../chartype.cpp
-    ${InflexCPP} )
-
-  target_link_libraries(fuzzyrus moonycode)
-
+if(MSVC)
+  set(EXPORT_TABLE ${PROJECT_SOURCE_DIR}/fuzzyrus.msvc.def)
 else()
+  set(SYMBOLS_FILE ${PROJECT_SOURCE_DIR}/fuzzyrus.unix.def)
 
-  add_library(fuzzyrus STATIC
-    mlfamain.cpp
-    ${LIBMORPH_SOURCE_DIR}/xmorph/capsheme.cpp
-    ../chartype.cpp
-    ${InflexCPP} )
-
+  set(CMAKE_SHARED_LINKER_FLAGS
+    "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-retain-symbols-file -Wl,${SYMBOLS_FILE} -static-libgcc -static-libstdc++" )
 endif()
 
-add_executable(fuzzyrus-test
-  tests/fuzzyrus-test.cpp)
-target_link_libraries(fuzzyrus-test fuzzyrus moonycode mtc)
+#
+# create objects for building libraries
+#
+add_library(fuzzyrus-objset OBJECT
+    mlfamain.cpp
+    class/pspfid.cpp
+    ${LIBMORPH_SOURCE_DIR}/xmorph/capsheme.cpp
+    ../chartype.cpp
+    ${InflexCPP} )
+
+set_target_properties(fuzzyrus-objset PROPERTIES
+    POSITION_INDEPENDENT_CODE ON)
+
+if(DEVELOPER_MODE OR DEV)
+  #
+  # create static library
+  #
+  add_library(fuzzyrus-static STATIC
+    $<TARGET_OBJECTS:fuzzyrus-objset>)
+
+  set_target_properties(fuzzyrus-static PROPERTIES
+    OUTPUT_NAME "${STATIC_LIB_PREFIX}fuzzyrus"
+    CLEAN_DIRECT_OUTPUT 1)
+endif()
+
+if(DEVELOPER_MODE OR NOT DEV)
+  #
+  # create shared library
+  #
+  add_library(fuzzyrus-shared SHARED
+    $<TARGET_OBJECTS:fuzzyrus-objset>
+    ${EXPORT_TABLE})
+
+  set_target_properties(fuzzyrus-shared PROPERTIES 
+    OUTPUT_NAME "fuzzyrus")
+
+  target_link_libraries(fuzzyrus-shared
+    moonycode)
+endif()
 
 #
-# Динамически генерируемый fuzzydic.cpp делается из class/inflex.json;
+# Динамически генерируемый fuzzydic.cpp делается из class/mclass.json;
 # Есть способ его динамической генерации (если его нет), но по умолчанию
 # используем существующий, так как может быть поправлен вручную.
 #
@@ -61,29 +74,53 @@ add_custom_command(OUTPUT ${InflexCPP}
         DEPENDS ${CompileDict} ${InflexSRC} )
 
 #
-# На случай, если нет class/inflex.json, можно сгенерировать его автоматически
+# На случай, если нет class/mclass.json, можно сгенерировать его автоматически
 # на основе словарного морфоанализатора и заданного предела покрытия лексики
 #
-add_custom_command(OUTPUT ${InflexSRC}
-	COMMAND ${MakeClasses} > ${InflexSRC} )
+
+if(NOT EXISTS "${InflexSRC}")
+    add_custom_command(
+        OUTPUT "${InflexSRC}"
+        COMMAND ${MakeClasses} ${DicSrc} > "${InflexSRC}"
+        COMMENT "Generating ${InflexSRC} using {${DicSrc}} because it is missing")
+endif()
 
 #
-# Компилятор словаря окончаний inflex.json
+# Компилятор словаря окончаний mclass.json
 #
-add_executable(${CompileDict}	tools/compile-dict.cpp)
-
-#
-# Генератор inflex.json - словарь грамматических классов
-#
-add_executable(${MakeClasses}	tools/make-classes.cpp)
-
+add_executable(${CompileDict}		tools/compile-dict.cpp)
 target_link_libraries(${CompileDict}	moonycode mtc)
+
+#
+# Генератор mclass.json - словарь грамматических классов
+#
+add_executable(${MakeClasses}		tools/make-classes.cpp)
 target_link_libraries(${MakeClasses}	morphrus-objset moonycode mtc)
 
-# install
-install(TARGETS fuzzyrus DESTINATION lib)
+#
+# Статистика частей речи
+#
+if(DEVELOPER_MODE)
+  add_executable(${MakePsTable}		tools/make-psp-tab.cpp)
+  target_link_libraries(${MakePsTable}	morphrus-objset moonycode mtc)
+endif()
 
-install(
-  FILES
-    ../include/mlfa1049.h
-  DESTINATION include/libmorph/rus/include)
+#
+# Тесты
+#
+add_executable(fuzzyrus-test		tests/fuzzyrus-test.cpp)
+target_link_libraries(fuzzyrus-test fuzzyrus-objset moonycode mtc)
+
+#
+# install section
+#
+if(DEV)
+  install(TARGETS fuzzyrus-static
+    ARCHIVE DESTINATION lib)
+  install(
+    FILES ../../rus.h
+    DESTINATION include/libmorph)
+else()
+  install(TARGETS fuzzyrus-shared
+    LIBRARY DESTINATION lib)
+endif()
