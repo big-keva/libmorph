@@ -3,10 +3,7 @@ project(MORPHRUS)
 
 include_directories(./)
 
-if(BUILD_MORPHRUS)
-  add_subdirectory(libdict)
-endif()
+file(GLOB DicSrc ${MORPHRUS_SOURCE_DIR}/dict/*.dic)
 
-if(BUILD_FUZZYRUS)
-  add_subdirectory(libprob)
-endif()
+add_subdirectory(libdict)
+add_subdirectory(libprob)

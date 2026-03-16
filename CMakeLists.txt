@@ -42,22 +42,14 @@ if(NOT DEFINED BUILD_MORPHRUS)
   set(BUILD_MORPHRUS ${DEVELOPER_MODE} CACHE BOOL "" FORCE)
 endif()
 
-if(NOT DEFINED BUILD_FUZZYRUS)  
-  set(BUILD_FUZZYRUS ${DEVELOPER_MODE} CACHE BOOL "" FORCE)
-endif()
-
 if(NOT DEFINED BUILD_MORPHENG)  
   set(BUILD_MORPHENG ${DEVELOPER_MODE} CACHE BOOL "" FORCE)
-endif()
-
-if(NOT DEFINED BUILD_FUZZYENG)  
-  set(BUILD_FUZZYENG ${DEVELOPER_MODE}  CACHE BOOL "" FORCE)
 endif()
 
 #
 # check for build any code
 #
-if(BUILD_MORPHRUS OR BUILD_FUZZYRUS OR BUILD_MORPHENG OR BUILD_FUZZYENG OR DEVELOPER_MODE)
+if(BUILD_MORPHRUS OR BUILD_MORPHENG OR DEVELOPER_MODE)
   set(BUILD_ANY_CODE ON)
 else()
   set(BUILD_ANY_CODE OFF)
@@ -116,7 +108,7 @@ endif()
 #
 # enable RUS components
 #
-if(BUILD_MORPHRUS OR BUILD_FUZZYRUS)
+if(BUILD_MORPHRUS)
   message(STATUS "libmorph:rus building enabled")
 
   add_subdirectory(lang-rus)
@@ -125,7 +117,7 @@ endif()
 #
 # enable ENG components
 #
-if(BUILD_MORPHENG OR BUILD_FUZZYENG)
+if(BUILD_MORPHENG)
   message(STATUS "libmorph:eng building enabled")
 
   add_subdirectory(lang-eng)
