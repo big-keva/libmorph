@@ -25,6 +25,7 @@ namespace libmorph {
       MbcsCoder( buf, N, enc )  {}
 
     auto  object() -> MbcsCoder&  {  return *this;  }
+    auto  codepage() const -> unsigned {  return encode;  }
 
   public:
     auto  size() const -> size_t  {  return outptr - outbeg;  }
