@@ -32,6 +32,7 @@
 # if !defined( __libfuzzy_rus_buildforms_hpp__ )
 # define __libfuzzy_rus_buildforms_hpp__
 # include "../../rus.h"
+# include "../chartype.h"
 # include "xmorph/codepages.hpp"
 # include "xmorph/capsheme.h"
 # include "classtable.hpp"
@@ -41,6 +42,7 @@ namespace libfuzzy {
 namespace rus {
 
   using namespace libmorph;
+  using namespace libmorph::rus;
 
   class Buildform
   {
@@ -60,11 +62,13 @@ namespace rus {
     int   operator()( const uint8_t* plemma, size_t clemma, unsigned uclass, formid_t idform ) const
     {
       char      szform[0x40];
-      uint8_t   partsp;
+      uint8_t   partSp;
+      uint8_t   cFlags;
       int       fcount;
       int       nbuilt = 0;
-      auto      pclass = ::FetchFrom( ::FetchFrom( GetClass( uclass ),
-        partsp ),
+      auto      pclass = ::FetchFrom( ::FetchFrom( ::FetchFrom( GetClass( uclass ),
+        partSp ),
+        cFlags ),
         fcount );
 
     // skip until form
@@ -89,9 +93,9 @@ namespace rus {
         pclass += ccflex;
 
       // set minimal capitalization
-        casing.Set( (uint8_t*)szform, ccform, partsp );
+        casing.Set( (uint8_t*)szform, ccform, pspMinCapValue[partSp] );
 
-        if ( !output.append( szform, ccflex ) || !output.append( '\0' ) )
+        if ( !output.append( szform, ccform ) || !output.append( '\0' ) )
           return LEMMBUFF_FAILED;
       }
       return nbuilt;

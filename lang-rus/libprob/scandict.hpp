@@ -71,15 +71,15 @@ namespace rus {
       for ( pstems = ::FetchFrom( pstems, ccount ); pstems != nullptr && ccount-- > 0; )
       {
         unsigned  uclass;
-        unsigned  uoccur;
+        unsigned  upower;
         uint8_t   idform;
 
       // get class reference
         if ( (pstems = ::FetchFrom( ::FetchFrom( ::FetchFrom( pstems,
           uclass ),
-          uoccur ), &idform, 1 )) == nullptr ) continue;
+          upower ), &idform, 1 )) == nullptr ) continue;
 
-        if ( (nerror = output( plemma, clemma, uclass, uoccur, idform )) != 0 )
+        if ( (nerror = output( plemma, clemma, uclass, upower, idform )) != 0 )
           return nerror;
       }
       return 0;
@@ -182,15 +182,13 @@ namespace rus {
       for ( pstems = ::FetchFrom( pstems, ccount ); pstems != nullptr && ccount-- > 0; )
       {
         unsigned  uclass;
-        unsigned  uoccur;
         uint8_t   idform;
 
       // get class reference
-        if ( (pstems = ::FetchFrom( ::FetchFrom( ::FetchFrom( pstems,
-          uclass ),
-          uoccur ), &idform, 1 )) == nullptr ) continue;
+        if ( (pstems = ::FetchFrom( ::FetchFrom( pstems,
+          uclass ), &idform, 1 )) == nullptr ) continue;
 
-        if ( (nerror = output( { plemma, clemma }, { getstr, getlen }, uclass, uoccur, idform )) != 0 )
+        if ( (nerror = output( { plemma, clemma }, { getstr, getlen }, uclass, idform )) != 0 )
           return nerror;
       }
       return 0;

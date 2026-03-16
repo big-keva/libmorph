@@ -41,6 +41,15 @@
 namespace libfuzzy {
 namespace rus {
 
+  extern const float inflexProbTable[];
+
+  extern struct tagPspProbTable
+  {
+    const float     weight;
+    const float*    ranges;
+    const uint16_t  maxLen;
+  } pspfidProbTable[];
+
   using namespace libmorph;
   using namespace libmorph::rus;
 
@@ -74,35 +83,39 @@ namespace rus {
 
   public:
     Lemmatizer(
-      const CapScheme&          cs,
-      const target<SStemInfoA>& sm,
-      const MbcsCoder&          fm,
-      const target<SGramInfo>&  gr,
-      const uint8_t*            st,
-      size_t                    cc,
-      uint16_t                  sh,
-      unsigned                  us ):
-        casing( cs ),
-        pszstr( st ),
-        cchstr( cc ),
-        scheme( sh ),
-        dwsets( us ),
+      const CapScheme&          capset,
+      const target<SStemInfoA>& astems,
+      const MbcsCoder&          decode,
+      const target<SGramInfo>&  agrams,
+      const uint8_t*            strorg,
+      size_t                    strlen,
+      uint16_t                  scheme,
+      unsigned                  dwSets ):
+        casing( capset ),
+        pszstr( strorg ),
+        cchstr( strlen ),
+        scheme( scheme ),
+        dwsets( dwSets ),
 
-        pstems( sm ),
-        pforms( fm ),
-        pgrams( gr ) {}
+        pstems( astems ),
+        pforms( decode ),
+        pgrams( agrams ) {}
 
   public:
     int   operator ()(
       const char* plemma,
       size_t      clemma,
       unsigned    uclass,
-      unsigned    uoccur,
+      unsigned    upower,   /* мощность модели          */
       uint8_t     idform )
     {
-      uint8_t   partsp;
-      int       fcount;
-      auto      pclass = ::FetchFrom( ::FetchFrom( GetClass( uclass ), partsp ), fcount );
+      uint8_t   partsp;     /* часть речи               */
+      uint8_t   clSets;
+      int       fcount;     /* размер таблицы окончаний */
+      auto      pclass = ::FetchFrom( ::FetchFrom( ::FetchFrom( GetClass( uclass ),
+        partsp ),
+        clSets ),
+        fcount );
       int       nerror;
 
     // check capitalization scheme
@@ -110,8 +123,17 @@ namespace rus {
         return 0;
 
     // убедиться, что заполняется текущий грмматический класс
+    // для классво с ударным окончанием оштрафовать на 60%
       if ( nbuilt == 0 || IsAnotherClass( astems[nbuilt - 1], uclass, clemma + 2 ) )
       {
+        auto  fxRank = inflexProbTable[cchstr - clemma - 1];
+        auto  ocRank = log( upower ) / log( 9000 );
+        auto& ranker = pspfidProbTable[partsp];
+        auto  psRank = ranker.ranges != nullptr ? ranker.weight : 0.00;
+        auto  fmRank = ranker.ranges != nullptr ? ranker.ranges[idform] : 0.00;
+        auto  weight = (0.4 * fxRank + 0.3 * ocRank + 0.2 * psRank + 0.1 * fmRank)
+          * ((clSets & 0x01) != 0 ? 0.4 : 1.0);
+
       // проверить внутреннюю размерность массива
         if ( nbuilt == sizeof(astems) / sizeof(astems[0] ) )
           return LEMMBUFF_FAILED;
@@ -122,7 +144,7 @@ namespace rus {
 
       // добавить новую лемму
         astems[nbuilt++] = { pforms.getptr(), (unsigned)clemma + 2, uclass,
-          pgrams.cur, 0, float( log( uoccur ) / log( 10000 ) * sin( atan( 0.4 * (cchstr - clemma) ) ) ) };   // глубина сканирования окончания*/
+          pgrams.cur, 0, float(weight) };   // глубина сканирования окончания
 
       // если требуется восстановить нормальные формы слов, построить её
         if ( pforms.getptr() != nullptr )
@@ -149,6 +171,20 @@ namespace rus {
       {
         if ( nbuilt > pstems.lim - pstems.cur )
           return LEMMBUFF_FAILED;
+
+      // for utf-8, correct stem lengths
+        if ( pforms.codepage() == codepages::codepage_utf8 && pforms.getptr() != nullptr )
+          for ( auto p = astems; p != astems + nbuilt; ++p )
+          {
+            auto  srcstr = pszstr;
+            auto  stmlen = p->ccstem;
+            auto  newlen = 0U;
+
+            while ( stmlen-- > 0 )
+              newlen += codepages::utf8::cbchar( codepages::xlatWinToUtf16[*srcstr++] );
+
+            p->ccstem = newlen;
+          }
 
         std::sort( astems, astems + nbuilt, []( const SStemInfoA& s1, const SStemInfoA& s2 )
           {  return s1.weight > s2.weight;  } );
@@ -186,7 +222,7 @@ namespace rus {
         pclass, ccflex );
 
     // set minimal capitalization
-      casing.Set( (uint8_t*)szform, scheme >> 8, pspMinCapValue[partSp] );
+      casing.Set( (uint8_t*)szform, ccstem + ccflex, pspMinCapValue[partSp] );
 
     // encode to output
       if ( !pforms.append( szform, ccform ) || !pforms.append( '\0' ) )

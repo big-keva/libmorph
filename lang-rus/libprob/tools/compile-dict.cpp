@@ -1,38 +1,40 @@
 /******************************************************************************
 
-    libfuzzyrus - fuzzy morphological analyser for Russian.
+  libfuzzyrus - fuzzy morphological analyser for Russian.
 
-    Copyright (c) 1994-2026 Andrew Kovalenko aka Keva
+  Copyright (c) 1994-2026 Andrew Kovalenko aka Keva
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
+  Permission is hereby granted, free of charge, to any person obtaining a copy
+  of this software and associated documentation files (the "Software"), to deal
+  in the Software without restriction, including without limitation the rights
+  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  copies of the Software, and to permit persons to whom the Software is
+  furnished to do so, subject to the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
 
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE.
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  SOFTWARE.
 
-    Commercial license is available upon request.
+  Commercial license is available upon request.
 
-    Contacts:
-      email: keva@rambler.ru
-      Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
+  Contacts:
+    email: keva@rambler.ru
+    Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
 # include <tools/dumppage.h>
 # include <moonycode/codes.h>
 # include <mtc/patricia.h>
 # include <mtc/json.h>
+
+constexpr size_t INFLEX_LEN = 0x20;
 
 template <>
 std::string*  Serialize( std::string* o, const void* p, size_t l )
@@ -43,14 +45,14 @@ std::string*  Serialize( std::string* o, const void* p, size_t l )
 struct  ClassRef
 {
   unsigned  uClsId;
-  unsigned  uOccur;
+  unsigned  mPower;
   uint8_t   formid;
 
   size_t  GetBufLen() const
-    {  return ::GetBufLen( uClsId ) + ::GetBufLen( uOccur ) + 1;  }
+    {  return ::GetBufLen( uClsId ) + ::GetBufLen( mPower ) + 1;  }
   template <class O>
   O*      Serialize( O* o ) const
-    {  return ::Serialize( ::Serialize( ::Serialize( o, uClsId ), uOccur ), &formid, 1 );  }
+    {  return ::Serialize( ::Serialize( ::Serialize( o, uClsId ), mPower ), &formid, 1 );  }
 };
 
 struct FlexNode
@@ -59,8 +61,8 @@ struct FlexNode
   uint8_t       idform;
 
 public:
-  FlexNode( uint8_t f, const char* s, size_t l ):
-    stflex( s, l ),
+  FlexNode( uint8_t f, std::string&& s ):
+    stflex( std::move( s ) ),
     idform( f ) {}
 
 public:
@@ -80,7 +82,7 @@ public:
     }
 };
 
-struct ClassMap: public std::vector<std::string>
+struct ClassMap: std::vector<std::string>
 {
   template <class O>
   O*      Serialize( O* o ) const
@@ -92,6 +94,21 @@ struct ClassMap: public std::vector<std::string>
     }
 };
 
+struct  Model
+{
+  std::string suffix;
+  std::string sample;
+  unsigned    weight;
+
+  template <class O>
+  O*  Serialize( O* o ) const
+  {
+    return ::Serialize( ::Serialize( ::Serialize( o, suffix.c_str(), 2 ),
+      weight ),
+      sample );
+  }
+};
+
 char* revert( char* beg, char* end )
 {
   auto  s = beg;
@@ -100,6 +117,18 @@ char* revert( char* beg, char* end )
     std::swap( *beg, *end );
 
   return s;
+}
+
+auto  Get1251Str( const mtc::zmap& z, const char* k ) -> std::string
+{
+  auto  pszstr = z.get_charstr( k );
+  auto  pwsstr = z.get_widestr( k );
+
+  if ( pszstr != nullptr )
+    return codepages::mbcstombcs( codepages::codepage_1251, codepages::codepage_utf8, *pszstr );
+  if ( pwsstr != nullptr )
+    return codepages::widetombcs( codepages::codepage_1251, *pwsstr );
+  throw std::invalid_argument( mtc::strprintf( "failed to get key '%s' string", k ) );
 }
 
 # define STR_TO_TEXT( x ) #x
@@ -120,7 +149,6 @@ int   main( int argc, char* argv[] )
   auto  arr = (const mtc::array_zmap*)nullptr;
   auto  flxdic = mtc::patricia::tree<std::vector<ClassRef>>();
   auto  clsmap = ClassMap();
-  auto  cranks = std::vector<unsigned>();
 
   for ( int i = 1; i != argc; ++i )
   {
@@ -176,129 +204,101 @@ int   main( int argc, char* argv[] )
 // create inflextion dictionary
   for ( auto& cls: *arr )
   {
-    struct  prefix
-    {
-      unsigned  occCount;
-      char      twoChars[2];
-    };
-
-    auto  partSp = cls.get_int32( "psp", 0 );
-    auto  clscnt = cls.get_int32( "cnt", 0 );
-    auto  supset = cls.get_array_zmap( "spf" );
-    auto  inflex = cls.get_array_zmap( "flx" );
-    auto  smodel = codepages::mbcstombcs(
-      codepages::codepage_1251,
-      codepages::codepage_utf8, cls.get_charstr( "mod", "" ) );
-    auto  supref = std::vector<prefix>();
+    auto  partSp = cls.get_int32( "partSp", 0 );
+    auto  cindex = cls.get_int32( "index", -1 );
+    auto  pModel = cls.get_array_zmap( "models" );
+    auto  inflex = cls.get_array_zmap( "inflex" );
+    bool  accent = cls.get_charstr( "accent", "a" ) == "b";
+    auto  models = std::vector<Model>();
     auto  flexet = std::vector<FlexNode>();
 
-    if ( smodel.empty() )
+    try
     {
-      smodel = codepages::widetombcs(
-        codepages::codepage_1251, cls.get_widestr( "mod", {} ) );
+    // check loaded class for models and inflex
+      if ( pModel == nullptr || pModel->empty() )
+        return fprintf( stderr, "could not find 'models' for class %d\n", cindex ), EINVAL;
+
+      if ( inflex == nullptr || inflex->empty() )
+        return fprintf( stderr, "could not find 'inflex' for class %d\n", cindex ), EINVAL;
+
+    // load models list
+      for ( auto& model: *pModel )
+      {
+        auto  suffix = Get1251Str( model, "suffix" );
+        auto  sample = Get1251Str( model, "sample" );
+        auto  weight = model.get_int32( "weight", -1 );
+
+      // check model format
+        if ( suffix.length() != 2 )
+          return fprintf( stderr, "class '%d': invalid model stem final char: '%s'\n", cindex,
+            codepages::mbcstombcs( codepages::codepage_utf8, codepages::codepage_1251, suffix ).c_str() ), EINVAL;
+        if ( weight == -1 )
+          fprintf( stderr, "class '%d': undefined model weight\n", cindex );
+        if ( sample.empty() )
+          fprintf( stderr, "class '%d': warning: model string not specified\n", cindex );
+
+      // register model
+        models.push_back( {
+          std::move( suffix ),
+          std::move( sample ), unsigned(weight) } );
+      }
+
+    // load inflexion set
+      for ( auto& flex: *inflex )
+      {
+        char  szflex[INFLEX_LEN];
+        int   idform = flex.get_int32( "id", -1 );
+        auto  szform = Get1251Str( flex, "sz" );
+
+      // check inflextion class
+        if ( idform == -1 )
+          return fprintf( stderr, "invalid inflexion, no 'id' integer field\n" ), EINVAL;
+
+        if ( szform.length() > sizeof(szflex) - 2 )
+          return fprintf( stderr, "inflexion too long, recompile with increased INFLEX_LEN constant\n" ), EINVAL;
+
+      // prepare reverted flexion
+        revert( strcpy( szflex, szform.c_str() ), szflex + szform.length() );
+
+      // append suprefixes and register models
+        for ( auto& model: models )
+        {
+          decltype(flxdic)::value_type* pvalue;
+
+          szflex[szform.length() + 0] = model.suffix[1];
+          szflex[szform.length() + 1] = model.suffix[0];
+
+          if ( (pvalue = flxdic.Search( szflex, szform.length() + 2 )) != nullptr )
+            pvalue->push_back( { (unsigned)clsmap.size(), model.weight, (uint8_t)idform } );
+          else flxdic.Insert( szflex, szform.length() + 2, { { (unsigned)clsmap.size(), model.weight, (uint8_t)idform } } );
+        }
+
+        flexet.emplace_back( (uint8_t)idform, std::move( szform ) );
+      }
+
+    // store class itself
+      clsmap.resize( clsmap.size() + 1 );
+
+    // reorder models
+      std::sort( models.begin(), models.end(), []( const Model& a, const Model& b )
+        {
+          int   rc;
+
+          if ( (rc = b.weight - a.weight) == 0 )
+            rc = a.sample.compare( b.sample );
+
+          return rc < 0;
+        });
+
+      ::Serialize( ::Serialize( ::Serialize( ::Serialize( &clsmap.back(), uint8_t(partSp) ),
+        uint8_t(accent ? 1 : 0) ),
+        flexet ),
+        models );
     }
-
-  // check valid class
-    if ( supset == nullptr || supset->empty() )
-      return fprintf( stderr, "class contains no 'spf' array of suprefixes!\n" ), EINVAL;
-
-    if ( inflex == nullptr || inflex->empty() )
-      return fprintf( stderr, "class contains no 'flx' array of suprefixes!\n" ), EINVAL;
-
-  // load suprefix list
-    for ( auto& supp: *supset )
+    catch ( const std::runtime_error& xp )
     {
-      auto  add = prefix();
-      auto  mbs = supp.get_charstr( "s" );
-      auto  wcs = supp.get_widestr( "s" );
-      char  prf[3];
-
-    // check occurence count
-      if ( (add.occCount = supp.get_int32( "n", 0 )) == 0 )
-        return fprintf( stderr, "prefix occurence value is invalid or not found\n" ), EINVAL;
-
-      if ( mbs == nullptr && wcs == nullptr )
-        return fprintf( stderr, "prefix string is not found\n" ), EINVAL;
-
-      if ( wcs != nullptr )
-      {
-        if ( codepages::widetombcs( codepages::codepage_1251, prf, sizeof(prf), wcs->data(), wcs->size() ) != 2 )
-          return fprintf( stderr, "invalid prefix length != 2\n" ), EINVAL;
-      }
-        else
-      {
-        if ( codepages::mbcstombcs( codepages::codepage_1251, prf, sizeof(prf), codepages::codepage_utf8, mbs->data(), mbs->size() ) != 2 )
-          return fprintf( stderr, "invalid prefix length != 2\n" ), EINVAL;
-      }
-
-      add.twoChars[0] = prf[0];
-      add.twoChars[1] = prf[1];
-
-      supref.emplace_back( add );
+      return fprintf( stderr, "class '%d' error: %s\n", cindex, xp.what() ), EINVAL;
     }
-
-  // create inflexion set
-    for ( auto& flex: *inflex )
-    {
-      char  szflex[0x20];
-      int   idform = flex.get_int32( "id", -1 );
-      auto  szform = flex.get_charstr( "sz" );
-      auto  wsform = flex.get_widestr( "sz" );
-      auto  ccflex = (size_t){};
-
-    // check inflextion class
-      if ( idform == -1 )
-        return fprintf( stderr, "invalid inflexion, no 'id' integer field\n" ), EINVAL;
-
-      if ( szform != nullptr )
-      {
-        ccflex = codepages::mbcstombcs(
-          codepages::codepage_1251, szflex, sizeof(szflex) - 2,
-          codepages::codepage_utf8, szform->c_str(), szform->size() );
-      }
-        else
-      if ( wsform != nullptr )
-      {
-        ccflex = codepages::widetombcs(
-          codepages::codepage_1251, szflex, sizeof(szflex) - 2, wsform->c_str(), wsform->size() );
-      }
-        else
-      return fprintf( stderr, "invalid inflexion, no 'sz' string field\n" ), EINVAL;
-
-      if ( ccflex > sizeof(szflex) - 2 )
-        return fprintf( stderr, "inflexion too long, recompile with increased INFLEX_LEN constant\n" ), EINVAL;
-
-      flexet.emplace_back( (uint8_t)idform,
-        szflex,
-        ccflex );
-
-    // prepare reverted flexion
-      revert( szflex, szflex + ccflex );
-
-    // append suprefixes and register models
-      for ( auto& sup: supref )
-      {
-        auto  pvalue = (decltype(flxdic)::value_type*){};
-
-        szflex[ccflex + 0] = sup.twoChars[1];
-        szflex[ccflex + 1] = sup.twoChars[0];
-
-        if ( (pvalue = flxdic.Search( szflex, ccflex + 2 )) != nullptr )
-          pvalue->push_back( { (unsigned)clsmap.size(), sup.occCount, (uint8_t)idform } );
-        else flxdic.Insert( szflex, ccflex + 2, { { (unsigned)clsmap.size(), sup.occCount, (uint8_t)idform } } );
-      }
-    }
-
-  // register class rank in class ranks map
-    cranks.push_back( clscnt );
-
-  // store class itself
-    clsmap.resize( clsmap.size() + 1 );
-
-    ::Serialize( ::Serialize( ::Serialize( &clsmap.back(),
-      partSp ),
-      flexet ),
-      smodel );
   }
 
   libmorph::BinaryDumper  dumper;
@@ -330,23 +330,6 @@ int   main( int argc, char* argv[] )
   dumper
     .Dump( "ClassTables", clsmap )
     .Dump( "ReverseDict", flxdic );
-
-// dump class ranks
-  dumper.Print( "\n"
-                "  unsigned  ClassWeight[] =\n"
-                "  {\n" );
-
-  prefix = "    ";
-
-  for ( size_t i = 0; i != cranks.size(); ++i )
-  {
-    dumper.Print( "%s0x%06x", prefix, cranks[i] );
-    prefix = (i % 6) == 5 ? ",\n    " : ", ";
-  }
-
-  dumper.Print(
-    "\n"
-    "  };\n" );
 
   return 0;
 }

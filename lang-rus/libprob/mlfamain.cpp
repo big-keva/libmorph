@@ -42,9 +42,26 @@
   # define  ON_ERRORS( code )
 # endif  // ! _WIN32_WCE
 
-namespace libmorph {
+namespace libfuzzy {
 namespace rus {
 
+  const float  inflexProbTable[16] = { -1,
+    0.0,    // нулевое окончание, 1 символ в конце основы
+    0.05,   // -?й
+    0.17,   // -?ть, ?ой
+    0.55,   // -?ому
+    0.85,   // -?ющем
+    0.97,   // -?иться
+    0.99,   // -?ющийся
+    0.99,   // -?ировать
+    1.0,    // -?ировался
+    1.0,    // -?ироваться
+    1.0,
+    1.0,
+    1.0,     // -?ироваться
+    1.0,     // -?ироваться
+    1.0 };
+    
   //
   // the new api - IMlma interface class
   //
@@ -65,7 +82,7 @@ namespace rus {
   public:     // overridables
     int MLMAPROC  GetWdInfo(
       unsigned char*  pwinfo, unsigned uclass ) override;
-    int MLMAPROC  GetSample(
+    int MLMAPROC  GetModels(
       char*         sample, size_t    samlen,
       unsigned      uclass ) override;
     int MLMAPROC  Lemmatize(
@@ -77,9 +94,6 @@ namespace rus {
       char*         output, size_t    cchout,
       const char*   lpstem, size_t    ccstem,
       unsigned      nclass, formid_t  idform ) override;
-    int MLMAPROC  FindMatch(
-      IMlfaMatch*   pmatch,
-      const char*   pszstr, size_t    cchstr ) override;
 
   protected:
     template <size_t N>
@@ -102,30 +116,6 @@ namespace rus {
 
   class CMlfaWc: public IMlfaWc
   {
-    class MatchTranslate: public IMlfaMatch
-    {
-      int MLMAPROC  Attach()  override  {  return 1;  }
-      int MLMAPROC  Detach()  override  {  return 1;  }
-
-    public:
-      MatchTranslate( IMlfaMatch* to ):
-        imatch( to )  {}
-      auto  ptr() -> IMlfaMatch*
-        {  return this;  }
-
-    public:
-      int MLMAPROC AddLexeme(
-        const void* plemma,
-        size_t      clemma,
-        size_t      cchstr,
-        unsigned    uclass,
-        int         nforms, const SStrMatch* pforms ) override;
-
-    protected:
-      IMlfaMatch*   imatch;
-
-    };
-
   public:     // lifetime control
     int MLMAPROC  Attach()  override  {  return 1;  }
     int MLMAPROC  Detach()  override  {  return 1;  }
@@ -133,8 +123,8 @@ namespace rus {
   public:     // overridables
     int MLMAPROC  GetWdInfo(
       unsigned char*  pwinfo, unsigned uclass ) override;
-    int MLMAPROC  GetSample(
-      widechar*     sample, size_t      samlen,
+    int MLMAPROC  GetModels(
+      widechar*     models, size_t      samlen,
       unsigned      uclass ) override;
     int MLMAPROC  Lemmatize(
       const widechar* pszstr, size_t    cchstr,
@@ -145,9 +135,6 @@ namespace rus {
       widechar*       output, size_t    cchout,
       const widechar* lpstem, size_t    ccstem,
       unsigned        nclass, formid_t  idform ) override;
-    int MLMAPROC  FindMatch(
-      IMlfaMatch*     pmatch,
-      const widechar* pszstr, size_t    cchstr ) override;
 
   };
 
@@ -170,21 +157,26 @@ namespace rus {
     }
   }
 
-  int   CMlfaMb::GetSample(
-    char*     sample,
-    size_t    samlen,
+  int   CMlfaMb::GetModels(
+    char*     models,
+    size_t    buflen,
     unsigned  uclass )
   {
-    if ( sample == nullptr || samlen == 0 )
+    if ( models == nullptr || buflen == 0 )
       return ARGUMENT_FAILED;
 
     try
     {
-      uint8_t partSp;
-      int     fcount;
-      auto    pclass =
-        ::FetchFrom(
-        ::FetchFrom( libfuzzy::rus::GetClass( uclass ), partSp ), fcount );
+      uint8_t   partSp;
+      uint8_t   clSets;
+      int       fcount;
+      auto      pclass =
+        ::FetchFrom( ::FetchFrom( ::FetchFrom( libfuzzy::rus::GetClass( uclass ),
+          partSp ),
+          clSets ),
+          fcount );
+      int     mcount;
+      auto    modend = models + buflen;
 
       while ( fcount-- > 0 )
       {
@@ -197,8 +189,25 @@ namespace rus {
 
       pclass = ::FetchFrom( pclass, fcount );
 
-      return ToCodepage( codepage, sample, samlen, pclass, fcount ) == (size_t)-1 ?
-        LEMMBUFF_FAILED : 1;
+      for ( mcount = 0; fcount-- > 0; ++mcount )
+      {
+        char      suffix[2];
+        unsigned  mPower;
+        unsigned  mdSize;
+        size_t    cchmod;
+
+        pclass = ::FetchFrom( ::FetchFrom( ::FetchFrom( pclass,
+          suffix, 2 ),
+          mPower ),
+          mdSize );
+
+        if ( (cchmod = ToCodepage( codepage, models, modend - models, pclass, mdSize )) == (size_t)-1 )
+          return mcount == 0 ? LEMMBUFF_FAILED : mcount;
+
+        models += cchmod + 1;
+        pclass += mdSize;
+      }
+      return mcount;
     }
     catch ( const std::invalid_argument& )
     {
@@ -226,13 +235,13 @@ namespace rus {
         return 0;
 
     // create lemmatize collector
-      auto  lemmatizer = libfuzzy::rus::Lemmatizer( CapScheme( charTypeMatrix, toLoCaseMatrix, toUpCaseMatrix ),
+      auto  lemmatizer = Lemmatizer( CapScheme( charTypeMatrix, toLoCaseMatrix, toUpCaseMatrix ),
         { plemma, clemma },
         { pforms, cforms, codepage },
         { pgrams, cgrams },
       locase, scheme >> 16, scheme, dwsets );
 
-      if ( (nerror = libfuzzy::rus::patricia::ScanTree( lemmatizer, (const char*)libfuzzyrus::ReverseDict,
+      if ( (nerror = patricia::ScanTree( lemmatizer, (const char*)libfuzzyrus::ReverseDict,
         (const char*)locase + (scheme >> 16) - 1, scheme >> 16 )) != 0 )
           return nerror;
 
@@ -261,102 +270,11 @@ namespace rus {
       if ( scheme == (unsigned)-1 || scheme == 0 )
         return scheme == (unsigned)-1 ? WORDBUFF_FAILED : 0;
 
-      return libfuzzy::rus::Buildform( CapScheme( charTypeMatrix, toLoCaseMatrix, toUpCaseMatrix ),
-        { output, cchout, codepage } ) ( locase, scheme >> 8, nclass, idform );
+      return Buildform( CapScheme( charTypeMatrix, toLoCaseMatrix, toUpCaseMatrix ),
+        { output, cchout, codepage } ) ( locase, scheme >> 16, nclass, idform );
     }
     catch ( const std::invalid_argument& ) {  return ARGUMENT_FAILED;  }
     catch ( ... ) {  return -1;  }
-  }
-
-  int   CMlfaMb::FindMatch( IMlfaMatch* pmatch, const char* pszstr, size_t  cchstr )
-  {
-    CATCH_ALL
-      uint8_t   locase[256];
-      uint8_t   strbuf[256];
-      auto      scheme = ToCanonic( locase, pszstr, cchstr );
-      auto      aforms = std::vector<char>( 0x100 * 0x100 * 2 );
-      char*     pforms = aforms.data();
-
-      char      slemma[256];
-      size_t    clemma = (size_t)-1;
-
-      unsigned  cclass = 0;
-
-      SStrMatch amatch[256];
-      size_t    cmatch = 0;
-
-      int       nerror;
-      auto      fflush = [&]()
-      {
-        char    encode[256];
-        size_t  cbytes = 0;
-
-        for ( auto p = slemma, e = slemma + clemma; p != e; ++p )
-          cbytes += libmorph::ToCodepage( codepage, encode + cbytes, sizeof(encode) - cbytes, p, 1 );
-
-        pmatch->AddLexeme( encode, clemma, cbytes, cclass, cmatch, amatch );
-      };
-      auto      reglex = [&](
-        const fragment& szstem,
-        const fragment& szflex,
-        unsigned        uclass,
-        unsigned        uoccur,
-        uint8_t         idform )
-      {
-        char  szform[256];
-        auto  ccstem = (size_t)(szstem.size() + 2);     // длина текущей основы
-        auto  outptr = std::copy( szstem.begin(), szstem.end(), szform );
-//        auto  flprob =
-
-        for ( auto  srcbeg = szflex.end() - 1; srcbeg >= szflex.begin(); )
-          *outptr++ = *srcbeg--;
-
-      // check stem and class match to previous call
-        if ( uclass != cclass || ccstem != clemma || memcmp( szform, slemma, ccstem ) != 0 )
-        {
-          if ( cclass != 0 )
-            fflush();
-
-          memcpy( slemma, szform,
-            clemma = ccstem );
-          cclass = uclass;
-          pforms = aforms.data();
-          cmatch = 0;
-        }
-
-      // append stem form
-        amatch[cmatch] =
-          {
-            sz: pforms,
-            cc: ToCodepage( codepage, pforms, aforms.data() + aforms.size() - pforms, szform, outptr - szform ),
-            id: idform,
-          };
-        pforms += amatch[cmatch++].cc + 1;
-        return 0;
-      };
-
-    // check output buffer
-      if ( pmatch == nullptr )
-        return ARGUMENT_FAILED;
-
-    // check template defined
-      if ( pszstr == nullptr )
-        return ARGUMENT_FAILED;
-
-    // check source string and length
-      if ( scheme == (unsigned)-1 || scheme == 0 )
-        return scheme == (unsigned)-1 ? WORDBUFF_FAILED : 0;
-
-    // scan the dictionary
-      if ( (nerror = libfuzzy::rus::patricia::WildScan( reglex, (const char*)libfuzzyrus::ReverseDict, strbuf, 0,
-        locase + (scheme >> 16) - 1, scheme >> 16 )) != 0 )
-          return nerror;
-
-      if ( cclass != 0 )
-        fflush();
-
-      return 0;
-    ON_ERRORS( -1 )
   }
 
   template <size_t N>
@@ -404,37 +322,35 @@ namespace rus {
 
   // CMlfaWc wrapper implementation
 
-  int   CMlfaWc::MatchTranslate::AddLexeme(
-    const void* plemma,
-    size_t      clemma,
-    size_t    /*cchstr*/,
-    unsigned    uclass,
-    int         nforms, const SStrMatch* pforms )
-  {
-    widechar  wlemma[0x100];
-    size_t    llemma = ToWidechar( wlemma, (const char*)plemma, clemma );
-
-    return imatch->AddLexeme( wlemma, llemma, llemma, uclass, nforms, pforms );
-  }
-
   int   CMlfaWc::GetWdInfo(
     unsigned char*  pwinfo, unsigned uclass )
   {
     return mlfaMbInstance.GetWdInfo( pwinfo, uclass );
   }
 
-  int   CMlfaWc::GetSample(
-    widechar*       sample, size_t  samlen,
+  int   CMlfaWc::GetModels(
+    widechar*       models, size_t  modlen,
     unsigned        uclass )
   {
-    char  buffer[256];
-    int   nerror;
+    char  buffer[0x400];
+    auto  bufptr = buffer;
+    auto  modend = models + modlen;
+    int   mcount;
 
-    if ( (nerror = mlfaMbInstance.GetSample( buffer, samlen, uclass )) <= 0 )
-      return nerror;
+    if ( (mcount = mlfaMbInstance.GetModels( buffer, std::min(sizeof(buffer), modlen), uclass )) <= 0 )
+      return mcount;
 
-    return ToWidechar( sample, samlen, buffer ) == (size_t)-1 ?
-      LEMMBUFF_FAILED : 1;
+    for ( int imodel = 0; imodel < mcount; ++imodel )
+    {
+      auto  lmodel = ToWidechar( models, modend - models, bufptr );
+
+      if ( lmodel == (size_t)-1 )
+        return LEMMBUFF_FAILED;
+
+      models += lmodel + 1;
+      bufptr += lmodel + 1;
+    }
+    return mcount;
   }
 
   int   CMlfaWc::Lemmatize(
@@ -523,30 +439,6 @@ namespace rus {
     return fcount;
   }
 
-  int   CMlfaWc::FindMatch(
-    IMlfaMatch*     pmatch,
-    const widechar* pwsstr,
-    size_t          cchstr )
-  {
-    char    szword[0x100];
-    size_t  ccword;
-
-    if ( pmatch == nullptr )
-      return ARGUMENT_FAILED;
-
-    if ( pwsstr == nullptr )
-      return ARGUMENT_FAILED;
-
-    if ( cchstr == 0 )
-      return 0;
-
-  // get string length and convert to ansi
-    if ( (ccword = ToInternal( szword, pwsstr, cchstr )) == (size_t)-1 )
-      return WORDBUFF_FAILED;
-
-    return mlfaMbInstance.FindMatch( MatchTranslate( pmatch ).ptr(), szword, ccword );
-  }
-
   struct
   {
     unsigned    codepageId;
@@ -593,13 +485,13 @@ extern "C"  int   MLMAPROC  mlfaruLoadWcAPI( IMlfaWc** );
  */
 extern "C"  int   MLMAPROC  mlfaruGetAPI( const char*, void** );
 
-using namespace libmorph::rus;
+using namespace libfuzzy::rus;
 
 extern "C"  int   MLMAPROC  mlfaruLoadMbAPI( IMlfaMb**  ptrAPI )
 {
   if ( ptrAPI == nullptr )
     return -1;
-  *ptrAPI = (IMlfaMb*)&mlfaMbInstance;
+  (*ptrAPI = (IMlfaMb*)&mlfaMbInstance)->Attach();
     return 0;
 }
 
@@ -638,21 +530,23 @@ extern "C"  int   MLMAPROC  mlfaruLoadWcAPI( IMlfaWc**  ptrAPI )
 {
   if ( ptrAPI == nullptr )
     return -1;
-  *ptrAPI = (IMlfaWc*)&mlfaWcInstance;
+  (*ptrAPI = (IMlfaWc*)&mlfaWcInstance)->Attach();
     return 0;
 }
 
-extern "C"  int   MLMAPROC  mlfaruGetAPI( const char* strKey, void** ppvAPI )
+extern "C"  int   MLMAPROC  mlfaruGetAPI( const char* apiKey, void** ppvAPI )
 {
   CMlfaMb*  palloc;
 
   // check call parameters
-  if ( ppvAPI == nullptr || strKey == nullptr || *strKey == '\0' )
+  if ( ppvAPI == nullptr )
+    return EINVAL;
+  if ( apiKey == nullptr || memcmp( apiKey, LIBFUZZY_API_4_MAGIC ":", sizeof(LIBFUZZY_API_4_MAGIC) ) != 0 )
     return EINVAL;
 
   // detect the codepage
   for ( auto& page: codepageList )
-    if ( strcasecmp( page.codepageSz, strKey ) == 0 )
+    if ( strcasecmp( page.codepageSz, apiKey + sizeof(LIBMORPH_API_4_MAGIC) ) == 0 )
     {
       // check invalid codepage
       if ( page.codepageId == unsigned(-1) )

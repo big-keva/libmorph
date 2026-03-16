@@ -50,7 +50,7 @@ namespace rus {
   {
     if ( uclass < libfuzzyrus::ClassNumber )
       return (const char*)libfuzzyrus::ClassTables + libfuzzyrus::ClassOffset[uclass];
-    else throw std::invalid_argument( "invalid class offset" );
+    throw std::invalid_argument( "invalid class offset" );
   }
 
 }}

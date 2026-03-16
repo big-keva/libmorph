@@ -29,6 +29,7 @@
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
+# include <api.hpp>
 # include <rus.h>
 # include "moonycode/codes.h"
 # include "mtc/test-it-easy.hpp"
@@ -46,115 +47,6 @@ public:
   bool  operator()( const MlfaStem& stem ) const
   {
     return stem.pgrams != nullptr && stem.ngrams != 0 && stem.pgrams->wdInfo == psp;
-  }
-};
-
-class CMatch: public IMlfaMatch
-{
-  int   Attach() override {  return 1;  }
-  int   Detach() override {  return 1;  }
-
-public:
-  int   AddLexeme(
-    const void* plemma,
-    size_t      clemma,
-    size_t      cchstr,
-    unsigned    uclass,
-    int         nforms, const SStrMatch* pforms ) override
-  {
-    (void)clemma;
-    (void)cchstr;
-    (void)uclass;
-
-    fprintf( stdout, "%s\t%u\t", std::string( (const char*)plemma, cchstr ).c_str(), uclass );
-
-    for ( int i = 0; i != nforms; ++i )
-      fprintf( stdout, "\t%s\n", pforms[i].sz );
-
-    return 0;
-  }
-};
-
-class CMatchFormsList: public IMlfaMatch
-{
-  std::vector<std::string>  aforms;
-
-  int   Attach() override {  return 1;  }
-  int   Detach() override {  return 1;  }
-
-public:
-  int   AddLexeme(
-    const void* plemma,
-    size_t      clemma,
-    size_t      cchstr,
-    unsigned    uclass,
-    int         nforms, const SStrMatch* pforms ) override
-  {
-    (void)plemma;
-    (void)clemma;
-    (void)cchstr;
-    (void)uclass;
-
-    for ( ; nforms-- > 0; ++pforms )
-    {
-      auto  pfound = std::lower_bound( aforms.begin(), aforms.end(), pforms->sz );
-
-      if ( pfound == aforms.end() || *pfound != pforms->sz )
-        aforms.insert( pfound, pforms->sz );
-    }
-    return 0;
-  }
-  auto  Get() -> std::string
-  {
-    auto  output = std::string();
-    auto  prefix = "";
-
-    for ( auto& next: aforms )
-    {
-      (output += prefix) += next;
-      prefix = ", ";
-    }
-    return output;
-  }
-};
-
-class CMatchClassList: public IMlfaMatch
-{
-  std::vector<std::string>  aclass;
-
-  int   Attach() override {  return 1;  }
-  int   Detach() override {  return 1;  }
-
-public:
-  int   AddLexeme(
-    const void* plemma,
-    size_t      clemma,
-    size_t      cchstr,
-    unsigned    uclass,
-    int         nforms, const SStrMatch* pforms ) override
-  {
-    auto  clsstr = std::string( (const char*)plemma, cchstr ) + mtc::strprintf( "[%u]", uclass );
-    auto  pfound = std::lower_bound( aclass.begin(), aclass.end(), clsstr );
-
-    (void)clemma;
-    (void)nforms;
-    (void)pforms;
-
-    if ( pfound == aclass.end() || *pfound != clsstr )
-      aclass.insert( pfound, clsstr );
-    return 0;
-  }
-  auto  Get() -> std::string
-  {
-    auto  output = std::string();
-    auto  prefix = "";
-
-    for ( auto& next: aclass )
-    {
-      (output += prefix) += next;
-      prefix = ", ";
-    }
-    return output;
   }
 };
 
@@ -185,6 +77,15 @@ auto  operator & (
   return output;
 }
 
+template <class T>
+auto  SubVector( const std::vector<T>& s, size_t pos, size_t n ) -> std::vector<T>
+{
+  if ( pos < s.size() ) n = std::min( pos + n, s.size() ) - pos;
+    else return {};
+
+  return { s.begin() + pos, s.begin() + pos + n };
+}
+
 TestItEasy::RegisterFunc  testmorphrusmb( []()
 {
   TEST_CASE( "fuzzy/rus" )
@@ -196,34 +97,34 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
     {
       SECTION( "∙ native (1251) is created anyway" )
       {
-        REQUIRE( mlfaruGetAPI( "windows-1251", (void**)&(mlfaMb = nullptr) ) == 0 );
+        REQUIRE( mlfaruGetAPI( LIBFUZZY_API_4_MAGIC ":" "windows-1251", (void**)&(mlfaMb = nullptr) ) == 0 );
         if ( REQUIRE( mlfaMb != nullptr ) )
           mlfaMb->Detach();
       }
       SECTION( "∙ named codepages are created also" )
       {
-        REQUIRE( mlfaruGetAPI( "koi8", (void**)&(mlfaMb = nullptr) ) == 0 );
+        REQUIRE( mlfaruGetAPI( LIBFUZZY_API_4_MAGIC ":" "koi8", (void**)&(mlfaMb = nullptr) ) == 0 );
         if ( REQUIRE( mlfaMb != nullptr ) )
           mlfaMb->Detach();
-        REQUIRE( mlfaruGetAPI( "utf8", (void**)&(mlfaMb = nullptr) ) == 0 );
+        REQUIRE( mlfaruGetAPI( LIBFUZZY_API_4_MAGIC ":" "utf8", (void**)&(mlfaMb = nullptr) ) == 0 );
         if ( REQUIRE( mlfaMb != nullptr ) )
           mlfaMb->Detach();
       }
       SECTION( "∙ utf16 is created" )
       {
-        REQUIRE( mlfaruGetAPI( "utf-16", (void**)&(mlfaWc = nullptr) ) == 0 );
-        if ( REQUIRE( mlfaMb != nullptr ) )
-          mlfaMb->Detach();
+        REQUIRE( mlfaruGetAPI( LIBFUZZY_API_4_MAGIC ":" "utf-16", (void**)&(mlfaWc = nullptr) ) == 0 );
+        if ( REQUIRE( mlfaWc != nullptr ) )
+          mlfaWc->Detach();
       }
       SECTION( "∙ called with invalid codepage names it return EINVAL" )
       {
-        REQUIRE( mlfaruGetAPI( "unknown codepage", (void**)&(mlfaMb = nullptr) ) == EINVAL );
+        REQUIRE( mlfaruGetAPI( LIBFUZZY_API_4_MAGIC ":" "unknown codepage", (void**)&(mlfaMb = nullptr) ) == EINVAL );
       }
     }
 
-    if ( !REQUIRE( mlfaruGetAPI( "utf8", (void**)&mlfaMb ) == 0 ) )
+    if ( !REQUIRE( mlfaruGetAPI( LIBFUZZY_API_4_MAGIC ":" "utf8", (void**)&mlfaMb ) == 0 ) )
       abort();
-    if ( !REQUIRE( mlfaruGetAPI( "utf-16", (void**)&mlfaWc ) == 0 ) )
+    if ( !REQUIRE( mlfaruGetAPI( LIBFUZZY_API_4_MAGIC ":" "utf-16", (void**)&mlfaWc ) == 0 ) )
       abort();
 
     SECTION( "GetWdInfo" )
@@ -234,16 +135,21 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
       REQUIRE( mlfaMb->GetWdInfo( &wdinfo, 1000 ) == ARGUMENT_FAILED );
       REQUIRE( mlfaMb->GetWdInfo( 0 ) == 25 );
     }
-    SECTION( "GetSample" )
+    SECTION( "GetModels" )
     {
       char  sample[256];
 
-      REQUIRE( mlfaMb->GetSample( nullptr, 1, 0 ) == ARGUMENT_FAILED );
-      REQUIRE( mlfaMb->GetSample( sample, 0, 0 ) == ARGUMENT_FAILED );
-      REQUIRE( mlfaMb->GetSample( sample, 1000 ) == ARGUMENT_FAILED );
-      if ( REQUIRE( mlfaMb->GetSample( sample, 0 ) > 0 ) )
-        REQUIRE( sample == std::string( "определенный" ) );
-      REQUIRE( mlfaMb->GetSample( 0 ) == "определенный" );
+      REQUIRE( mlfaMb->GetModels( nullptr, 1, 0 ) == ARGUMENT_FAILED );
+      REQUIRE( mlfaMb->GetModels( sample, 0, 0 ) == ARGUMENT_FAILED );
+      REQUIRE( mlfaMb->GetModels( sample, 1000 ) == ARGUMENT_FAILED );
+      if ( REQUIRE( mlfaMb->GetModels( sample, 0 ) > 0 ) )
+        REQUIRE( sample == std::string( "пустынный" ) );
+      REQUIRE( SubVector( mlfaMb->GetModels( 0 ), 0, 5 ) == std::vector<std::string>{
+			  "пустынный",
+        "правильный",
+        "здоровый",
+        "масличный",
+        "грамотный" } );
     }
     SECTION( "Lemmatize" )
     {
@@ -253,11 +159,13 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
       {
         SECTION( "∙ lemmatization builds lemmas" )
         {
-          REQUIRE_NOTHROW( lemmas = mlfaMb->Lemmatize( "простой" ) );
+          REQUIRE_NOTHROW( lemmas = mlfaMb->Lemmatize( "криворожский", sfIgnoreCapitals ) );
           if ( REQUIRE( !lemmas.empty() ) )
           {
-            for ( auto& lemma: lemmas )
-              fprintf( stdout, "%4.2f\t%d\t%s\n", lemma.weight, lemma.pgrams->wdInfo, lemma.normal.c_str() );
+            for ( auto& next: lemmas )
+              fprintf( stdout, "%4.2f\t%2d\t%2d\t%s\n",
+                next.weight,
+                next.nclass, next.pgrams->wdInfo, next.lemma.c_str() );
           }
         }
         SECTION( "lemmatization results of noun:m contain at least one noun:m" )
@@ -332,7 +240,6 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
             for ( size_t i = 0; i != l1.size(); ++i )
             {
               REQUIRE( l1[i].nclass == l2[i].nclass );
-              REQUIRE( l1[i].ccstem == l2[i].ccstem );
               REQUIRE( l1[i].ngrams == l2[i].ngrams );
             }
           }
@@ -346,7 +253,6 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
             for ( size_t i = 0; i != l1.size(); ++i )
             {
               REQUIRE( l1[i].nclass == l2[i].nclass );
-              REQUIRE( l1[i].ccstem == l2[i].ccstem );
               REQUIRE( l1[i].ngrams == l2[i].ngrams );
             }
           }
@@ -354,74 +260,19 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
       }
       SECTION( "BuildForm" )
       {
-      }
-      SECTION( "FindMatch" )
-      {
-        SECTION( "∙ invalid arguments result ARGUMENT_FAILED" )
+        auto  lemmas = mlfaMb->Lemmatize( "криворожский" );
+
+        if ( REQUIRE( lemmas.size() != 0 )
+          && REQUIRE( lemmas.front().pgrams->wdInfo == 25 ))
         {
-          REQUIRE( mlfaMb->FindMatch( (IMlfaMatch*)nullptr, "a" ) == ARGUMENT_FAILED );
-          REQUIRE( mlfaMb->FindMatch( (IMlfaMatch*)0x12345, nullptr ) == ARGUMENT_FAILED );
-        }
-        SECTION( "∙ empty string results no matches" )
-        {
-          REQUIRE( mlfaMb->FindMatch( (IMlfaMatch*)0x12345, "", 0 ) == 0 );
-        }
-        SECTION( "∙ too long string results WORDBUFF_FAILED" )
-        {
-          REQUIRE( mlfaMb->FindMatch( (IMlfaMatch*)0x12345, std::string( 1024, 'a' ) ) == WORDBUFF_FAILED );
-        }
-        SECTION( "∙ ? matches any one character" )
-        {
-          SECTION( "- in flexions it produces real word forms" )
-          {
-            CMatchFormsList list;
+          char  szform[0x40];
+          int   nforms;
 
-            REQUIRE_NOTHROW( mlfaMb->FindMatch( &list, "хорош?ми" ) );
-            REQUIRE( list.Get() == "хорошами, хорошеми, хорошими, хорошоми" );
-          }
-          SECTION( "- in stems it produces template with ?" )
+          if ( REQUIRE_NOTHROW( nforms = mlfaMb->BuildForm( szform, sizeof(szform),
+            lemmas.front().lemma.c_str(), lemmas.front().ccstem, lemmas.front().nclass, 5 ) ) )
           {
-            CMatchFormsList list;
-
-            REQUIRE_NOTHROW( mlfaMb->FindMatch( &list, "х?рошими" ) );
-            REQUIRE( list.Get() == "х?рошими" );
-          }
-          SECTION( "- multiple ? match multiple characters..." )
-          {
-            CMatchFormsList list;
-
-            REQUIRE_NOTHROW( mlfaMb->FindMatch( &list, "хорош??и" ) );
-            REQUIRE( list.Get() ==
-              "хорошави, хорошаги, хорошади, хорошали, хорошами, хорошани, хорошапи, хорошари, "
-              "хорошати, хорошеби, хорошеви, хорошеги, хорошеди, хорошеки, хорошели, хорошеми, "
-              "хорошени, хорошери, хорошеси, хорошети, хорошиби, хорошиви, хорошили, хорошими, "
-              "хорошини, хорошипи, хорошири, хорошиси, хорошити, хорошихи, хорошкаи, хорошкеи, "
-              "хорошкии, хорошкои, хорошкуи, хорошлаи, хорошлеи, хорошлии, хорошлои, хорошнеи, "
-              "хорошнии, хорошнои, хорошнуи, хорошняи, хорошоги, хорошоки, хорошоми" );
-          }
-          SECTION( "... or words with wildcard" )
-          {
-            CMatchFormsList list;
-
-            REQUIRE_NOTHROW( mlfaMb->FindMatch( &list, "х?роше?о" ) );
-            REQUIRE( list.Get() ==
-              "х?рошебо, х?рошево, х?рошего, х?рошело, х?рошено, х?рошеро, х?рошесо, х?рошето" );
-          }
-        }
-        SECTION( "∙ * matches 0 and more characters" )
-        {
-          SECTION( "- at the beginning of string it appears in the result" )
-          {
-            CMatchFormsList list;
-
-            REQUIRE_NOTHROW( mlfaMb->FindMatch( &list, "х*роший" ) );
-            REQUIRE( list.Get() == "х*роший" );
-          }
-          SECTION( "- in the middle it occurs both as wildcard and not" )
-          {
-            CMatchClassList list;
-
-            REQUIRE_NOTHROW( mlfaMb->FindMatch( &list, "хоро*ий" ) );
+            if ( REQUIRE( nforms == 1 ) )
+              REQUIRE( szform == std::string( "криворожским" ) );
           }
         }
       }
