@@ -30,6 +30,7 @@
 
 ******************************************************************************/
 # include "../../../eng.h"
+# include "../../../api.hpp"
 # include <xmorph/codepages.hpp>
 # include <mtc/test-it-easy.hpp>
 # include <algorithm>
