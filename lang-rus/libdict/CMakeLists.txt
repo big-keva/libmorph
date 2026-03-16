@@ -4,7 +4,7 @@ project(RUS_DICT
   DESCRIPTION "Dictionary-based morphological analyser for Russian"
   LANGUAGES CXX)
 
-message(STATUS "libmorph:rus building enabled, version ${API_VERSION}.${MORPHRUS_DICT_VER}.${MORPHRUS_CODE_VER}")
+message(STATUS "libmorph:rus version ${API_VERSION}.${MORPHRUS_DICT_VER}.${MORPHRUS_CODE_VER}")
 
 set(Namespace libmorphrus)
 
@@ -19,7 +19,9 @@ set(DicCPP
 set(BuilDic morphrus-buildic)
 set(MakeIch morphrus-makeich)
 
-file(GLOB DicSrc ${MORPHRUS_SOURCE_DIR}/dict/*.dic)
+if(NOT DicSrc)
+  file(GLOB DicSrc ${MORPHRUS_SOURCE_DIR}/dict/*.dic)
+endif()
 
 set (FlexTab tmp/flextabs.btf)
 set (FlexIdx tmp/flextabs.sym)
@@ -136,7 +138,6 @@ target_link_libraries(morphrus-test
 
 target_link_libraries(${BuilDic} moonycode)
 target_link_libraries(${MakeIch} moonycode)
-
 
 #
 # install section
