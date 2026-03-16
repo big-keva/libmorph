@@ -738,7 +738,7 @@ extern "C"  int   MLMAPROC  mlmaruLoadMbAPI( IMlmaMb**  ptrAPI )
 {
   if ( ptrAPI == nullptr )
     return EINVAL;
-  *ptrAPI = (IMlmaMb*)&mlmaMbInstance;
+  (*ptrAPI = (IMlmaMb*)&mlmaMbInstance)->Attach();
     return 0;
 }
 
@@ -777,21 +777,23 @@ extern "C"  int   MLMAPROC  mlmaruLoadWcAPI( IMlmaWc**  ptrAPI )
 {
   if ( ptrAPI == nullptr )
     return EINVAL;
-  *ptrAPI = (IMlmaWc*)&mlmaWcInstance;
+  (*ptrAPI = (IMlmaWc*)&mlmaWcInstance)->Attach();
     return 0;
 }
 
-extern "C"  int   MLMAPROC  mlmaruGetAPI( const char* strKey, void** ppvAPI )
+extern "C"  int   MLMAPROC  mlmaruGetAPI( const char* apiKey, void** ppvAPI )
 {
   CMlmaMb*  palloc;
 
-// check call parameters
-  if ( ppvAPI == nullptr || strKey == nullptr || *strKey == '\0' )
+  // check call parameters
+  if ( ppvAPI == nullptr )
+    return EINVAL;
+  if ( apiKey == nullptr || memcmp( apiKey, LIBMORPH_API_4_MAGIC ":", sizeof(LIBMORPH_API_4_MAGIC) ) != 0 )
     return EINVAL;
 
   // detect the codepage
   for ( auto& page: codepageList )
-    if ( strcasecmp( page.codepageSz, strKey ) == 0 )
+    if ( strcasecmp( page.codepageSz, apiKey + sizeof(LIBMORPH_API_4_MAGIC) ) == 0 )
     {
       // check invalid codepage
       if ( page.codepageId == unsigned(-1) )

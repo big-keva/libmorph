@@ -35,6 +35,7 @@
 
 const char* TestLemmatize( const char*  szform, const char* cp, unsigned  dwsets, int nitems, ... )
 {
+  char        strkey[0x40];
   SLemmInfoA  lemmas[0x20];
   char        normal[0x100];
   SGramInfo   agrams[0x40];
@@ -43,7 +44,12 @@ const char* TestLemmatize( const char*  szform, const char* cp, unsigned  dwsets
   int         nindex;
   va_list     valist;
 
-  mlmaruGetAPI( cp, (void**)&pmorph );
+  strcpy( strkey, LIBMORPH_API_4_MAGIC );
+
+  if ( cp != NULL && *cp != 0 )
+    strcat( strcat( strkey, ":" ), cp );
+
+  mlmaruGetAPI( strkey, (void**)&pmorph );
 
   if ( (nlemma = pmorph->vtbl->Lemmatize( pmorph, szform, (size_t)-1, lemmas, 0x20, normal, 0x100, agrams, 0x40, dwsets )) != nitems )
     return "Lemmatization: result lexeme count mismatch!";

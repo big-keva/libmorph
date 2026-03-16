@@ -32,8 +32,7 @@
 # if !defined( _libmorph_ukr_h_ )
 # define _libmorph_ukr_h_
 
-# include "morphapi.h"
-# include "fuzzyapi.h"
+# include "api.h"
 
 # if !defined( sfHardForms)
 #   define sfHardForms       0x0004    /* Затрудненные словоформы         */

@@ -30,6 +30,7 @@
 
 ******************************************************************************/
 # include "../../../rus.h"
+# include "../../../api.hpp"
 # include "xmorph/codepages.hpp"
 # include <algorithm>
 # include <string>
@@ -131,13 +132,13 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
 
         for ( auto cpname = std::begin( cnames ); cpname != std::end( cnames ); ++cpname )
         {
-          REQUIRE_NOTHROW( mlmaruGetAPI( *cpname, (void**)&mlma ) );
+          REQUIRE_NOTHROW( mlmaruGetAPI( (std::string(LIBMORPH_API_4_MAGIC) + ":" + *cpname).c_str(), (void**)&mlma ) );
             REQUIRE( mlma != nullptr );
           REQUIRE_NOTHROW( mlma = mlma != nullptr ? (mlma->Detach(), nullptr) : nullptr  );
         }
       }
 
-      mlmaruGetAPI( "utf-8", (void**)&mlma );
+      mlmaruGetAPI( LIBMORPH_API_4_MAGIC ":" "utf-8", (void**)&mlma );
 
       SECTION( "CheckWord" )
       {
@@ -607,7 +608,7 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
       {
         IMlmaMb*  mlma;
 
-        mlmaruGetAPI( "utf-8", (void**)&mlma );
+        mlmaruGetAPI( LIBMORPH_API_4_MAGIC ":" "utf-8", (void**)&mlma );
 
         for ( lexeme_t nlexid = 0; nlexid != 2256000; ++nlexid )
         {
@@ -651,7 +652,7 @@ TestItEasy::RegisterFunc  testmorphrusws( []()
     {
       IMlmaWcXX*  mlma = nullptr;
 
-      if ( REQUIRE_NOTHROW( mlmaruGetAPI( "utf-16", (void**)&mlma ) ) && REQUIRE( mlma != nullptr ) )
+      if ( REQUIRE_NOTHROW( mlmaruGetAPI( LIBMORPH_API_4_MAGIC ":" "utf-16", (void**)&mlma ) ) && REQUIRE( mlma != nullptr ) )
       {
         SECTION( "CheckWord" )
         {
@@ -747,24 +748,24 @@ TestItEasy::RegisterFunc  testmorphrusws( []()
           {
             if ( REQUIRE_NOTHROW( lemmas = mlma->Lemmatize( u"ножницами" ) ) )
               if ( REQUIRE( lemmas.size() == 1 ) )
-                REQUIRE( lemmas.front().normal == u"ножницы" );
+                REQUIRE( lemmas.front().lemma == u"ножницы" );
           }
           SECTION( "dictionary form is built in minimal correct capitalization" )
           {
             if ( REQUIRE( (lemmas = mlma->Lemmatize( u"Москвой" )).size() == 1 ) )
-              REQUIRE( lemmas.front().normal == u"Москва" );
+              REQUIRE( lemmas.front().lemma == u"Москва" );
             if ( REQUIRE( (lemmas = mlma->Lemmatize( u"санкт-петербург", sfIgnoreCapitals )).size() == 1 ) )
-              REQUIRE( lemmas.front().normal == u"Санкт-Петербург" );
+              REQUIRE( lemmas.front().lemma == u"Санкт-Петербург" );
             if ( REQUIRE( (lemmas = mlma->Lemmatize( u"комсомольск-на-амуре", sfIgnoreCapitals )).size() == 1 ) )
-              REQUIRE( lemmas.front().normal == u"Комсомольск-на-Амуре" );
+              REQUIRE( lemmas.front().lemma == u"Комсомольск-на-Амуре" );
           }
           SECTION( "cxx wrapper also provides lexemes" )
           {
             if ( REQUIRE( (lemmas = mlma->Lemmatize( u"простой" )).size() == 3 ) )
             {
-              REQUIRE( lemmas[0].normal == u"простой" );
-              REQUIRE( lemmas[1].normal == u"простоять" );
-              REQUIRE( lemmas[2].normal == u"простой" );
+              REQUIRE( lemmas[0].lemma == u"простой" );
+              REQUIRE( lemmas[1].lemma == u"простоять" );
+              REQUIRE( lemmas[2].lemma == u"простой" );
             }
           }
         }

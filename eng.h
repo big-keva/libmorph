@@ -31,8 +31,7 @@
 ******************************************************************************/
 # if !defined( _libmorph_eng_h_ )
 # define _libmorph_eng_h_
-# include "morphapi.h"
-# include "fuzzyapi.h"
+# include "api.h"
 
 # if defined( __cplusplus )
 extern "C" {
