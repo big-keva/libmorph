@@ -1,4 +1,4 @@
-# include "../morphapi.h"
+# include "../api.hpp"
 # include <mtc/sharedLibrary.hpp>
 # include <string_view>
 # include <cstring>
@@ -118,7 +118,7 @@ int   main( int argc, char* argv[] )
 {
   mtc::SharedLibrary  module;
   std::string         stMake;
-  const char*         encode = "utf-8";
+  std::string         encode = "utf-8";
   libmorphGetAPI      fnMake;
   IMlmaMbXX*          morpho;
   size_t              colpos;
@@ -143,7 +143,7 @@ int   main( int argc, char* argv[] )
     return fprintf( stderr, "Error: could not find function '%s'\n", stMake.c_str() );
 
 // get the interface
-  if ( fnMake( encode, (void**)&morpho ) != 0 )
+  if ( fnMake( (LIBMORPH_API_4_MAGIC + encode).c_str(), (void**)&morpho ) != 0 )
     return fprintf( stderr, "Error: could not load morphological analyser API. Invalid codepage string?\n" );
 
 // measure module speed
