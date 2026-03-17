@@ -93,8 +93,9 @@ if(BUILD_ANY_CODE)
   #
   # check if moonycode is available in build
   #
-  if (NOT TARGET moonycode)
+  if (NOT TARGET moonycode-static AND NOT TARGET moonycode-shared)
     add_subdirectory(contrib/moonycode)
+    set(MoonyCode_LIBRARY moonycode-objset)
   endif()
 
   #
@@ -142,7 +143,7 @@ if(BUILD_MORPHRUS OR BUILD_MORPHUKR)
     utils/tfc/ftable.cpp
     utils/tfc/gramap.cpp
     utils/tfc/tfc.cpp)
-  target_link_libraries(libmorph-tfc moonycode)
+  target_link_libraries(libmorph-tfc ${MoonyCode_LIBRARY})
 endif()
 
 #
