@@ -91,8 +91,6 @@ namespace rus {
     int MLMAPROC  FindForms( char*          output, size_t    cchout,
                              const char*    pszstr, size_t    cchstr,
                              formid_t       idform, unsigned  dwsets ) override;
-    int MLMAPROC  CheckHelp( char*          output, size_t    cchout,
-                             const char*    pszstr, size_t    cchstr ) override;
     int MLMAPROC  GetWdInfo( unsigned char* pwindo, lexeme_t  nlexid ) override;
     int MLMAPROC  FindMatch( IMlmaMatch*    pienum,
                              const char*    pszstr, size_t    cchstr ) override;
@@ -144,8 +142,6 @@ namespace rus {
     int MLMAPROC  FindForms( widechar*        output, size_t    cchout,
                              const widechar*  pwsstr, size_t    cchstr,
                              unsigned char    idform, unsigned  dwsets )  override;
-    int MLMAPROC  CheckHelp( widechar*        output, size_t    cchout,
-                             const widechar*  pwsstr, size_t    cchstr )  override;
     int MLMAPROC  GetWdInfo( unsigned char*   pwindo, lexeme_t  nlexid )  override;
     int MLMAPROC  FindMatch( IMlmaMatch*      pmatch,
                              const widechar*  pszstr, size_t    cchstr )  override;
@@ -295,6 +291,7 @@ namespace rus {
   * Реализация через FindMatch( ... ) требует предварительной обработки шаблона к форме
   * 'либо одна звёздочка в конце, либо один знак вопроса где угодно'
   */
+  /*
   int   CMlmaMb::CheckHelp( char* output, size_t  cchout, const char* pszstr, size_t  cchstr )
   {
     CATCH_ALL
@@ -346,7 +343,7 @@ namespace rus {
       return achars( MbcsCoder( output, cchout, codepage ).object() );
     ON_ERRORS( -1 )
   }
-
+  */
   int   CMlmaMb::GetWdInfo( unsigned char* pwinfo, lexeme_t lexkey )
   {
     CATCH_ALL
@@ -622,7 +619,7 @@ namespace rus {
 
     return fcount;
   }
-
+/*
   int   CMlmaWc::CheckHelp(       widechar* output, size_t  cchout,
                             const widechar* pwsstr, size_t  cchstr )
   {
@@ -644,7 +641,7 @@ namespace rus {
     codepages::mbcstowide( codepages::codepage_1251, output, cchout, chhelp, ccount );
     return ccount;
   }
-
+*/
   int   CMlmaWc::GetWdInfo( unsigned char* pwinfo, lexeme_t nlexid )
   {
     return mlmaMbInstance.GetWdInfo( pwinfo, nlexid );

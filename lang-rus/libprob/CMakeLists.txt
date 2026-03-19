@@ -1,10 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(RUS_STEM
+project(RUS_PROB
   DESCRIPTION "Fuzzy morphological analyser for Russian"
   LANGUAGES CXX)
-
-message(STATUS "libfuzzy:rus version ${API_VERSION}.${FUZZYRUS_DICT_VER}.${FUZZYRUS_CODE_VER}")
 
 set(Namespace	libfuzzyrus)
 
@@ -35,34 +33,29 @@ add_library(fuzzyrus-objset OBJECT
     ${InflexCPP} )
 
 set_target_properties(fuzzyrus-objset PROPERTIES
-    POSITION_INDEPENDENT_CODE ON)
+  POSITION_INDEPENDENT_CODE ON)
 
-if(DEVELOPER_MODE OR DEV)
-  #
-  # create static library
-  #
-  add_library(fuzzyrus-static STATIC
-    $<TARGET_OBJECTS:fuzzyrus-objset>)
+#
+# create shared library
+#
+add_library(fuzzyrus-shared SHARED
+  $<TARGET_OBJECTS:fuzzyrus-objset>
+  ${EXPORT_TABLE})
 
-  set_target_properties(fuzzyrus-static PROPERTIES
-    OUTPUT_NAME "${STATIC_LIB_PREFIX}fuzzyrus"
-    CLEAN_DIRECT_OUTPUT 1)
-endif()
+set_target_properties(fuzzyrus-shared PROPERTIES 
+  OUTPUT_NAME "fuzzyrus")
 
-if(DEVELOPER_MODE OR NOT DEV)
-  #
-  # create shared library
-  #
-  add_library(fuzzyrus-shared SHARED
-    $<TARGET_OBJECTS:fuzzyrus-objset>
-    ${EXPORT_TABLE})
+target_link_libraries(fuzzyrus-shared ${MoonyCode_LIBRARY})
 
-  set_target_properties(fuzzyrus-shared PROPERTIES 
-    OUTPUT_NAME "fuzzyrus")
+#
+# create static library
+#
+add_library(fuzzyrus-static STATIC
+  $<TARGET_OBJECTS:fuzzyrus-objset>)
 
-  target_link_libraries(fuzzyrus-shared
-    moonycode)
-endif()
+set_target_properties(fuzzyrus-static PROPERTIES
+  OUTPUT_NAME "${STATIC_LIB_PREFIX}fuzzyrus"
+  CLEAN_DIRECT_OUTPUT 1)
 
 #
 # Динамически генерируемый fuzzydic.cpp делается из class/mclass.json;
@@ -70,8 +63,8 @@ endif()
 # используем существующий, так как может быть поправлен вручную.
 #
 add_custom_command(OUTPUT ${InflexCPP}
-	COMMAND ${CompileDict} -nspace=${Namespace} ${InflexSRC} ${InflexCPP}
-        DEPENDS ${CompileDict} ${InflexSRC} )
+  COMMAND ${CompileDict} -nspace=${Namespace} ${InflexSRC} ${InflexCPP}
+  DEPENDS ${CompileDict} ${InflexSRC} )
 
 #
 # На случай, если нет class/mclass.json, можно сгенерировать его автоматически
@@ -79,48 +72,45 @@ add_custom_command(OUTPUT ${InflexCPP}
 #
 
 if(NOT EXISTS "${InflexSRC}")
-    add_custom_command(
-        OUTPUT "${InflexSRC}"
-        COMMAND ${MakeClasses} ${DicSrc} > "${InflexSRC}"
-        COMMENT "Generating ${InflexSRC} using {${DicSrc}} because it is missing")
+  add_custom_command(
+    OUTPUT "${InflexSRC}"
+    COMMAND ${MakeClasses} ${DicSrc} > "${InflexSRC}"
+    COMMENT "Generating ${InflexSRC} using {${DicSrc}} because it is missing")
 endif()
 
 #
 # Компилятор словаря окончаний mclass.json
 #
-add_executable(${CompileDict}		tools/compile-dict.cpp)
-target_link_libraries(${CompileDict}	moonycode mtc)
+add_executable(${CompileDict}         tools/compile-dict.cpp)
+target_link_libraries(${CompileDict}  ${MoonyCode_LIBRARY} mtc)
 
 #
 # Генератор mclass.json - словарь грамматических классов
 #
-add_executable(${MakeClasses}		tools/make-classes.cpp)
-target_link_libraries(${MakeClasses}	morphrus-objset moonycode mtc)
+add_executable(${MakeClasses}         tools/make-classes.cpp)
+target_link_libraries(${MakeClasses}  ${MoonyCode_LIBRARY} morphrus-objset mtc)
 
 #
 # Статистика частей речи
 #
 if(DEVELOPER_MODE)
-  add_executable(${MakePsTable}		tools/make-psp-tab.cpp)
-  target_link_libraries(${MakePsTable}	morphrus-objset moonycode mtc)
+  add_executable(${MakePsTable}         tools/make-psp-tab.cpp)
+  target_link_libraries(${MakePsTable}  ${MoonyCode_LIBRARY} morphrus-objset mtc)
 endif()
 
 #
 # Тесты
 #
-add_executable(fuzzyrus-test		tests/fuzzyrus-test.cpp)
-target_link_libraries(fuzzyrus-test fuzzyrus-objset moonycode mtc)
+add_executable(fuzzyrus-test          tests/fuzzyrus-test.cpp)
+target_link_libraries(fuzzyrus-test   ${MoonyCode_LIBRARY} fuzzyrus-objset mtc)
 
 #
-# install section
+# install rus
 #
-if(DEV)
-  install(TARGETS fuzzyrus-static
-    ARCHIVE DESTINATION lib)
-  install(
-    FILES ../../rus.h
-    DESTINATION include/libmorph)
-else()
-  install(TARGETS fuzzyrus-shared
-    LIBRARY DESTINATION lib)
-endif()
+install(
+  TARGETS fuzzyrus-shared
+  LIBRARY DESTINATION lib COMPONENT RusRtm)
+
+install(
+  TARGETS fuzzyrus-static
+  ARCHIVE DESTINATION lib COMPONENT RusDev)

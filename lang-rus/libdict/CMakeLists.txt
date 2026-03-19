@@ -4,8 +4,6 @@ project(RUS_DICT
   DESCRIPTION "Dictionary-based morphological analyser for Russian"
   LANGUAGES CXX)
 
-message(STATUS "libmorph:rus version ${API_VERSION}.${MORPHRUS_DICT_VER}.${MORPHRUS_CODE_VER}")
-
 set(Namespace libmorphrus)
 
 set(DicCPP
@@ -57,32 +55,27 @@ add_library(morphrus-objset OBJECT
 set_target_properties(morphrus-objset PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
 
-if(DEVELOPER_MODE OR DEV)
-  #
-  # create static library
-  #
-  add_library(morphrus-static STATIC
-    $<TARGET_OBJECTS:morphrus-objset>)
+#
+# create shared library
+#
+add_library(morphrus-shared SHARED
+  $<TARGET_OBJECTS:morphrus-objset>
+  ${EXPORT_TABLE})
 
-  set_target_properties(morphrus-static PROPERTIES
-    OUTPUT_NAME "${STATIC_LIB_PREFIX}morphrus"
-    CLEAN_DIRECT_OUTPUT 1)
-endif()
+set_target_properties(morphrus-shared PROPERTIES 
+  OUTPUT_NAME "morphrus")
 
-if(DEVELOPER_MODE OR NOT DEV)
-  #
-  # create shared library
-  #
-  add_library(morphrus-shared SHARED
-    $<TARGET_OBJECTS:morphrus-objset>
-    ${EXPORT_TABLE})
+target_link_libraries(morphrus-shared ${MoonyCode_LIBRARY})
 
-  set_target_properties(morphrus-shared PROPERTIES 
-    OUTPUT_NAME "morphrus")
+#
+# create static library
+#
+add_library(morphrus-static STATIC
+  $<TARGET_OBJECTS:morphrus-objset>)
 
-  target_link_libraries(morphrus-shared
-    moonycode)
-endif()
+set_target_properties(morphrus-static PROPERTIES
+  OUTPUT_NAME "${STATIC_LIB_PREFIX}morphrus"
+  CLEAN_DIRECT_OUTPUT 1)
 
 #
 # create the dictionary
@@ -131,24 +124,17 @@ add_executable(morphrus-test
   tests/testcapi.c
   tests/testfunc.cpp)
 
-target_link_libraries(morphrus-test
-  morphrus-objset
-  moonycode
-  mtc)
-
-target_link_libraries(${BuilDic} moonycode)
-target_link_libraries(${MakeIch} moonycode)
+target_link_libraries(morphrus-test ${MoonyCode_LIBRARY} morphrus-objset mtc)
+target_link_libraries(${BuilDic}    ${MoonyCode_LIBRARY})
+target_link_libraries(${MakeIch}    ${MoonyCode_LIBRARY})
 
 #
-# install section
+# install rus
 #
-if(DEV)
-  install(TARGETS morphrus-static
-    ARCHIVE DESTINATION lib)
-  install(
-    FILES ../../rus.h
-    DESTINATION include/libmorph)
-else()
-  install(TARGETS morphrus-shared
-    LIBRARY DESTINATION lib)
-endif()
+install(
+  TARGETS morphrus-shared
+  LIBRARY DESTINATION lib COMPONENT RusRtm)
+
+install(
+  TARGETS morphrus-static
+  ARCHIVE DESTINATION lib COMPONENT RusDev)

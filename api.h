@@ -251,9 +251,6 @@
       char*           output, size_t    cchout,
       const char*     pszstr, size_t    cchstr,
       formid_t        idform, unsigned  dwsets ) MLMA_PURE;
-    MLMA_METHOD( CheckHelp )( MLMA_THIS
-      char*           output, size_t    cchout,
-      const char*     pszstr, size_t    cchstr ) MLMA_PURE;
     MLMA_METHOD( GetWdInfo )( MLMA_THIS
       unsigned char*  pwinfo, lexeme_t  nlexid ) MLMA_PURE;
     MLMA_METHOD( FindMatch )( MLMA_THIS
@@ -281,9 +278,6 @@
       widechar*       output, size_t    cchout,
       const widechar* pszstr, size_t    cchstr,
       formid_t        idform, unsigned  dwsets ) MLMA_PURE;
-    MLMA_METHOD( CheckHelp )( MLMA_THIS
-      widechar*       output, size_t    cchout,
-      const widechar* pwsstr, size_t    cchstr ) MLMA_PURE;
     MLMA_METHOD( GetWdInfo )( MLMA_THIS
       unsigned char*  pwinfo, lexeme_t  nlexid ) MLMA_PURE;
     MLMA_METHOD( FindMatch )( MLMA_THIS

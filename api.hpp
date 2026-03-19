@@ -70,7 +70,6 @@ public:
   using Mlma::Lemmatize;
   using Mlma::BuildForm;
   using Mlma::FindForms;
-  using Mlma::CheckHelp;
   using Mlma::FindMatch;
 
   using inword = typename Traits::inword;
@@ -93,8 +92,6 @@ template <class T>
     const inword&, formid_t, unsigned dwsets = 0 );
   auto  FindForms(
     const inword&, formid_t, unsigned dwsets = 0 ) -> std::vector<string>;
-  int   CheckHelp( const outbuf<CharType>&, const inword& );
-  auto  CheckHelp( const inword& ) -> string;
   int   FindMatch( IMlmaMatch*, const inword& );
   template <class FMatch>
   int   FindMatch( const inword&, FMatch );
@@ -291,24 +288,6 @@ auto  IMlmaXX<Mlma, Char>::FindForms(
     output.emplace_back( strptr );
 
   return output;
-}
-
-template <class Mlma, class Char>
-int   IMlmaXX<Mlma, Char>::CheckHelp( const outbuf<CharType>& output, const inword& szword )
-{
-  return this->CheckHelp( output.t, output.l, szword.t, szword.l );
-}
-
-template <class Mlma, class Char>
-auto  IMlmaXX<Mlma, Char>::CheckHelp( const inword& szword ) -> string
-{
-  widechar  output[256];
-  int       length = this->CheckHelp( output, 256, szword.t, szword.l );
-
-  if ( length < 0 )
-    throw std::runtime_error( "internal error" );
-
-  return { output, (size_t)length };
 }
 
 template <class Mlma, class Char>

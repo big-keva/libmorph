@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.5)
 project(LIBMORPH)
 
+set(CMAKE_FIND_LIBRARY_SUFFIXES ".a;.so") 
+
+find_package(MoonyCode QUIET)
+
 #
 # check configuration
 #
@@ -29,30 +33,6 @@ if(NOT DEFINED DEVELOPER_MODE)
   else()
     set(DEVELOPER_MODE FALSE CACHE BOOL "" FORCE)
   endif()
-endif()
-
-#
-# apply DEVELOPER_MODE to undefined targets
-#
-if(NOT DEFINED BUILD_MORPHAPI)  
-  set(BUILD_MORPHAPI ${DEVELOPER_MODE} CACHE BOOL "" FORCE)
-endif()
-
-if(NOT DEFINED BUILD_MORPHRUS)  
-  set(BUILD_MORPHRUS ${DEVELOPER_MODE} CACHE BOOL "" FORCE)
-endif()
-
-if(NOT DEFINED BUILD_MORPHENG)  
-  set(BUILD_MORPHENG ${DEVELOPER_MODE} CACHE BOOL "" FORCE)
-endif()
-
-#
-# check for build any code
-#
-if(BUILD_MORPHRUS OR BUILD_MORPHENG OR DEVELOPER_MODE)
-  set(BUILD_ANY_CODE ON)
-else()
-  set(BUILD_ANY_CODE OFF)
 endif()
 
 #
@@ -87,78 +67,75 @@ endif()
 
 include_directories(
   ./
-  contrib)
+  contrib
+  ${MoonyCode_INCLUDE_DIR})
 
-if(BUILD_ANY_CODE)
-  #
-  # check if moonycode is available in build
-  #
-  if (NOT TARGET moonycode-static AND NOT TARGET moonycode-shared)
-    add_subdirectory(contrib/moonycode)
-    set(MoonyCode_LIBRARY moonycode-objset)
-  endif()
-
-  #
-  # check if mtc is available in build
-  #
-  if (NOT TARGET mtc)
-    add_subdirectory(contrib/mtc)
-  endif()
+#
+# check if moonycode is available in build
+#
+if("${MoonyCode_LIBRARY}" STREQUAL "" AND NOT TARGET moonycode-objset)
+  add_subdirectory(contrib/moonycode)
+  set(MoonyCode_LIBRARY moonycode-objset)
 endif()
 
 #
-# enable RUS components
+# check if mtc is available in build
 #
-if(BUILD_MORPHRUS)
-  message(STATUS "libmorph:rus building enabled")
-
-  add_subdirectory(lang-rus)
+if (NOT TARGET mtc)
+  add_subdirectory(contrib/mtc)
 endif()
 
-#
-# enable ENG components
-#
-if(BUILD_MORPHENG)
-  message(STATUS "libmorph:eng building enabled")
-
-  add_subdirectory(lang-eng)
-endif()
+add_subdirectory(lang-rus)
+# add_subdirectory(lang-eng)
 
 #
 # build utilities only in developer mode
 #
 if(DEVELOPER_MODE)
   message(STATUS "libmorph:utils building enabled")
-
   add_subdirectory(utils)
 endif()
 
 #
 # check if tfc is needed
 #
-if(BUILD_MORPHRUS OR BUILD_MORPHUKR)
-  message(STATUS "libmorph:tfc building enabled")
-
-  add_executable(libmorph-tfc
-    utils/tfc/ftable.cpp
-    utils/tfc/gramap.cpp
-    utils/tfc/tfc.cpp)
-  target_link_libraries(libmorph-tfc ${MoonyCode_LIBRARY})
-endif()
+add_executable(libmorph-tfc
+  utils/tfc/ftable.cpp
+  utils/tfc/gramap.cpp
+  utils/tfc/tfc.cpp)
+target_link_libraries(libmorph-tfc ${MoonyCode_LIBRARY})
 
 #
-# package libmorph-api
+# install API
 #
-if(BUILD_MORPHAPI)
-  add_custom_target(morphapi ALL
-    COMMAND ${CMAKE_COMMAND} -E echo "API headers are ready for installation")
-    
-  install(FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/morphapi.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/fuzzyapi.h
-    DESTINATION include/libmorph)
-    
-  message(STATUS "API headers will be installed to include/api")
+install(
+  FILES api.h api.hpp 
+  DESTINATION include/libmorph 
+  COMPONENT ApiDev)
+
+#
+# get package versions
+#
+file(READ "API_VER" VER_API)
+  string(STRIP "${VER_API}" VER_API)
+
+file(READ "lang-rus/dict/VERSION" VER_RUS)
+  string(STRIP "${VER_RUS}" VER_RUS)
+  set(VER_RUS ${VER_API}.${VER_RUS})
+
+#
+# CPack
+#
+set(CPACK_PACKAGE_NAME          "libmorph")
+set(CPACK_PACKAGE_CONTACT       "Andrew Kovalenko <keva@rambler.ru>")
+set(CPACK_DEB_COMPONENT_INSTALL ON)
+set(CPACK_RPM_COMPONENT_INSTALL ON)
+
+# Генераторы в зависимости от системы
+if(WIN32)
+    set(CPACK_GENERATOR "ZIP")
 else()
-  message(STATUS "API headers are disabled")
+    set(CPACK_GENERATOR "DEB;RPM")
 endif()
+
+include(CPack)

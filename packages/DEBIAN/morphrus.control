@@ -1,6 +1,6 @@
-Package: libmorph-rus
+Package: morphrus
 Version: @VERSION@
-Section: libdevel
+Section: devel
 Priority: optional
 Architecture: amd64
 Depends: libc6 (>= 2.17)

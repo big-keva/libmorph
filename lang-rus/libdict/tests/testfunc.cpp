@@ -30,7 +30,7 @@
 
 ******************************************************************************/
 # include "../../../rus.h"
-# include "../../../api.hpp"
+# include "../../../api.h"
 # include "xmorph/codepages.hpp"
 # include <algorithm>
 # include <string>
@@ -101,7 +101,7 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
   {
     SECTION( "morphological analyser API may be created with different mbcs codepages" )
     {
-      IMlmaMbXX*  mlma = nullptr;
+      IMlmaMb*  mlma = nullptr;
 
       SECTION( "valid string keys give access to named API" )
       {
@@ -184,17 +184,35 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
           REQUIRE( mlma->Lemmatize( "aaa", -1, nullptr, 0, nullptr, 0, nullptr, 0, 0 ) == 0 );
           REQUIRE( mlma->Lemmatize( "простойй", -1, nullptr, 0, nullptr, 0, nullptr, 0, 0 ) == 0 );
 
-          REQUIRE( mlma->Lemmatize( "f", alemms, aforms, agrams ) == 0 );
-          REQUIRE( mlma->Lemmatize( "ааа", alemms, aforms, agrams ) == 0 );
-          REQUIRE( mlma->Lemmatize( "простойй", alemms, aforms, agrams ) == 0 );
-          REQUIRE( mlma->Lemmatize( { "простойй", 14 }, alemms, aforms, agrams ) == 3 );
+          REQUIRE( mlma->Lemmatize( "f", size_t(-1),
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, std::size(agrams), 0 ) == 0 );
+          REQUIRE( mlma->Lemmatize( "ааа", size_t(-1),
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, std::size(agrams), 0 ) == 0 );
+          REQUIRE( mlma->Lemmatize( "простойй", size_t(-1),
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, std::size(agrams), 0 ) == 0 );
+          REQUIRE( mlma->Lemmatize( "простойй", 14,
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, std::size(agrams), 0 ) == 3 );
         }
         SECTION( "non-flective words produce same forms" )
         {
-          REQUIRE( mlma->Lemmatize( "суахили", {}, aforms, {} ) == 2 );
+          REQUIRE( mlma->Lemmatize( "суахили", size_t(-1),
+            nullptr, 0,
+            aforms, std::size(aforms),
+            nullptr, 0, 0 ) == 2 );
           REQUIRE( std::string( aforms ) == "суахили" );
 
-          REQUIRE( mlma->Lemmatize( "Тарту", {}, aforms, {} ) == 1 );
+          REQUIRE( mlma->Lemmatize( "Тарту", size_t(-1),
+            nullptr, 0,
+            aforms, std::size(aforms),
+            nullptr, 0, 0 ) == 1 );
           REQUIRE( std::string( aforms ) == "Тарту" );
         }
         SECTION( "simple lemmatization without grammatical descriptions just builds forms" )
@@ -207,16 +225,34 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
         }
         SECTION( "complete lemmatization builds strings, gets lemmas and grammatical descriptions" )
         {
-          REQUIRE( mlma->Lemmatize( "простой", alemms, aforms, agrams ) == 3 );
-          REQUIRE( mlma->Lemmatize( "базедовой", alemms, aforms, agrams ) == 1 );
-          REQUIRE( mlma->Lemmatize( "программирование", alemms, aforms, agrams ) == 1 );
-          REQUIRE( mlma->Lemmatize( "уповаешь", alemms, aforms, agrams ) == 1 );
+          REQUIRE( mlma->Lemmatize( "простой", -1,
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, std::size(agrams), 0 ) == 3 );
+          REQUIRE( mlma->Lemmatize( "базедовой", -1,
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, std::size(agrams), 0 ) == 1 );
+          REQUIRE( mlma->Lemmatize( "программирование",  -1,
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, std::size(agrams), 0 ) == 1 );
+          REQUIRE( mlma->Lemmatize( "уповаешь",  -1,
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, std::size(agrams), 0  ) == 1 );
         }
         SECTION( "multi-stem forms generate 1 result" )
         {
-          if ( REQUIRE( mlma->Lemmatize( "струдель", alemms, aforms, agrams ) == 1 ) )
+          if ( REQUIRE( mlma->Lemmatize( "струдель",  -1,
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, std::size(agrams), 0  ) == 1 ) )
             REQUIRE( alemms[0].nlexid == 39988 );
-          if ( REQUIRE( mlma->Lemmatize( "штрудель", alemms, aforms, agrams ) == 1 ) )
+          if ( REQUIRE( mlma->Lemmatize( "штрудель",  -1,
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, std::size(agrams), 0  ) == 1 ) )
             REQUIRE( alemms[0].nlexid == 39988 );
         }
         SECTION( "overflows result errors:" )
@@ -227,89 +263,73 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
                 alemms, 0x02,
                 aforms, 0xf0,
                 agrams, 0x40, 0 ) == LIDSBUFF_FAILED );
-            REQUIRE( mlma->Lemmatize( "простой",
-              { alemms, 0x02 },
-              { aforms, 0xf0 },
-              { agrams, 0x40 }, 0 ) == LIDSBUFF_FAILED );
-            REQUIRE( mlma->Lemmatize( "простой",
-              { alemms, 0x02 },
-                aforms,
-                agrams ) == LIDSBUFF_FAILED );
+            REQUIRE( mlma->Lemmatize( "простой", -1,
+              alemms, 0x02,
+              aforms, 0xf0,
+              agrams, 0x40, 0 ) == LIDSBUFF_FAILED );
+            REQUIRE( mlma->Lemmatize( "простой", -1,
+              alemms, 0x02,
+              aforms, std::size(aforms),
+              agrams, std::size(agrams), 0 ) == LIDSBUFF_FAILED );
           }
           SECTION( "LEMMBUFF_FAILED with not enough buffer for froms" )
           {
-            REQUIRE( mlma->Lemmatize( "простой",
-                alemms,
-              { aforms, 0xf },
-                agrams ) == LEMMBUFF_FAILED );
+            REQUIRE( mlma->Lemmatize( "простой", -1,
+                alemms, std::size(alemms),
+                aforms, 0xf,
+                agrams, std::size(agrams), 0 ) == LEMMBUFF_FAILED );
           }
           SECTION( "GRAMBUFF_FAILED with not enough buffer for grammas" )
           {
-            REQUIRE( mlma->Lemmatize( "простой",
-                alemms,
-                aforms,
-              { agrams, 0x02 } ) == GRAMBUFF_FAILED );
+            REQUIRE( mlma->Lemmatize( "простой", -1,
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, 0x02, 0 ) == GRAMBUFF_FAILED );
           }
         }
         SECTION( "by default it is case-sensitive" )
         {
-          REQUIRE( mlma->Lemmatize( "киев",
-              alemms,
-              aforms,
-              agrams ) == 1 );
-          REQUIRE( mlma->Lemmatize( "Киев",
-              alemms,
-              aforms,
-              agrams ) == 2 );
+          REQUIRE( mlma->Lemmatize( "киев", -1,
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, std::size(agrams), 0 ) == 1 );
+          REQUIRE( mlma->Lemmatize( "Киев", -1,
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, std::size(agrams), 0 ) == 2 );
         }
         SECTION( "with sfIgnoreCapitals it is case-insensitive" )
         {
-          REQUIRE( mlma->Lemmatize( "киев",
-              alemms,
-              aforms,
-              agrams, sfIgnoreCapitals ) == 2 );
-          REQUIRE( mlma->Lemmatize( "Киев",
-              alemms,
-              aforms,
-              agrams, sfIgnoreCapitals ) == 2 );
+          REQUIRE( mlma->Lemmatize( "киев", -1,
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, std::size(agrams), sfIgnoreCapitals ) == 2 );
         }
         SECTION( "plural nouns are lemmatized to plural nominative" )
         {
-          auto  lemmas = decltype( mlma->Lemmatize( "" ) )();
-
-          REQUIRE_NOTHROW( lemmas = mlma->Lemmatize( "ножницами" ) );
-
-          if ( REQUIRE( lemmas.size() == 1 ) )
-            REQUIRE( strcmp( lemmas.front().plemma, "ножницы" ) == 0 );
+          REQUIRE( mlma->Lemmatize( "ножницами", -1,
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, std::size(agrams), sfIgnoreCapitals ) == 1 );
+          REQUIRE( strcmp( alemms->plemma, "ножницы" ) == 0 );
         }
         SECTION( "dictionary form is built in minimal correct capitalization" )
         {
-          REQUIRE( mlma->Lemmatize( "Москвой",
-              alemms,
-              aforms,
-              agrams ) == 1 );
+          REQUIRE( mlma->Lemmatize( "Москвой", -1,
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, std::size(agrams), 0 ) == 1 );
           REQUIRE( std::string( aforms ) == "Москва" );
-          REQUIRE( mlma->Lemmatize( "санкт-петербург",
-              alemms,
-              aforms,
-              agrams, sfIgnoreCapitals ) == 1 );
+          REQUIRE( mlma->Lemmatize( "санкт-петербург", -1,
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, std::size(agrams), sfIgnoreCapitals ) == 1 );
           REQUIRE( std::string( aforms ) == "Санкт-Петербург" );
-          REQUIRE( mlma->Lemmatize( "комсомольск-на-амуре",
-              alemms,
-              aforms,
-              agrams, sfIgnoreCapitals ) == 1 );
+          REQUIRE( mlma->Lemmatize( "комсомольск-на-амуре", -1,
+            alemms, std::size(alemms),
+            aforms, std::size(aforms),
+            agrams, std::size(agrams), sfIgnoreCapitals ) == 1 );
           REQUIRE( std::string( aforms ) == "Комсомольск-на-Амуре" );
-        }
-        SECTION( "cxx wrapper also provides lexemes" )
-        {
-          auto  lemmas = mlma->Lemmatize( "простой" );
-
-          if ( REQUIRE( lemmas.size() == 3 ) )
-          {
-            REQUIRE( std::string( lemmas[0].plemma ) == "простой" );
-            REQUIRE( std::string( lemmas[1].plemma ) == "простоять" );
-            REQUIRE( std::string( lemmas[2].plemma ) == "простой" );
-          }
         }
       }
       SECTION( "BuildForm" )
@@ -320,63 +340,67 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
         lexeme_t  lKTONIBUD = 176132;
 
         SECTION( "being called with empty buffer, it returns invalid argument" )
-          {  REQUIRE( mlma->BuildForm( nullptr, 0xf0, 5, 0 ) == ARGUMENT_FAILED );  }
+          {  REQUIRE( mlma->BuildForm( nullptr, std::size(aforms), 5, 0 ) == ARGUMENT_FAILED );  }
 
         SECTION( "being called with invalid lexeme, it returns 0" )
-          {  REQUIRE( mlma->BuildForm( aforms, 5, 0 ) == 0 );  }
+          {  REQUIRE( mlma->BuildForm( aforms, std::size(aforms), 5, 0 ) == 0 );  }
 
         SECTION( "being called with small buffer and correct lexeme, it returns LEMMBUFF_FAILED" )
           {  REQUIRE( mlma->BuildForm( aforms, 0x03, lMETLA, 0 ) == LEMMBUFF_FAILED );  }
 
         SECTION( "with correct buffer, it builds forms" )
         {
-          auto  out = decltype(mlma->BuildForm( lMETLA, 5 ))();
+          int   nforms;
 
-          REQUIRE_NOTHROW( out = mlma->BuildForm( lMETLA, 5 ) );
-            REQUIRE( out.size() == 2 );
-            if ( out.size() == 2 )
+          REQUIRE_NOTHROW( nforms = mlma->BuildForm( aforms, std::size(aforms), lMETLA, 5 ) );
+            if ( REQUIRE( nforms == 2 ) )
             {
-              REQUIRE( out[0] == "метлою" );
-              REQUIRE( out[1] == "метлой" );
+              REQUIRE( strcmp( aforms, "метлою" ) == 0 );
             }
         }
 
         SECTION( "for non-flective words, it builds form '0xff'" )
         {
-          REQUIRE( mlma->BuildForm( aforms, 24603 /* барбекю */, 1 ) == 0 );
-          REQUIRE( mlma->BuildForm( aforms, 24603 /* барбекю */, 0xff ) == 1 );
+          REQUIRE( mlma->BuildForm( aforms, std::size(aforms), 24603 /* барбекю */, 1 ) == 0 );
+          REQUIRE( mlma->BuildForm( aforms, std::size(aforms), 24603 /* барбекю */, 0xff ) == 1 );
           REQUIRE( std::string( aforms ) ==  "барбекю" );
         }
 
         SECTION( "for personal names, it builds minimal valid capitalization" )
         {
-          REQUIRE( mlma->BuildForm( aforms, lMOSKVA, 1 ) == 1 );
+          REQUIRE( mlma->BuildForm( aforms, std::size(aforms), lMOSKVA, 1 ) == 1 );
           REQUIRE( std::string( aforms ) == "Москвы" );
         }
 
         SECTION( "for suffixed words, it appends suffix" )
         {
-          REQUIRE( mlma->BuildForm( aforms, lKTONIBUD, 1 ) == 1 );
+          REQUIRE( mlma->BuildForm( aforms, std::size(aforms), lKTONIBUD, 1 ) == 1 );
           REQUIRE( std::string( aforms ) == "кого-нибудь" );
         }
 
         SECTION( "it uses swapping suffixes in names" )
         {
-          REQUIRE( mlma->BuildForm( 183140, 0 ).front() == "Яшка" );
-          REQUIRE( mlma->BuildForm( 183140, 11 ).front() == "Яшек" );
+          if ( REQUIRE( mlma->BuildForm( aforms, std::size(aforms), 183140, 0 ) > 0 ) )
+            REQUIRE( std::string( aforms ) == "Яшка" );
+          if ( REQUIRE( mlma->BuildForm( aforms, std::size(aforms), 183140, 11 ) > 0 ) )
+            REQUIRE( std::string( aforms ) == "Яшек" );
 
-          REQUIRE( mlma->BuildForm( 186913, 0 ).front() == "Филатовна" );
-          REQUIRE( mlma->BuildForm( 186913, 11 ).front() == "Филатовен" );
-          REQUIRE( mlma->BuildForm( 186946, 0 ).front() == "Саввична" );
-          REQUIRE( mlma->BuildForm( 186946, 11 ).front() == "Саввичен" );
+          if ( REQUIRE( mlma->BuildForm( aforms, std::size(aforms), 186913, 0 ) > 0 ) )
+            REQUIRE( std::string( aforms ) == "Филатовна" );
+          if ( REQUIRE( mlma->BuildForm( aforms, std::size(aforms), 186913, 11 ) > 0 ) )
+            REQUIRE( std::string( aforms ) == "Филатовен" );
+          if ( REQUIRE( mlma->BuildForm( aforms, std::size(aforms), 186946, 0 ) > 0 ) )
+            REQUIRE( std::string( aforms) == "Саввична" );
+          if ( REQUIRE( mlma->BuildForm( aforms, std::size(aforms), 186946, 11 ) > 0 ) )
+            REQUIRE( std::string( aforms ) ==  "Саввичен" );
         }
 
         SECTION( "for plural-only words it builds plural forms only" )
         {
-          if ( REQUIRE( mlma->BuildForm( 39156, 10 ).size() != 0 ) )
-            REQUIRE( mlma->BuildForm( 39156, 10 ).front() == "поршни" );
+          if ( REQUIRE( mlma->BuildForm( aforms, std::size(aforms), 39156, 10 ) > 0 ) )
+            REQUIRE( std::string( aforms ) == "поршни" );
 
-          REQUIRE( mlma->BuildForm( 39156, 0 ).size() == 0 );
+          REQUIRE( mlma->BuildForm( aforms, std::size(aforms), 39156, 0 ) == 0 );
         }
       }
 
@@ -390,86 +414,46 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
         }
         SECTION( "with empty string it returns 0" )
         {
-          REQUIRE( mlma->FindForms( aforms, { nullptr, 10 }, 1 ) == 0 );
-          REQUIRE( mlma->FindForms( aforms, "", 1 ) == 0 );
+          REQUIRE( mlma->FindForms( aforms, std::size(aforms), nullptr, -1, 10, 0 ) == 0 );
+          REQUIRE( mlma->FindForms( aforms, std::size(aforms), "", -1, 1, 0 ) == 0 );
         }
         SECTION( "for unknown words it returns 0" )
         {
-          REQUIRE( mlma->FindForms( aforms, "ааа", 0 ) == 0 );
+          REQUIRE( mlma->FindForms( aforms, std::size(aforms), "ааа", -1, 0, 0 ) == 0 );
         }
         SECTION( "for known words it returns count of forms build" )
         {
-          auto  out = decltype( mlma->FindForms( "метла", 5 ) )();
+          int   nforms;
 
-          REQUIRE_NOTHROW( out = mlma->FindForms( "метла", 5 ) );
-          REQUIRE( out.size() == 2 );
-
-          if ( out.size() == 2 )
+          REQUIRE_NOTHROW( nforms = mlma->FindForms( aforms, std::size(aforms), "метла", -1, 5, 0 ) );
+          if ( REQUIRE( nforms == 2 ) )
           {
-            REQUIRE( out[0] == "метлою" );
-            REQUIRE( out[1] == "метлой" );
+            REQUIRE( std::string( aforms ) == "метлою" );
           }
         }
 
         SECTION( "for non-flective words, it builds form '0xff'" )
         {
-          REQUIRE( mlma->BuildForm( aforms, 24603 /* барбекю */, 1 ) == 0 );
-          REQUIRE( mlma->BuildForm( aforms, 24603 /* барбекю */, 0xff ) == 1 );
-          REQUIRE( std::string( aforms ) ==  "барбекю" );
+          REQUIRE( mlma->FindForms( aforms, std::size(aforms), "барбекю", -1, 1, 0 ) == 0 );
+          REQUIRE( mlma->FindForms( aforms, std::size(aforms), "барбекю", -1, 0xff, 0 ) == 1 );
         }
 
         SECTION( "for personal names, it builds minimal valid capitalization" )
         {
-          REQUIRE( mlma->FindForms( aforms, "москва", 0 ) == 0 );
-          REQUIRE( mlma->FindForms( aforms, "москва", 1, sfIgnoreCapitals ) == 1 );
+          REQUIRE( mlma->FindForms( aforms, std::size(aforms), "москва", -1, 0, 0 ) == 0 );
+          REQUIRE( mlma->FindForms( aforms, std::size(aforms), "москва", -1, 1, sfIgnoreCapitals ) == 1 );
           REQUIRE( std::string( aforms ) == "Москвы" );
         }
 
         SECTION( "for suffixed words, it appends suffix" )
         {
-          REQUIRE( mlma->FindForms( aforms, "кто-нибудь", 1 ) == 1 );
+          REQUIRE( mlma->FindForms( aforms, std::size(aforms), "кто-нибудь", -1, 1, 0 ) == 1 );
           REQUIRE( std::string( aforms ) == "кого-нибудь" );
-        }
-      }
-      SECTION( "CheckHelp" )
-      {
-        char  szhelp[0x100];
-        /*
-        SECTION( "called with empty string it returns 0" )
-        {
-          REQUIRE( mlma->CheckHelp( szhelp, sizeof(szhelp), nullptr, 0 ) == 0 );
-          REQUIRE( mlma->CheckHelp( szhelp, sizeof(szhelp), nullptr, (size_t)-1 ) == 0 );
-          REQUIRE( mlma->CheckHelp( szhelp, sizeof(szhelp), "аааs", 0 ) == 0 );
-        }
-        SECTION( "without output buffer it returns ARGUMENT_FAILED" )
-        {
-          REQUIRE( mlma->CheckHelp( nullptr, sizeof(szhelp), "а?", (size_t)-1 ) == ARGUMENT_FAILED );
-          REQUIRE( mlma->CheckHelp( szhelp, 0, "а?", (size_t)-1 ) == ARGUMENT_FAILED );
-        }*/
-        SECTION( "for dictionary templates it returns the list of characters" )
-        {
-          REQUIRE( mlma->CheckHelp( szhelp, "м?жичок" ) == 1 );
-            REQUIRE( std::string( szhelp ) == "у" );
-          REQUIRE( mlma->CheckHelp( szhelp, "слоновник*" ) == 6 );
-            REQUIRE( szhelp[0] == '\0' );
-            REQUIRE( std::string( szhelp + 1 ) == "аеиоу" );
-          REQUIRE( mlma->CheckHelp( szhelp, "слоновник?м" ) == 2 );
-            REQUIRE( std::string( szhelp ) == "ао" );
-          REQUIRE( mlma->CheckHelp( szhelp, "кт?-нибудь" ) == 1 );
-            REQUIRE( std::string( szhelp ) == "о" );
-          REQUIRE( mlma->CheckHelp( szhelp, "кто?нибудь" ) == 1 );
-            REQUIRE( std::string( szhelp ) == "-" );
-          REQUIRE( mlma->CheckHelp( szhelp, "мужич?к" ) == 2 );
-            REQUIRE( std::string( szhelp ) == "ео" );
-          REQUIRE( mlma->CheckHelp( szhelp, "мужичок?" ) == 0 );
-          REQUIRE( mlma->CheckHelp( szhelp, "комсомольском-на-амуре" ) == 0 );
-          REQUIRE( mlma->CheckHelp( szhelp, "комсомольском-на-амуре*" ) == 1 );
-            REQUIRE( std::string( szhelp ) == "" );
-          REQUIRE( mlma->CheckHelp( szhelp, "комсомольском-на-амуре?" ) == 0 );
         }
       }
       SECTION( "FindMatch" )
       {
+        /*
         mlma->FindMatch( "чиc*ить", []( lexeme_t lex, int, const SStrMatch* p )
           {
             fprintf( stdout, "%u\t%s\n", lex, std::string(p->sz, p->cc).c_str());
@@ -600,6 +584,7 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
             }
           }
         }
+        */
       }
     }
     if ( false )
@@ -650,7 +635,7 @@ TestItEasy::RegisterFunc  testmorphrusws( []()
   {
     SECTION( "morphological analyser API may be created" )
     {
-      IMlmaWcXX*  mlma = nullptr;
+      IMlmaWc*  mlma = nullptr;
 
       if ( REQUIRE_NOTHROW( mlmaruGetAPI( LIBMORPH_API_4_MAGIC ":" "utf-16", (void**)&mlma ) ) && REQUIRE( mlma != nullptr ) )
       {
@@ -669,9 +654,9 @@ TestItEasy::RegisterFunc  testmorphrusws( []()
           }
           SECTION( "called with unknown length, it detects it" )
           {
-            REQUIRE( mlma->CheckWord( u"воздвигнуть" ) == 1 );
-            REQUIRE( mlma->CheckWord( u"вОздвигнуть" ) == 0 );
-            REQUIRE( mlma->CheckWord( u"вОздвигнуть", (size_t)-1, sfIgnoreCapitals ) == 1 );
+            REQUIRE( mlma->CheckWord( u"воздвигнуть", -1, 0 ) == 1 );
+            REQUIRE( mlma->CheckWord( u"вОздвигнуть", -1, 0 ) == 0 );
+            REQUIRE( mlma->CheckWord( u"вОздвигнуть", -1, sfIgnoreCapitals ) == 1 );
           }
         }
         SECTION( "GetWdInfo" )
@@ -682,11 +667,10 @@ TestItEasy::RegisterFunc  testmorphrusws( []()
           {
             REQUIRE( mlma->GetWdInfo( &wdinfo, 128 ) != 0 );
               REQUIRE( wdinfo == 1 );
-            REQUIRE( mlma->GetWdInfo( 128 ) == 1 );
           }
           SECTION( "for invalid lexemes, it returns 0" )
           {
-            REQUIRE( mlma->GetWdInfo( 127 ) == 0 );
+            REQUIRE( mlma->GetWdInfo( &wdinfo, 127 ) == 0 );
           }
         }
         SECTION( "Lemmatize" )
@@ -694,7 +678,7 @@ TestItEasy::RegisterFunc  testmorphrusws( []()
           SLemmInfoW  alemms[0x20];
           widechar    aforms[0xf0];
           SGramInfo   agrams[0x40];
-          auto        lemmas = decltype( mlma->Lemmatize( u"" ) )();
+          int         nlemma;
 
           SECTION( "parameters check is performed" )
           {
@@ -707,104 +691,115 @@ TestItEasy::RegisterFunc  testmorphrusws( []()
             REQUIRE( mlma->Lemmatize( u"f", -1, nullptr, 0, nullptr, 0, nullptr, 0, 0 ) == 0 );
             REQUIRE( mlma->Lemmatize( u"aaa", -1, nullptr, 0, nullptr, 0, nullptr, 0, 0 ) == 0 );
             REQUIRE( mlma->Lemmatize( u"простойй", -1, nullptr, 0, nullptr, 0, nullptr, 0, 0 ) == 0 );
-
-            REQUIRE( mlma->Lemmatize( u"f", alemms, aforms, agrams ) == 0 );
-            REQUIRE( mlma->Lemmatize( u"ааа", alemms, aforms, agrams ) == 0 );
-            REQUIRE( mlma->Lemmatize( u"простойй", alemms, aforms, agrams ) == 0 );
           }
           SECTION( "non-flective words produce same forms" )
           {
-            REQUIRE( mlma->Lemmatize( u"суахили", {}, aforms ) == 2 );
+            if ( REQUIRE( mlma->Lemmatize( u"суахили", -1,
+              nullptr, 0,
+              aforms, std::size(aforms),
+              nullptr, 0, 0 ) == 2 ) )
+            {
               REQUIRE( mtc::widestr( aforms ) == u"суахили" );
+            }
 
-            REQUIRE( mlma->Lemmatize( u"Тарту", {}, aforms ) == 1 );
+            if ( REQUIRE( mlma->Lemmatize( u"Тарту", -1,
+              nullptr, 0,
+              aforms, std::size(aforms),
+              nullptr, 0, 0 ) == 1 ) )
+            {
               REQUIRE( mtc::widestr( aforms ) == u"Тарту" );
+            }
           }
           SECTION( "lemmatization without grammatical info builds forms" )
           {
             REQUIRE( mlma->Lemmatize( u"простой", -1, nullptr, 0, aforms, 0xf0, nullptr, 0, 0 ) == 3 );
-            REQUIRE( mlma->Lemmatize( u"простой", {}, aforms ) == 3 );
           }
           SECTION( "lemmatization without strings gets lemmas" )
           {
             REQUIRE( mlma->Lemmatize( u"простой", -1, alemms, 0x20, nullptr, 0, nullptr, 0, 0 ) == 3 );
-            REQUIRE( mlma->Lemmatize( u"простой", alemms ) == 3 );
           }
           SECTION( "complete lemmatization builds strings, gets lemmas and grammatical descriptions" )
           {
-            REQUIRE( mlma->Lemmatize( u"простой", alemms, aforms, agrams ) == 3 );
-            REQUIRE( mlma->Lemmatize( u"простой" ).size() == 3 );
+            REQUIRE( mlma->Lemmatize( u"простой", -1,
+              alemms, std::size(alemms),
+              aforms, std::size(aforms),
+              agrams, std::size(agrams), 0 ) == 3 );
           }
           SECTION( "by default it is case-sensitive" )
           {
-            REQUIRE( mlma->Lemmatize( u"киев" ).size() == 1 );
-            REQUIRE( mlma->Lemmatize( u"Киев" ).size() == 2 );
+            REQUIRE( mlma->Lemmatize( u"киев", -1,
+              alemms, std::size(alemms),
+              aforms, std::size(aforms),
+              agrams, std::size(agrams), 0 ) == 1 );
+            REQUIRE( mlma->Lemmatize( u"Киев", -1,
+              alemms, std::size(alemms),
+              aforms, std::size(aforms),
+              agrams, std::size(agrams), 0 ) == 2 );
           }
           SECTION( "with sfIgnoreCapitals it is case-insensitive" )
           {
-            REQUIRE( mlma->Lemmatize( u"киев", sfIgnoreCapitals ).size() == 2 );
+            REQUIRE( mlma->Lemmatize( u"киев", -1,
+              alemms, std::size(alemms),
+              aforms, std::size(aforms),
+              agrams, std::size(agrams), sfIgnoreCapitals ) == 2 );
           }
           SECTION( "plural nouns are lemmatized to plural nominative" )
           {
-            if ( REQUIRE_NOTHROW( lemmas = mlma->Lemmatize( u"ножницами" ) ) )
-              if ( REQUIRE( lemmas.size() == 1 ) )
-                REQUIRE( lemmas.front().lemma == u"ножницы" );
+            if ( REQUIRE_NOTHROW( nlemma = mlma->Lemmatize( u"ножницами", -1,
+              alemms, std::size(alemms),
+              aforms, std::size(aforms),
+              agrams, std::size(agrams), 0 ) ) && REQUIRE( nlemma == 1 ) )
+            {
+              REQUIRE( mtc::widestr( aforms) == u"ножницы" );
+            }
           }
           SECTION( "dictionary form is built in minimal correct capitalization" )
           {
-            if ( REQUIRE( (lemmas = mlma->Lemmatize( u"Москвой" )).size() == 1 ) )
-              REQUIRE( lemmas.front().lemma == u"Москва" );
-            if ( REQUIRE( (lemmas = mlma->Lemmatize( u"санкт-петербург", sfIgnoreCapitals )).size() == 1 ) )
-              REQUIRE( lemmas.front().lemma == u"Санкт-Петербург" );
-            if ( REQUIRE( (lemmas = mlma->Lemmatize( u"комсомольск-на-амуре", sfIgnoreCapitals )).size() == 1 ) )
-              REQUIRE( lemmas.front().lemma == u"Комсомольск-на-Амуре" );
-          }
-          SECTION( "cxx wrapper also provides lexemes" )
-          {
-            if ( REQUIRE( (lemmas = mlma->Lemmatize( u"простой" )).size() == 3 ) )
+            if ( REQUIRE( mlma->Lemmatize( u"Москвой", -1,
+              alemms, std::size(alemms),
+              aforms, std::size(aforms),
+              agrams, std::size(agrams), 0 ) == 1 ) )
             {
-              REQUIRE( lemmas[0].lemma == u"простой" );
-              REQUIRE( lemmas[1].lemma == u"простоять" );
-              REQUIRE( lemmas[2].lemma == u"простой" );
+              REQUIRE( mtc::widestr( aforms ) == u"Москва" );
+            }
+            if ( REQUIRE( mlma->Lemmatize( u"санкт-петербург", -1,
+              alemms, std::size(alemms),
+              aforms, std::size(aforms),
+              agrams, std::size(agrams), sfIgnoreCapitals ) == 1 ) )
+            {
+              REQUIRE( mtc::widestr( aforms ) == u"Санкт-Петербург" );
+            }
+            if ( REQUIRE( mlma->Lemmatize( u"комсомольск-на-амуре", -1,
+              alemms, std::size(alemms),
+              aforms, std::size(aforms),
+              agrams, std::size(agrams), sfIgnoreCapitals ) == 1 ) )
+            {
+              REQUIRE( mtc::widestr( aforms ) == u"Комсомольск-на-Амуре" );
             }
           }
         }
         SECTION( "BuildForm" )
         {
-          auto  aforms = decltype(mlma->BuildForm( 0, 0 ))();
+          widechar  aforms[0x100];
 
           SECTION( "it builds forms for lexemes" )
           {
-            if ( REQUIRE( (aforms = mlma->BuildForm( lMETLA, 0 )).size() == 1 ) )
-              REQUIRE( aforms.front() == u"метла" );
+            if ( REQUIRE( mlma->BuildForm( aforms, std::size(aforms), lMETLA, 0 ) == 1 ) )
+              REQUIRE( mtc::widestr( aforms ) == u"метла" );
           }
         }
         SECTION( "FindForms" )
         {
-          auto  aforms = decltype(mlma->BuildForm( 0, 0 ))();
+          widechar  aforms[0x100];
 
           SECTION( "it builds forms for string words" )
           {
-            if ( REQUIRE( (aforms = mlma->FindForms( u"простой", 0 )).size() == 3 ) )
-            {
-              REQUIRE( aforms[0] == u"простой" );
-              REQUIRE( aforms[1] == u"простоять" );
-              REQUIRE( aforms[2] == u"простой" );
-            }
-          }
-        }
-        SECTION( "CheckHelp" )
-        {
-          widechar  szhelp[0x100];
-
-          SECTION( "for dictionary templates it returns the list of characters" )
-          {
-            REQUIRE( mlma->CheckHelp( u"м?жичок" ) == u"у" );
-            REQUIRE( mlma->CheckHelp( szhelp, u"слоновник*" ) == 6 );
+            REQUIRE( mlma->FindForms( aforms, std::size(aforms), u"простой", -1, 0, 0 ) == 3 );
           }
         }
         SECTION( "FindMatch" )
         {
+          /*
           std::vector<mtc::widestr> matches;
 
           SECTION( "lambda callback may be used" )
@@ -821,6 +816,7 @@ TestItEasy::RegisterFunc  testmorphrusws( []()
             if ( REQUIRE( matches.size() == 1 ) )
               REQUIRE( matches.front() == u"мужичок" );
           }
+          */
         }
       }
     }

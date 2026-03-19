@@ -89,7 +89,7 @@ int   Accumulate( IMlmaMbXX& morpho, FILE* infile )
             pspfidMatrix[partSp].weight += 1.0 / lcount;
 
             // list the forms for this lexeme
-            for ( int g = 0; g < lemmas[i].ngrams; ++g )
+            for ( unsigned g = 0; g < lemmas[i].ngrams; ++g )
             {
               auto  formid = partSp == 1 ? MapVerbFid(
                 lemmas[i].pgrams[g].idForm ) :
@@ -129,7 +129,7 @@ void  DumpRanges( FILE* out, const std::vector<double>& tab, uint8_t psp )
     return;
 
   fprintf( out, "  static const float psp%02x_ranges[0x%02x] =\n  {",
-    psp, tab.size() );
+    psp, uint8_t(tab.size()) );
 
   for ( size_t i = 0; i != tab.size(); )
   {
@@ -154,7 +154,7 @@ void  DumpMatrix( FILE* out )
                 "    const float*    ranges;\n"
                 "    const uint16_t  maxLen;\n"
                 "  } pspfid_Table[%d] =\n"
-                "  {", pspfidMatrix.size() );
+                "  {", int(pspfidMatrix.size()) );
 
   for ( unsigned i = 0; i != pspfidMatrix.size(); ++i, prefix = "," )
   {
