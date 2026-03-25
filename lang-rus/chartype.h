@@ -29,12 +29,11 @@
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
-namespace libmorph {
-namespace rus {
+namespace NAMESPACE {
 
   extern const unsigned char charTypeMatrix[256];
   extern const unsigned char toLoCaseMatrix[256];
   extern const unsigned char toUpCaseMatrix[256];
   extern const unsigned char pspMinCapValue[64];
 
-}}
+}
