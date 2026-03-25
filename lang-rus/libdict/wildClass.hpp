@@ -34,8 +34,8 @@
 # include "scanClass.hpp"
 # include "grammap.h"
 
-namespace libmorph {
-namespace rus {
+namespace NAMESPACE
+{
 
   struct Wildcard final: public Counters
   {
@@ -327,6 +327,6 @@ namespace rus {
   auto  MakeModelMatch( const Collect& match ) -> MatchModel<Collect>
     {  return MatchModel<Collect>( match );  }
 
-}} // end namespace
+} // end namespace
 
 # endif // !__libmorph_rus_scanClass_hpp__

@@ -32,8 +32,8 @@
 # include "buildform.hpp"
 # include <cstring>
 
-namespace libmorph {
-namespace rus {
+namespace NAMESPACE
+{
 
  /*
   * GetWordForms(...)
@@ -246,4 +246,4 @@ namespace rus {
     return 0;
   }
 
-}}  // namespace
+}  // namespace

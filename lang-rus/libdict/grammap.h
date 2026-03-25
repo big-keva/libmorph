@@ -34,8 +34,8 @@
 # include "mlmadefs.h"
 # include "xmorph/typedefs.h"
 
-namespace libmorph {
-namespace rus {
+namespace NAMESPACE
+{
 
   //==============================================================================
   // Method:: mapCaseInfo
@@ -300,6 +300,6 @@ namespace rus {
     return GetNounInfo( idform );
   }
 
-}}  // end namespace
+}  // end namespace
 
 # endif // !__libmorph_rus_grammap_h__ 

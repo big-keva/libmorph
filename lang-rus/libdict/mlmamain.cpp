@@ -54,8 +54,8 @@
 #   define strcasecmp _strcmpi
 # endif   // MSVC
 
-namespace libmorph {
-namespace rus {
+namespace NAMESPACE
+{
 
   struct anyway_ok
   {
@@ -182,7 +182,7 @@ namespace rus {
       return Flat::ScanTree<uint8_t>( Flat::ScanList( MakeClassMatch( anyway_ok() )
         .SetCapitalization( uint16_t(scheme) )
         .SetSearchSettings( dwsets ) ),
-      libmorphrus::stemtree, { locase, scheme >> 16 } );
+      stemtree, { locase, scheme >> 16 } );
     ON_ERRORS( -1 )
   }
 
@@ -213,7 +213,7 @@ namespace rus {
       nerror = Flat::ScanTree<uint8_t>( Flat::ScanList( MakeClassMatch( lemmatize )
         .SetCapitalization( scheme & 0xffff )
         .SetSearchSettings( dwsets ) ),
-      libmorphrus::stemtree, { locase, scheme >> 16 } );
+      stemtree, { locase, scheme >> 16 } );
 
       return nerror < 0 ? nerror : lemmatize;
     ON_ERRORS( -1 )
@@ -231,9 +231,9 @@ namespace rus {
         return ARGUMENT_FAILED;
 
     // No original word form; algo jumps to lexeme block dictionary point by lexeme id
-      if ( (ofsptr = Flat::ScanTree<uint16_t>( getofs, libmorphrus::lidstree, { lidkey, lexkeylen( lidkey, nlexid ) } )) != nullptr )
+      if ( (ofsptr = Flat::ScanTree<uint16_t>( getofs, lidstree, { lidkey, lexkeylen( lidkey, nlexid ) } )) != nullptr )
       {
-        auto    dicpos = libmorphrus::stemtree + getserial( ofsptr );
+        auto    dicpos = stemtree + getserial( ofsptr );
         byte_t  szstem[maximal::form_length] = {};
         int     nerror;
 
@@ -242,7 +242,7 @@ namespace rus {
           nlexid, idform, szstem );
 
         nerror = Flat::GetTrack<uint8_t>( Flat::ViewList( MakeBuildClass( buildform ), dicpos ),
-          libmorphrus::stemtree, szstem, 0, dicpos );
+          stemtree, szstem, 0, dicpos );
 
         return nerror < 0 ? nerror : buildform;
       }
@@ -279,7 +279,7 @@ namespace rus {
       nerror = Flat::ScanTree<uint8_t>( Flat::ScanList( MakeClassMatch( buildform )
         .SetCapitalization( uint16_t(scheme) )
         .SetSearchSettings( dwsets ) ),
-      libmorphrus::stemtree, { locase, scheme >> 16 } );
+      stemtree, { locase, scheme >> 16 } );
 
       return nerror < 0 ? nerror : buildform;
     ON_ERRORS( -1 )
@@ -337,7 +337,7 @@ namespace rus {
       if ( (nerror = Wild::ScanTree<uint8_t>(
         MakeModelMatch( [&]( lexeme_t, const uint8_t* str, size_t len, const SGramInfo& )
           {  return achars( qtrpos < len ? str[qtrpos] : uint8_t(0) ), 0;  } ),
-        libmorphrus::stemtree, { locase, scheme >> 16 }, smatch, 0 )) != 0 )
+        stemtree, { locase, scheme >> 16 }, smatch, 0 )) != 0 )
       return nerror;
 
       return achars( MbcsCoder( output, cchout, codepage ).object() );
@@ -352,9 +352,9 @@ namespace rus {
       auto          getofs = []( const byte_t* thedic, const fragment& str ){  return str.empty() ? thedic : nullptr;  };
 
     // No original word form; algo jumps to lexeme block dictionary point by lexeme id
-      if ( (ofsptr = Flat::ScanTree<word16_t>( getofs, libmorphrus::lidstree, { lidkey, lexkeylen( lidkey, lexkey ) } )) != nullptr )
+      if ( (ofsptr = Flat::ScanTree<word16_t>( getofs, lidstree, { lidkey, lexkeylen( lidkey, lexkey ) } )) != nullptr )
       {
-        const byte_t* dicpos = libmorphrus::stemtree + getserial( ofsptr ) + 2; /* 2 => clower && cupper */
+        const byte_t* dicpos = stemtree + getserial( ofsptr ) + 2; /* 2 => clower && cupper */
         lexeme_t      nlexid = getserial( dicpos );
         word16_t      oclass = getword16( dicpos );
         steminfo      stinfo;
@@ -362,7 +362,7 @@ namespace rus {
         if ( nlexid != lexkey )
           return LIDSBUFF_FAILED;
 
-        *pwinfo = stinfo.Load( libmorphrus::classmap + (oclass & 0x7fff) ).wdinfo & 0x3f;
+        *pwinfo = stinfo.Load( classmap + (oclass & 0x7fff) ).wdinfo & 0x3f;
           return 1;
       }
       return 0;
@@ -451,7 +451,7 @@ namespace rus {
 
     // scan the dictionary
       if ( (nerror = Wild::ScanTree<uint8_t>( MakeModelMatch( reglex ),
-        libmorphrus::stemtree, { locase, cchstr }, (uint8_t*)cpsstr, 0 )) != 0 )
+        stemtree, { locase, cchstr }, (uint8_t*)cpsstr, 0 )) != 0 )
       return nerror;
 
       return lastId != 0 ? pmatch->AddLexeme( lastId, nmatch, amatch ) : 0;
@@ -715,7 +715,7 @@ namespace rus {
     { unsigned(-1),             "utf16" }
   };
 
-}}
+}
 
 /*
  * declare old-style api functions
@@ -729,7 +729,7 @@ extern "C"  int   MLMAPROC  mlmaruLoadWcAPI( IMlmaWc** );
  */
 extern "C"  int   MLMAPROC  mlmaruGetAPI( const char*, void** );
 
-using namespace libmorph::rus;
+using namespace NAMESPACE;
 
 extern "C"  int   MLMAPROC  mlmaruLoadMbAPI( IMlmaMb**  ptrAPI )
 {

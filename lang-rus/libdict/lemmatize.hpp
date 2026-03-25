@@ -35,8 +35,8 @@
 # include "xmorph/codepages.hpp"
 # include "grammap.h"
 
-namespace libmorph {
-namespace rus {
+namespace NAMESPACE
+{
 
  /*
   * Lemmatizer - create lemmatization result, build normal (dictionary) form for
@@ -96,6 +96,6 @@ namespace rus {
 
   };
 
-}} // end namespace
+} // end namespace
 
 # endif // !__libmorph_rus_lemmatize_hpp__

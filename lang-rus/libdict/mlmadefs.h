@@ -37,17 +37,15 @@
 # include "xmorph/capsheme.h"
 # include "xmorph/typedefs.h"
 
-namespace libmorphrus {
+namespace NAMESPACE
+{
+
   extern unsigned char  flexTree[];
   extern unsigned char  mxTables[];
   extern unsigned char  mixTypes[];
   extern unsigned char  classmap[];
   extern unsigned char  stemtree[];
   extern unsigned char  lidstree[];
-}
-
-namespace libmorph {
-namespace rus {
 
   # define ffNNext       0x80              /* Nesessary-next flex-item level         */
   # define ffONext       0x40              /* Optional-next flex-item level          */
@@ -147,7 +145,7 @@ namespace rus {
     steminfo( uint16_t offset = (uint16_t)-1 )
       {
         if ( offset != (uint16_t)-1 )
-          Load( (const uint8_t*)libmorphrus::classmap + offset );
+          Load( (const uint8_t*)classmap + offset );
       }
     steminfo( uint16_t winfo, uint16_t foffs, uint16_t moffs ):
       wdinfo( winfo ),
@@ -166,15 +164,15 @@ namespace rus {
       }
     const byte_t* GetFlexTable() const
       {
-        return tfoffs != 0 && (wdinfo & 0x3f) != 51 ? (tfoffs << 0x0004) + libmorphrus::flexTree : NULL;
+        return tfoffs != 0 && (wdinfo & 0x3f) != 51 ? (tfoffs << 0x0004) + flexTree : NULL;
       }
     const byte_t* GetSwapTable() const
       {
-        return mtoffs != 0 ? mtoffs + libmorphrus::mxTables : NULL;
+        return mtoffs != 0 ? mtoffs + mxTables : NULL;
       }
     int           GetSwapLevel( word16_t grinfo, byte_t bflags ) const
       {
-        switch ( libmorphrus::mixTypes[wdinfo & 0x3F] )
+        switch ( mixTypes[wdinfo & 0x3F] )
         {
           case 1:   return GetVerbMixPower( wdinfo, grinfo );
           case 2:   return MascNotAnimMixPower( grinfo );
@@ -217,6 +215,6 @@ namespace rus {
 
   };
 
-}} // end namespace
+} // end namespace
 
 # endif // __libmorph_rus_mlmadefs_h__

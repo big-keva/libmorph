@@ -4,7 +4,9 @@ project(RUS_DICT
   DESCRIPTION "Dictionary-based morphological analyser for Russian"
   LANGUAGES CXX)
 
-set(Namespace libmorphrus)
+set(Namespace libmorph::rus)
+
+add_compile_options(-DNAMESPACE=${Namespace})
 
 set(DicCPP
   dictree/classmap.cpp

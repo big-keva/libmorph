@@ -35,8 +35,8 @@
 # include "xmorph/codepages.hpp"
 # include "grammap.h"
 
-namespace libmorph {
-namespace rus {
+namespace NAMESPACE
+{
 
   class FormBuild
   {
@@ -100,6 +100,6 @@ namespace rus {
     const fragment&   prefix,
     const fragment&   suffix = {} );
 
-}}
+}
 
 # endif // !__libmorph_rus_buildform_hpp__

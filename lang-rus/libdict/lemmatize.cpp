@@ -36,8 +36,8 @@
 # include "moonycode/codes.h"
 # include <algorithm>
 
-namespace libmorph {
-namespace rus {
+namespace NAMESPACE
+{
 
   inline  bool  has_graminfo( const SLemmInfoA& l, const SGramInfo& g )
   {
@@ -178,4 +178,4 @@ namespace rus {
     return 0;
   }
 
-}} // end namespace
+} // end namespace
