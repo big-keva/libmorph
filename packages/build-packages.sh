@@ -6,9 +6,9 @@ cmake -B build -S ../ && cmake --build build -j$(nproc)
 #
 # install all Components
 #
-cmake --install build --component RusRtm --prefix ./morphrus
-cmake --install build --component ApiDev --prefix ./morphapi-dev
-cmake --install build --component RusDev --prefix ./morphrus-dev
+cmake --install build --component RusRtm --prefix ./morphrus/usr
+cmake --install build --component ApiDev --prefix ./morphapi-dev/usr
+cmake --install build --component RusDev --prefix ./morphrus-dev/usr
 
 #
 # read the versions
