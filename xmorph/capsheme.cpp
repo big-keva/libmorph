@@ -32,7 +32,7 @@
 # include "capsheme.h"
 # include <cstdint>
 
-namespace libmorph
+namespace NAMESPACE
 {
   const unsigned char (&CapScheme::capStateMatrix)[6][4] =
   {

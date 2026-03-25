@@ -47,7 +47,11 @@
 // При этом значение схемы 0 означает нелегальную схему
 //=====================================================================
 
-namespace libmorph {
+# if !defined( NAMESPACE )
+#   error NAMESPACE macro must be defined to compile this source!
+# endif
+
+namespace NAMESPACE {
 
   class CapScheme
   {
