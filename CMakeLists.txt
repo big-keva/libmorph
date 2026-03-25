@@ -85,8 +85,16 @@ if (NOT TARGET mtc)
   add_subdirectory(contrib/mtc)
 endif()
 
+#
+# languages
+#
 add_subdirectory(lang-rus)
 # add_subdirectory(lang-eng)
+
+#
+# python wrappers
+#
+add_subdirectory(mod-pyth)
 
 #
 # build utilities only in developer mode
