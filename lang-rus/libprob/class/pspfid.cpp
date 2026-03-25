@@ -1,5 +1,5 @@
-namespace libfuzzy {
-namespace rus {
+namespace NAMESPACE
+{
 
   static const float psp01_ranges[0xea] =
   {
@@ -156,4 +156,4 @@ namespace rus {
     { 0.0001, psp2e_ranges, 7 }
   };
 
-}}
+}

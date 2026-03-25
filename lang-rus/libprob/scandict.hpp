@@ -35,8 +35,8 @@
 # include <moonycode/codes.h>
 # include <mtc/serialize.h>
 
-namespace libfuzzy {
-namespace rus {
+namespace NAMESPACE
+{
 
   using fragment = libmorph::fragment;
 
@@ -306,6 +306,6 @@ namespace rus {
     }
   };
 
-}}
+}
 
 # endif   // __libfuzzy_rus_scandict_hpp__

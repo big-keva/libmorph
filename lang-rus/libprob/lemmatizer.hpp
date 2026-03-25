@@ -38,8 +38,8 @@
 # include <algorithm>
 # include <cmath>
 
-namespace libfuzzy {
-namespace rus {
+namespace NAMESPACE
+{
 
   extern const float inflexProbTable[];
 
@@ -51,7 +51,6 @@ namespace rus {
   } pspfidProbTable[];
 
   using namespace libmorph;
-  using namespace libmorph::rus;
 
   class Lemmatizer
   {
@@ -232,6 +231,6 @@ namespace rus {
     }
   };
 
-}}
+}
 
 # endif // !__libfuzzy_rus_lemmatizer_hpp__

@@ -42,8 +42,8 @@
   # define  ON_ERRORS( code )
 # endif  // ! _WIN32_WCE
 
-namespace libfuzzy {
-namespace rus {
+namespace NAMESPACE
+{
 
   const float  inflexProbTable[16] = { -1,
     0.0,    // нулевое окончание, 1 символ в конце основы
@@ -241,7 +241,7 @@ namespace rus {
         { pgrams, cgrams },
       locase, scheme >> 16, scheme, dwsets );
 
-      if ( (nerror = patricia::ScanTree( lemmatizer, (const char*)libfuzzyrus::ReverseDict,
+      if ( (nerror = patricia::ScanTree( lemmatizer, (const char*)ReverseDict,
         (const char*)locase + (scheme >> 16) - 1, scheme >> 16 )) != 0 )
           return nerror;
 
@@ -260,7 +260,7 @@ namespace rus {
       auto    scheme = ToCanonic( locase, pszstr, cchstr );
 
     // check the args
-      if ( output == nullptr || cchout == 0 || nclass >= libfuzzyrus::ClassNumber )
+      if ( output == nullptr || cchout == 0 || nclass >= ClassNumber )
         return ARGUMENT_FAILED;
 
       if ( cchstr != 0 && pszstr == nullptr )
@@ -471,7 +471,7 @@ namespace rus {
     { unsigned(-1),             "utf16" }
   };
 
-}}
+}
 
 /*
  * declare old-style api functions

@@ -38,11 +38,10 @@
 # include "classtable.hpp"
 # include <mtc/serialize.h>
 
-namespace libfuzzy {
-namespace rus {
+namespace NAMESPACE
+{
 
   using namespace libmorph;
-  using namespace libmorph::rus;
 
   class Buildform
   {
@@ -102,6 +101,6 @@ namespace rus {
     }
   };
 
-}}
+}
 
 # endif // !__libfuzzy_rus_buildforms_hpp__

@@ -4,7 +4,9 @@ project(RUS_PROB
   DESCRIPTION "Fuzzy morphological analyser for Russian"
   LANGUAGES CXX)
 
-set(Namespace	libfuzzyrus)
+set(Namespace	libfuzzy::rus)
+
+add_compile_options(-DNAMESPACE=${Namespace})
 
 set(InflexCPP	fuzzydic.cpp)
 set(InflexSRC	${PROJECT_SOURCE_DIR}/class/mclass.json)
