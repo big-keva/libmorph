@@ -57,6 +57,7 @@ template <class T>
 template <class Mlma, class Char>
 class IMlmaXX: public Mlma
 {
+public:
   using CharType = Char;
   using LemmType = typename std::conditional<std::is_same<CharType, char>::value,
     SLemmInfoA, SLemmInfoW>::type;
@@ -64,7 +65,6 @@ class IMlmaXX: public Mlma
 
   using Traits = MlmaTraits<CharType>;
 
-public:
   using Mlma::GetWdInfo;
   using Mlma::CheckWord;
   using Mlma::Lemmatize;
@@ -104,6 +104,7 @@ using IMlmaWcXX = IMlmaXX<IMlmaWc, widechar>;
 template <class Mlfa, class Char>
 class IMlfaXX: public Mlfa
 {
+public:
   using CharType = Char;
   using StemType = typename std::conditional<std::is_same<CharType, char>::value,
     SStemInfoA, SStemInfoW>::type;
