@@ -92,11 +92,6 @@ add_subdirectory(lang-rus)
 # add_subdirectory(lang-eng)
 
 #
-# python wrappers
-#
-add_subdirectory(pyrusmorph)
-
-#
 # build utilities only in developer mode
 #
 if(DEVELOPER_MODE)
