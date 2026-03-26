@@ -1,4 +1,4 @@
-link_libraries(${MoonyCode_LIBRARY} mtc)
+link_libraries(${MoonyCode_LIB} mtc)
 
 add_executable(libmorph-benchmark  benchmark.cpp)
 add_executable(libmorph-get-holes  get-holes.cpp)

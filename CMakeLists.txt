@@ -73,9 +73,9 @@ include_directories(
 #
 # check if moonycode is available in build
 #
-if("${MoonyCode_LIBRARY}" STREQUAL "" AND NOT TARGET moonycode-objset)
+if("${MoonyCode_LIB}" STREQUAL "" AND NOT TARGET moonycode-objset)
   add_subdirectory(contrib/moonycode)
-  set(MoonyCode_LIBRARY moonycode-objset)
+  set(MoonyCode_LIB moonycode-objset)
 endif()
 
 #
@@ -94,7 +94,7 @@ add_subdirectory(lang-rus)
 #
 # python wrappers
 #
-add_subdirectory(mod-pyth)
+add_subdirectory(pyrusmorph)
 
 #
 # build utilities only in developer mode
@@ -111,7 +111,7 @@ add_executable(libmorph-tfc
   utils/tfc/ftable.cpp
   utils/tfc/gramap.cpp
   utils/tfc/tfc.cpp)
-target_link_libraries(libmorph-tfc ${MoonyCode_LIBRARY})
+target_link_libraries(libmorph-tfc ${MoonyCode_LIB})
 
 #
 # install API

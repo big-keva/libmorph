@@ -67,7 +67,7 @@ add_library(morphrus-shared SHARED
 set_target_properties(morphrus-shared PROPERTIES 
   OUTPUT_NAME "morphrus")
 
-target_link_libraries(morphrus-shared ${MoonyCode_LIBRARY})
+target_link_libraries(morphrus-shared ${MoonyCode_LIB})
 
 #
 # create static library
@@ -126,9 +126,9 @@ add_executable(morphrus-test
   tests/testcapi.c
   tests/testfunc.cpp)
 
-target_link_libraries(morphrus-test ${MoonyCode_LIBRARY} morphrus-objset mtc)
-target_link_libraries(${BuilDic}    ${MoonyCode_LIBRARY})
-target_link_libraries(${MakeIch}    ${MoonyCode_LIBRARY})
+target_link_libraries(morphrus-test ${MoonyCode_LIB} morphrus-objset mtc)
+target_link_libraries(${BuilDic}    ${MoonyCode_LIB})
+target_link_libraries(${MakeIch}    ${MoonyCode_LIB})
 
 #
 # install rus

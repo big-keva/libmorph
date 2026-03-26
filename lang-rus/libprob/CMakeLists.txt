@@ -47,7 +47,7 @@ add_library(fuzzyrus-shared SHARED
 set_target_properties(fuzzyrus-shared PROPERTIES 
   OUTPUT_NAME "fuzzyrus")
 
-target_link_libraries(fuzzyrus-shared ${MoonyCode_LIBRARY})
+target_link_libraries(fuzzyrus-shared ${MoonyCode_LIB})
 
 #
 # create static library
@@ -84,27 +84,27 @@ endif()
 # Компилятор словаря окончаний mclass.json
 #
 add_executable(${CompileDict}         tools/compile-dict.cpp)
-target_link_libraries(${CompileDict}  ${MoonyCode_LIBRARY} mtc)
+target_link_libraries(${CompileDict}  ${MoonyCode_LIB} mtc)
 
 #
 # Генератор mclass.json - словарь грамматических классов
 #
 add_executable(${MakeClasses}         tools/make-classes.cpp)
-target_link_libraries(${MakeClasses}  ${MoonyCode_LIBRARY} morphrus-objset mtc)
+target_link_libraries(${MakeClasses}  ${MoonyCode_LIB} morphrus-objset mtc)
 
 #
 # Статистика частей речи
 #
 if(DEVELOPER_MODE)
   add_executable(${MakePsTable}         tools/make-psp-tab.cpp)
-  target_link_libraries(${MakePsTable}  ${MoonyCode_LIBRARY} morphrus-objset mtc)
+  target_link_libraries(${MakePsTable}  ${MoonyCode_LIB} morphrus-objset mtc)
 endif()
 
 #
 # Тесты
 #
 add_executable(fuzzyrus-test          tests/fuzzyrus-test.cpp)
-target_link_libraries(fuzzyrus-test   ${MoonyCode_LIBRARY} fuzzyrus-objset mtc)
+target_link_libraries(fuzzyrus-test   ${MoonyCode_LIB} fuzzyrus-objset mtc)
 
 #
 # install rus
