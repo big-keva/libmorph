@@ -9,12 +9,12 @@ set(Namespace libmorph::rus)
 add_compile_options(-DNAMESPACE=${Namespace})
 
 set(DicCPP
-  dictree/classmap.cpp
-  dictree/stemtree.cpp
-  dictree/lidstree.cpp
-  dictree/flexTree.cpp
-  dictree/mixTypes.cpp
-  dictree/mxTables.cpp)
+  rus-dictree/classmap.cpp
+  rus-dictree/stemtree.cpp
+  rus-dictree/lidstree.cpp
+  rus-dictree/flexTree.cpp
+  rus-dictree/mixTypes.cpp
+  rus-dictree/mxTables.cpp)
 
 set(BuilDic morphrus-buildic)
 set(MakeIch morphrus-makeich)
@@ -85,11 +85,11 @@ set_target_properties(morphrus-static PROPERTIES
 add_custom_command(OUTPUT ${DicCPP}
   COMMAND ${BuilDic} -flex-table=${FlexTab} -flex-index=${FlexIdx}
     -intr-table=${IntrTab} -intr-index=${IntrIdx}
-    -target-dir=dictree
-    -unknown=dictree/unknown.txt
+    -target-dir=rus-dictree
+    -unknown=rus-dictree/unknown.txt
     -namespace=${Namespace}
     ${DicSrc}
-  DEPENDS ${BuilDic} ${DicSrc} ${FlexTab} ${FlexIdx} ${IntrTab} ${IntrIdx} dictree)
+  DEPENDS ${BuilDic} ${DicSrc} ${FlexTab} ${FlexIdx} ${IntrTab} ${IntrIdx} rus-dictree)
 
 #
 # compile flexion tables
@@ -116,8 +116,8 @@ add_executable(${BuilDic}
 # directories in build tree for custom built files:
 #   * inflextion tables;
 #   * dictionary sources.
-add_custom_target(dictree ALL
-  COMMAND ${CMAKE_COMMAND} -E make_directory dictree)
+add_custom_target(rus-dictree ALL
+  COMMAND ${CMAKE_COMMAND} -E make_directory rus-dictree)
 
 add_custom_target(tmp ALL
   COMMAND ${CMAKE_COMMAND} -E make_directory tmp)
