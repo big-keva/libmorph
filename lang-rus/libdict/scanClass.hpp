@@ -34,8 +34,7 @@
 # include "xmorph/scandict.h"
 # include "xmorph/capsheme.h"
 
-namespace libmorph {
-namespace rus {
+namespace NAMESPACE {
 
   class Grammar final
   {
@@ -273,6 +272,6 @@ namespace rus {
   auto  MakeBuildClass( const Collect& match ) -> BuildClass<Collect>
     {  return BuildClass<Collect>( match );  }
 
-}} // end namespace
+} // end namespace
 
 # endif // !__libmorph_rus_scanClass_hpp__
