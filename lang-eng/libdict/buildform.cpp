@@ -32,8 +32,7 @@
 # include "buildform.hpp"
 # include <cstring>
 
-namespace libmorph {
-namespace eng {
+namespace NAMESPACE {
 
   int   GetFlexForms(
     Collector&      output,
@@ -171,4 +170,4 @@ namespace eng {
     return 0;
   }
 
-}}  // namespace
+}  // namespace

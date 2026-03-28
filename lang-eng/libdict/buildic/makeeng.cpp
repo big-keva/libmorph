@@ -387,7 +387,7 @@ auto  ResolveEng::operator ()( const char* article ) -> std::vector<stem_entry>
 
 // convert lexeme description to lower case
   for ( auto s = szstem; *s != '\0'; ++s )
-    *s = libmorph::eng::toLoCaseMatrix[(unsigned char)*s];
+    *s = NAMESPACE::toLoCaseMatrix[(unsigned char)*s];
 
   return { {
       szstem,

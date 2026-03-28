@@ -33,8 +33,7 @@
 # define __libmorph_rus_scanClass_hpp__
 # include "xmorph/capsheme.h"
 
-namespace libmorph {
-namespace eng {
+namespace NAMESPACE {
 
   struct ScanDict final
   {
@@ -148,6 +147,6 @@ namespace eng {
   auto  MakeBuildClass( const Collect& match ) -> BuildClass<Collect>
     {  return BuildClass<Collect>( match );  }
 
-}} // end namespace
+} // end namespace
 
 # endif // !__libmorph_rus_scanClass_hpp__

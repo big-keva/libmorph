@@ -36,8 +36,7 @@
 # include "xmorph/codepages.hpp"
 # include "xmorph/capsheme.h"
 
-namespace libmorph {
-namespace eng {
+namespace NAMESPACE {
 
   class FormBuild
   {
@@ -99,6 +98,6 @@ namespace eng {
     const fragment& suffix,
     const steminfo& stinfo );
 
-}}
+}
 
 # endif // !__libmorph_eng_buildform_hpp__

@@ -33,8 +33,7 @@
 # define __libmorph_eng_wildClass_hpp__
 # include "scanClass.hpp"
 
-namespace libmorph {
-namespace eng {
+namespace NAMESPACE {
 
   struct Wildcard final: public Counters
   {
@@ -128,6 +127,7 @@ namespace eng {
         // suppose zero and one match
           if ( (nerror = ScanString( target, smatch, lmatch, inflex.next(), suffix, stflex, idform )) == 0 )
             nerror = ScanString( target, smatch, lmatch + 1, inflex, suffix, stflex.next(), idform );
+          [[fallthrough]];
         default:
           return nerror;
       }
@@ -275,6 +275,6 @@ namespace eng {
   auto  MakeModelMatch( const Collect& match ) -> MatchModel<Collect>
     {  return MatchModel<Collect>( match );  }
 
-}} // end namespace
+} // end namespace
 
 # endif // !__libmorph_eng_scanClass_hpp__

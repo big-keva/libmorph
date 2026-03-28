@@ -29,6 +29,7 @@
       Phone: +7(495)648-4058, +7(926)513-2991, +7(707)129-1418
 
 ******************************************************************************/
+# include <api.hpp>
 # include <rus.h>
 # include "moonycode/codes.h"
 # include "mtc/test-it-easy.hpp"
@@ -48,7 +49,7 @@ public:
     return stem.pgrams != nullptr && stem.ngrams != 0 && stem.pgrams->wdInfo == psp;
   }
 };
-/*
+
 auto  operator & (
   const std::vector<IMlfaMbXX::lexeme>& v1,
   const std::vector<IMlfaMbXX::lexeme>& v2 ) -> std::vector<IMlfaMbXX::lexeme>
@@ -75,7 +76,7 @@ auto  operator & (
 
   return output;
 }
-*/
+
 template <class T>
 auto  SubVector( const std::vector<T>& s, size_t pos, size_t n ) -> std::vector<T>
 {
@@ -89,8 +90,8 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
 {
   TEST_CASE( "fuzzy/rus" )
   {
-    IMlfaMb*  mlfaMb;
-    IMlfaWc*  mlfaWc;
+    IMlfaMbXX*  mlfaMb;
+    IMlfaWcXX*  mlfaWc;
 
     SECTION( "fuzzy morphology may be created for native codepage (1251), unicode-16 and a set of codepages supported" )
     {
@@ -155,6 +156,11 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
     }
     SECTION( "Lemmatize" )
     {
+      SStemInfoA  lemmas[0x20];
+      char        normal[0x200];
+      SGramInfo   gramms[0x40];
+      int         lcount;
+
       /*
       auto  lemmas = decltype(mlfaMb->Lemmatize( "" )){};
 
@@ -261,6 +267,22 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
           }
         }
       */
+      SECTION( "∙ really unknown words are lemmatized successfully" )
+      {
+        auto  l1 = mlfaMb->Lemmatize( "командировочка", sfIgnoreCapitals );
+        auto  l2 = mlfaMb->Lemmatize( "командировочки", sfIgnoreCapitals );
+        auto  l3 = mlfaMb->Lemmatize( "командировочек", sfIgnoreCapitals );
+
+        REQUIRE( (l1 & l2).size() != 0 );
+        REQUIRE( (l2 & l3).size() != 0 );
+        REQUIRE( (l1 & l3).size() != 0 );
+      }
+      SECTION( "∙ really unknown words are lemmatized successfully" )
+      {
+        auto  l1 = mlfaMb->Lemmatize( "Пасифая", sfIgnoreCapitals );
+
+        REQUIRE( l1.size() != 0 );
+      }
     }
     SECTION( "BuildForm" )
     {

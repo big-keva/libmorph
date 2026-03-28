@@ -89,7 +89,7 @@ endif()
 # languages
 #
 add_subdirectory(lang-rus)
-# add_subdirectory(lang-eng)
+add_subdirectory(lang-eng)
 
 #
 # build utilities only in developer mode

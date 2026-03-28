@@ -38,16 +38,13 @@
 
 # define wfPostSt   0x8000       /* Stem has post-text definition          */
 
-namespace libmorpheng {
+namespace NAMESPACE
+{
   extern unsigned char  flexTree[];
   extern unsigned char  classmap[];
   extern unsigned char  stemtree[];
   extern unsigned char  lidstree[];
-}
 
-namespace libmorph {
-namespace eng
-{
   // Define common types used in the analyser
   typedef unsigned char   byte08_t;
   typedef unsigned short  word16_t;
@@ -75,7 +72,7 @@ namespace eng
     steminfo( uint16_t oclass = (uint16_t)-1 )
       {
         if ( oclass != (uint16_t)-1 )
-          Load( (const uint8_t*)libmorpheng::classmap + oclass );
+          Load( (const uint8_t*)classmap + oclass );
       }
     steminfo( uint16_t winfo, uint16_t foffs ):
       wdinfo( winfo ),
@@ -92,12 +89,12 @@ namespace eng
       }
     const byte_t* GetFlexTable() const
       {
-        return tfoffs != 0 ? tfoffs + libmorpheng::flexTree : nullptr;
+        return tfoffs != 0 ? tfoffs + flexTree : nullptr;
       }
   };
 
 #define MAX_WORD_FORMS  32
 
-}} // end libmorph::eng namespace
+} // end namespace
 
 # endif // !__libmorph_eng_mlmadefs_h__

@@ -36,8 +36,7 @@
 # include "xmorph/capsheme.h"
 # include <algorithm>
 
-namespace libmorph {
-namespace eng {
+namespace NAMESPACE {
 
   inline  bool  has_graminfo( const SLemmInfoA& l, const SGramInfo& g )
   {
@@ -163,4 +162,4 @@ namespace eng {
     return 0;
   }
 
-}} // end namespace
+} // end namespace

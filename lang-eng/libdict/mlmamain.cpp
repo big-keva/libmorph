@@ -30,8 +30,8 @@
 
 ******************************************************************************/
 # include "xmorph/codepages.hpp"
+# include "xmorph/mlmawide.hpp"
 # include "xmorph/wildscan.h"
-# include "xmorph/charlist.h"
 # include "../chartype.h"
 # include "mlmadefs.h"
 # include "scanClass.hpp"
@@ -49,8 +49,7 @@
   # define  ON_ERRORS( code )
 # endif  // ! _WIN32_WCE
 
-namespace libmorph {
-namespace eng {
+namespace NAMESPACE {
 
   struct anyway_ok
   {
@@ -58,7 +57,7 @@ namespace eng {
     int  operator()( args... ) const  {  return 1;  }
   };
 
-  enum  maximal: size_t
+  enum maximal: size_t
   {
     form_length = 48,               // максимальная длина слова в буквак
     utf8_length = form_length * 2,  // максимальная длина слова в байтах
@@ -86,8 +85,6 @@ namespace eng {
     int MLMAPROC  FindForms( char*          output, size_t    cchout,
                              const char*    pszstr, size_t    cchstr,
                              formid_t       idform, unsigned  dwsets ) override;
-    int MLMAPROC  CheckHelp( char*          output, size_t    cchout,
-                             const char*    pszstr, size_t    cchstr ) override;
     int MLMAPROC  GetWdInfo( unsigned char* pwindo, lexeme_t  nlexid ) override;
     int MLMAPROC  FindMatch( IMlmaMatch*    pienum,
                              const char*    pszstr, size_t    cchstr ) override;
@@ -106,32 +103,8 @@ namespace eng {
 
   };
 
-  struct  CMlmaWc: public IMlmaWc
-  {
-    int MLMAPROC  Attach() override {  return 0;  }
-    int MLMAPROC  Detach() override {  return 0;  }
-
-    int MLMAPROC  CheckWord( const widechar*  pszstr, size_t    cchstr,
-                             unsigned         dwsets )  override;
-    int MLMAPROC  Lemmatize( const widechar*  pszstr, size_t    cchstr,
-                             SLemmInfoW*      output, size_t    cchout,
-                             widechar*        plemma, size_t    clemma,
-                             SGramInfo*       pgrams, size_t    ngrams,
-                             unsigned         dwsets )  override;
-    int MLMAPROC  BuildForm( widechar*        output, size_t    cchout,
-                             lexeme_t         nlexid, formid_t  idform )  override;
-    int MLMAPROC  FindForms( widechar*        output, size_t    cchout,
-                             const widechar*  pwsstr, size_t    cchstr,
-                             unsigned char    idform, unsigned  dwsets )  override;
-    int MLMAPROC  CheckHelp( widechar*        output, size_t    cchout,
-                             const widechar*  pwsstr, size_t    cchstr )  override;
-    int MLMAPROC  GetWdInfo( unsigned char*   pwindo, lexeme_t  nlexid )  override;
-    int MLMAPROC  FindMatch( IMlmaMatch*      pmatch,
-                             const widechar*  pszstr, size_t    cchstr )  override;
-  };
-
-  CMlmaMb mlmaMbInstance;
-//  CMlmaWc mlmaWcInstance;
+  CMlmaMb                           mlmaMbInstance;
+  CMlmaWc<CMlmaMb, mlmaMbInstance>  mlmaWcInstance;
 
   // CMlmaMb implementation
 
@@ -152,7 +125,7 @@ namespace eng {
       // fill scheck structure
       return Flat::ScanTree<uint8_t>( Flat::ScanList( MakeClassMatch( anyway_ok() )
         .SetCapitalization( uint16_t(scheme) )
-        .SetSearchSettings( dwsets ) ), libmorpheng::stemtree, { locase, scheme >> 16 } );
+        .SetSearchSettings( dwsets ) ), stemtree, { locase, scheme >> 16 } );
     ON_ERRORS( -1 )
   }
 
@@ -183,7 +156,7 @@ namespace eng {
       nerror = Flat::ScanTree<uint8_t>( Flat::ScanList( MakeClassMatch( lemmatize )
         .SetCapitalization( scheme & 0xffff )
         .SetSearchSettings( dwsets ) ),
-      libmorpheng::stemtree, { locase, scheme >> 16 } );
+      stemtree, { locase, scheme >> 16 } );
 
       return nerror < 0 ? nerror : lemmatize;
     ON_ERRORS( -1 )
@@ -201,9 +174,9 @@ namespace eng {
         return ARGUMENT_FAILED;
 
     // No original word form; algo jumps to lexeme block dictionary point by lexeme id
-      if ( (ofsptr = Flat::ScanTree<uint16_t>( getofs, libmorpheng::lidstree, { lidkey, lexkeylen( lidkey, nlexid ) } )) != nullptr )
+      if ( (ofsptr = Flat::ScanTree<uint16_t>( getofs, lidstree, { lidkey, lexkeylen( lidkey, nlexid ) } )) != nullptr )
       {
-        auto    dicpos = libmorpheng::stemtree + getserial( ofsptr );
+        auto    dicpos = stemtree + getserial( ofsptr );
         byte_t  szstem[maximal::form_length] = {};
         int     nerror;
 
@@ -214,7 +187,7 @@ namespace eng {
           szstem );
 
         nerror = Flat::GetTrack<uint8_t>( Flat::ViewList( MakeBuildClass( buildform ), dicpos ),
-          libmorpheng::stemtree, szstem, 0, dicpos );
+          stemtree, szstem, 0, dicpos );
 
         return nerror < 0 ? nerror : buildform;
       }
@@ -251,7 +224,7 @@ namespace eng {
       nerror = Flat::ScanTree<uint8_t>( Flat::ScanList( MakeClassMatch( buildform )
         .SetCapitalization( uint16_t(scheme) )
         .SetSearchSettings( dwsets ) ),
-      libmorpheng::stemtree, { locase, scheme >> 16 } );
+      stemtree, { locase, scheme >> 16 } );
 
       return nerror < 0 ? nerror : buildform;
     ON_ERRORS( -1 )
@@ -263,6 +236,7 @@ namespace eng {
   * Реализация через FindMatch( ... ) требует предварительной обработки шаблона к форме
   * 'либо одна звёздочка в конце, либо один знак вопроса где угодно'
   */
+  /*
   int   CMlmaMb::CheckHelp( char* output, size_t  cchout, const char* pszstr, size_t  cchstr )
   {
     CATCH_ALL
@@ -314,7 +288,7 @@ namespace eng {
       return achars( MbcsCoder( output, cchout, codepage ).object() );
     ON_ERRORS( -1 )
   }
-
+  */
   int   CMlmaMb::GetWdInfo( unsigned char* pwinfo, lexeme_t lexkey )
   {
     CATCH_ALL
@@ -323,9 +297,9 @@ namespace eng {
       auto          getofs = []( const byte_t* thedic, const fragment& str ){  return str.empty() ? thedic : nullptr;  };
 
     // No original word form; algo jumps to lexeme block dictionary point by lexeme id
-      if ( (ofsptr = Flat::ScanTree<word16_t>( getofs, libmorpheng::lidstree, { lidkey, lexkeylen( lidkey, lexkey ) } )) != nullptr )
+      if ( (ofsptr = Flat::ScanTree<word16_t>( getofs, lidstree, { lidkey, lexkeylen( lidkey, lexkey ) } )) != nullptr )
       {
-        const byte_t* dicpos = libmorpheng::stemtree + getserial( ofsptr ) + 2; // 2 => clower && cupper
+        const byte_t* dicpos = stemtree + getserial( ofsptr ) + 2; // 2 => clower && cupper
         lexeme_t      nlexid = getserial( dicpos );
         word16_t      oclass = getword16( dicpos );
         steminfo      stinfo;
@@ -333,7 +307,7 @@ namespace eng {
         if ( nlexid != lexkey )
           return LIDSBUFF_FAILED;
 
-        *pwinfo = stinfo.Load( libmorpheng::classmap + (oclass & 0x7fff) ).wdinfo & 0x3f;
+        *pwinfo = stinfo.Load( classmap + (oclass & 0x7fff) ).wdinfo & 0x3f;
           return 1;
       }
       return 0;
@@ -355,7 +329,7 @@ namespace eng {
         lexeme_t          nlexid,
         const uint8_t*    string,
         size_t            length,
-        const SGramInfo&  grinfo )
+        const SGramInfo&  grinfo ) -> int
       {
         if ( nlexid != lastId )
         {
@@ -371,7 +345,7 @@ namespace eng {
             return 0;
 
         amatch[nmatch++] = { strncpy( (char*)pforms, (const char*)string, length ), length, grinfo.idForm };
-          pforms += length + 1;
+          *(pforms += length)++ = '\0';
 
         return 0;
       };
@@ -410,7 +384,7 @@ namespace eng {
 
     // scan the dictionary
       if ( (nerror = Wild::ScanTree<uint8_t>( MakeModelMatch( reglex ),
-        libmorpheng::stemtree, { locase, cchstr }, (uint8_t*)cpsstr, 0 )) != 0 )
+        stemtree, { locase, cchstr }, (uint8_t*)cpsstr, 0 )) != 0 )
       return nerror;
 
       return lastId != 0 ? pmatch->AddLexeme( lastId, nmatch, amatch ) : 0;
@@ -443,7 +417,7 @@ namespace eng {
       cchstr );
   }
 
-}}
+}
 
 extern "C"  int   MLMAPROC  mlmaenLoadMbAPI( IMlmaMb** );
 extern "C"  int   MLMAPROC  mlmaenLoadCpAPI( IMlmaMb**, const char* codepage );
@@ -465,17 +439,28 @@ extern "C"  int   MLMAPROC  mlmaenLoadCpAPI( IMlmaMb**  ptrAPI, const char* code
   return mlmaenLoadMbAPI( ptrAPI );
 }
 
-extern "C"  int   MLMAPROC  mlmaenGetAPI( const char* cpsKey, void** ppvAPI )
-{
-  return mlmaenLoadCpAPI( (IMlmaMb**)ppvAPI, cpsKey );
-}
-
-/*
-int   MLMAPROC        mlmaenLoadWcAPI( IMlmaWc**  ptrAPI )
+extern "C"  int   MLMAPROC  mlmaenLoadWcAPI( IMlmaWc**  ptrAPI )
 {
   if ( ptrAPI == nullptr )
     return -1;
   *ptrAPI = (IMlmaWc*)&mlmaWcInstance;
     return 0;
 }
-*/
+
+extern "C"  int   MLMAPROC  mlmaenGetAPI( const char* apiKey, void** ppvAPI )
+{
+  // check call parameters
+  if ( ppvAPI == nullptr )
+    return EINVAL;
+  if ( apiKey == nullptr || memcmp( apiKey, LIBMORPH_API_4_MAGIC ":", sizeof(LIBMORPH_API_4_MAGIC) ) != 0 )
+    return EINVAL;
+
+  // detect the codepage
+  if ( strcasecmp( "utf-16", apiKey + sizeof(LIBMORPH_API_4_MAGIC) ) == 0
+    || strcasecmp( "utf16",  apiKey + sizeof(LIBMORPH_API_4_MAGIC) ) == 0 )
+  {
+    return mlmaenLoadWcAPI( (IMlmaWc**)ppvAPI );
+  }
+
+  return mlmaenLoadMbAPI( (IMlmaMb**)ppvAPI );
+}

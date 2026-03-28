@@ -4,19 +4,9 @@ project(ENG_DICT
   DESCRIPTION "Dictionary-based morphological analyser for English"
   LANGUAGES CXX)
 
-if (DEFINED MORPHENG_BUILD_SHARED_LIBS)
-  if (MORPHENG_BUILD_SHARED_LIBS)
-    set(MORPHENG_BUILD_AS_SHARED_LIBRARY "build libmorpheng as .so" ON)
-  endif()
-elseif(BUILD_SHARED_LIBS)
-  if (NOT DEFINED MORPHENG_BUILD_SHARED_LIBS OR MORPHENG_BUILD_SHARED_LIBS)
-    set(MORPHENG_BUILD_AS_SHARED_LIBRARY "build libmorpheng as .so" ON)
-  endif()
-endif()
+set(Namespace libmorph::eng)
 
-include_directories(.)
-
-set(Namespace libmorpheng)
+add_compile_options(-DNAMESPACE=${Namespace})
 
 set(DicCPP
   eng-dictree/classmap.cpp
@@ -26,68 +16,91 @@ set(DicCPP
 
 set(BuilDic morpheng-buildic)
 
-file(GLOB DicSrc ${MORPHENG_SOURCE_DIR}/dict/*.dic)
-
-if (MORPHENG_BUILD_AS_SHARED_LIBRARY)
-
-  set(SYMBOLS_FILE ${PROJECT_SOURCE_DIR}/morpheng.unix.def)
-  set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -Wl,-retain-symbols-file -Wl,${SYMBOLS_FILE}")
-
-  add_library(morpheng SHARED
-    mlmamain.cpp
-    buildform.cpp
-    lemmatize.cpp
-    ${LIBMORPH_SOURCE_DIR}/xmorph/capsheme.cpp
-    ${MORPHENG_SOURCE_DIR}/chartype.cpp
-    ${DicCPP})
-
-  target_link_libraries(morpheng moonycode)
-
-else()
-
-  add_library(morpheng STATIC
-    mlmamain.cpp
-    buildform.cpp
-    lemmatize.cpp
-    ${LIBMORPH_SOURCE_DIR}/xmorph/capsheme.cpp
-    ${MORPHENG_SOURCE_DIR}/chartype.cpp
-    ${DicCPP})
-
+if(NOT DicSrc)
+  file(GLOB DicSrc ${MORPHENG_SOURCE_DIR}/dict/*.dic)
 endif()
 
+if(MSVC)
+  set(EXPORT_TABLE ${PROJECT_SOURCE_DIR}/morpheng.msvc.def)
+else()
+  set(SYMBOLS_FILE ${PROJECT_SOURCE_DIR}/morpheng.unix.def)
+
+  set(CMAKE_SHARED_LINKER_FLAGS
+    "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-retain-symbols-file -Wl,${SYMBOLS_FILE} -static-libgcc -static-libstdc++" )
+endif()
+
+include_directories(.)
+
+#
+# create objects for building libraries
+#
+add_library(morpheng-objset OBJECT
+  mlmamain.cpp
+  buildform.cpp
+  lemmatize.cpp
+  ${LIBMORPH_SOURCE_DIR}/xmorph/capsheme.cpp
+  ../chartype.cpp
+  ${DicCPP})
+
+set_target_properties(morphrus-objset PROPERTIES
+  POSITION_INDEPENDENT_CODE ON)
+
+#
+# create shared library
+#
+add_library(morpheng-shared SHARED
+  $<TARGET_OBJECTS:morpheng-objset>
+  ${EXPORT_TABLE})
+
+set_target_properties(morpheng-shared PROPERTIES 
+  OUTPUT_NAME "morpheng")
+
+target_link_libraries(morpheng-shared ${MoonyCode_LIB})
+
+#
+# create static library
+#
+add_library(morpheng-static STATIC
+  $<TARGET_OBJECTS:morpheng-objset>)
+
+set_target_properties(morpheng-static PROPERTIES
+  OUTPUT_NAME "${STATIC_LIB_PREFIX}morpheng"
+  CLEAN_DIRECT_OUTPUT 1)
+
+#
+# create the dictionary
+#
 add_custom_command(OUTPUT ${DicCPP}
-	COMMAND ${BuilDic}
-		-target-dir=eng-dictree
-		-unknown=eng-dictree/unknown.txt
-		-namespace=${Namespace}
-		${DicSrc}
-        DEPENDS ${BuilDic} ${DicSrc} eng-dictree
-)
+  COMMAND ${BuilDic}
+    -target-dir=eng-dictree
+    -unknown=eng-dictree/unknown.txt
+    -namespace=${Namespace}
+    ${DicSrc}
+    DEPENDS ${BuilDic} ${DicSrc} eng-dictree)
 
 add_executable(${BuilDic}
-	buildic/makeeng.cpp
-	../chartype.cpp)
+  buildic/makeeng.cpp
+  ../chartype.cpp)
 
 # directories in build tree for custom built files:
 #   * inflextion tables;
 #   * dictionary sources.
 add_custom_target(eng-dictree ALL
-	COMMAND ${CMAKE_COMMAND} -E make_directory eng-dictree)
-
-# install
-install(TARGETS morpheng DESTINATION lib)
-
-install(
-  FILES
-    ../include/mlma1033.h
-  DESTINATION include/libmorph/eng/include)
+  COMMAND ${CMAKE_COMMAND} -E make_directory eng-dictree)
 
 add_executable(morpheng-test
-	tests/test-eng.cpp)
+  tests/test-eng.cpp)
 
-target_link_libraries(morpheng-test
-	morpheng
-	moonycode
-	mtc)
+target_link_libraries(morpheng-test ${MoonyCode_LIB} morpheng-objset mtc)
+target_link_libraries(${BuilDic}    ${MoonyCode_LIB})
 
-target_link_libraries(${BuilDic} moonycode)
+#
+# install rus
+#
+install(
+  TARGETS morpheng-shared
+  LIBRARY DESTINATION lib COMPONENT EngRtm)
+
+install(
+  TARGETS morpheng-static
+  ARCHIVE DESTINATION lib COMPONENT EngDev)

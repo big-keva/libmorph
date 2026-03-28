@@ -32,8 +32,7 @@
 # include "xmorph/capsheme.h"
 # include "chartype.h"
 
-namespace libmorph {
-namespace eng {
+namespace NAMESPACE {
 
   const unsigned char charTypeMatrix[256] =
   {
@@ -203,4 +202,4 @@ namespace eng {
     0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF
   };
 
-}}
+}

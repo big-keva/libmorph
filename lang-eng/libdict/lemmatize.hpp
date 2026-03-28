@@ -36,8 +36,7 @@
 # include "xmorph/codepages.hpp"
 # include "xmorph/capsheme.h"
 
-namespace libmorph {
-namespace eng {
+namespace NAMESPACE {
 
  /*
   * Lemmatizer - create lemmatization result, build normal (dictionary) form for
@@ -97,6 +96,6 @@ namespace eng {
 
   };
 
-}} // end namespace
+} // end namespace
 
 # endif // !__libmorph_eng_lemmatize_hpp__
