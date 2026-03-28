@@ -6,7 +6,7 @@ include_directories(./)
 file(GLOB DicSrc ${MORPHENG_SOURCE_DIR}/dict/*.dic)
 
 add_subdirectory(libdict)
-#add_subdirectory(libprob)
+add_subdirectory(libprob)
 
 install(
   FILES ../eng.h
