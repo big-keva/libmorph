@@ -78,6 +78,12 @@ if(NOT EXISTS "${InflexSRC}")
     OUTPUT "${InflexSRC}"
     COMMAND ${MakeClasses} ${DicSrc} > "${InflexSRC}"
     COMMENT "Generating ${InflexSRC} using {${DicSrc}} because it is missing")
+
+  add_custom_target(rus_generate_mclass ALL
+    DEPENDS "${InflexSRC}"
+    COMMENT "Ensuring mclass.json exists")
+
+  add_dependencies(fuzzyrus-objset rus_generate_mclass)
 endif()
 
 #
