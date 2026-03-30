@@ -1,0 +1,10 @@
+Package: morpheng-dev
+Version: @VERSION@
+Section: devel
+Priority: optional
+Architecture: amd64
+Depends: libc6 (>= 2.17), morphapi-dev, moonycode-dev
+Maintainer: Andrey Kovalenko aka Keva <keva@rambler.ru>
+Description: libmorpheng static libraries and headers
+  This package contains english morphological analyser static libraries
+  and developer headers.

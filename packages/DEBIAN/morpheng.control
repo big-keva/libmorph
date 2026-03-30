@@ -1,0 +1,9 @@
+Package: morpheng
+Version: @VERSION@
+Section: devel
+Priority: optional
+Architecture: amd64
+Depends: libc6 (>= 2.17)
+Maintainer: Andrey Kovalenko aka Keva <keva@rambler.ru>
+Description: morpheng shared runtime libraries
+  This package contains english morphological analyser shared libraries.
