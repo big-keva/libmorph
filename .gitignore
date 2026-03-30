@@ -1,4 +1,7 @@
 # Folders
+.idea
+cmake-build-debug
+cmake-build-release
 Win32.Debug
 Win32.Release
 x64.Debug
