@@ -338,7 +338,7 @@ namespace NAMESPACE
       char      cpsstr[maximal::form_length];
       uint8_t   locase[maximal::form_length];
       uint8_t   sforms[maximal::buffer_size];
-      SStrMatch amatch[maximal::forms_count];
+      SStrMatch amatch[maximal::forms_count * 2];
       uint8_t*  pforms;
       size_t    nmatch = 0;
       lexeme_t  lastId = 0;
