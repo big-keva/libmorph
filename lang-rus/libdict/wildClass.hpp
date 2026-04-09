@@ -106,7 +106,8 @@ namespace NAMESPACE
             size_t    lmatch,
       const fragment& inflex,
       const fragment& suffix,
-      const uint8_t*  ptable )
+      const uint8_t*  ptable,
+      bool            goZero = true )
     {
       auto  uflags = *ptable++;
       auto  ucount = counter<uint8_t>::getlower( uflags );
@@ -119,7 +120,7 @@ namespace NAMESPACE
         auto  chfind = inflex.front();
 
       // гипотеза о том, что '*' не соответствует ни одного символа
-        if ( chfind == '*' )
+        if ( chfind == '*' && goZero )
           if ( (nerror = FlexSearch( target, filter, smatch, lmatch, inflex.next(), suffix, ptable - 1 )) != 0 )
             return nerror;
 
@@ -142,8 +143,8 @@ namespace NAMESPACE
           // гипотеза о том, что '*' соответстствует хотя один символ...
             if ( (nerror = FlexSearch( target, filter, smatch, lmatch + 1, inflex.next(), suffix, subdic )) != 0 )
               return nerror;
-          // ... и более одного
-            if ( (nerror = FlexSearch( target, filter, smatch, lmatch + 1, inflex,        suffix, subdic )) != 0 )
+          // ... и более одного, но без только одного
+            if ( (nerror = FlexSearch( target, filter, smatch, lmatch + 1, inflex,        suffix, subdic, false )) != 0 )
               return nerror;
           }
         }
