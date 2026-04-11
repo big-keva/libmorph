@@ -279,7 +279,7 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
       }
       SECTION( "∙ really unknown words are lemmatized successfully" )
       {
-        auto  l1 = mlfaMb->Lemmatize( "Пасифая", sfIgnoreCapitals );
+        auto  l1 = mlfaMb->Lemmatize( "Аглая", sfIgnoreCapitals );
 
         REQUIRE( l1.size() != 0 );
       }
