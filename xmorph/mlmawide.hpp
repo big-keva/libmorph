@@ -9,8 +9,8 @@ namespace NAMESPACE
     class WcMatch;
 
   public:
-    int MLMAPROC  Attach() override {  return 0;  }
-    int MLMAPROC  Detach() override {  return 0;  }
+    int MLMAPROC  Attach() override {  return 1;  }
+    int MLMAPROC  Detach() override {  return 1;  }
 
     int MLMAPROC  CheckWord(
       const widechar*,  size_t, unsigned )  override;
