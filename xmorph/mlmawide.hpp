@@ -208,8 +208,8 @@ namespace NAMESPACE
     int               nforms,
     const SStrMatch*  pmatch )
   {
-    SStrMatch amatch[0x100];
-    widechar  strbuf[0x100 * 0x30];
+    SStrMatch amatch[0x200];
+    widechar  strbuf[0x200 * 0x30];
     widechar* strptr = strbuf;
 
     for ( int idform = 0; idform < nforms; ++idform )
