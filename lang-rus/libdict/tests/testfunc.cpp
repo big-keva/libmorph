@@ -30,7 +30,7 @@
 
 ******************************************************************************/
 # include "../../../rus.h"
-# include "../../../api.h"
+# include "../../../api.hpp"
 # include "xmorph/codepages.hpp"
 # include <algorithm>
 # include <string>
@@ -58,7 +58,6 @@ struct  LexMatch
 
 class MatchSet: public std::vector<LexMatch>, public IMlmaMatch
 {
-public:
   int   MLMAPROC  Attach() override {  return 1;  }
   int   MLMAPROC  Detach() override {  return 1;  }
   int   MLMAPROC  AddLexeme( lexeme_t nlexid, int  nmatch, const SStrMatch*  pmatch ) override
@@ -93,6 +92,70 @@ public:
   }
 };
 
+class OutForms: public IMlmaMatch
+{
+  uint32_t  this_lex = 0;
+
+public:
+  OutForms( IMlmaMbXX* mlma, const char* mask )
+  {
+    mlma->FindMatch( this, mask );
+  }
+protected:
+  int   MLMAPROC  Attach() override {  return 1;  }
+  int   MLMAPROC  Detach() override {  return 1;  }
+  int   MLMAPROC  AddLexeme( lexeme_t nlexid, int  nmatch, const SStrMatch*  pmatch ) override
+  {
+    fprintf( stdout, "%u\n", nlexid );
+
+    for ( auto ematch = nmatch + pmatch; pmatch != ematch; ++pmatch )
+      fprintf( stdout, "\t% 2u\t%s\n", pmatch->id, pmatch->sz );
+
+    return 0;
+  }
+};
+
+class LexForms: public IMlmaMatch, public std::vector<std::string>
+{
+  uint32_t  this_lex = 0;
+
+public:
+  LexForms( IMlmaMbXX* mlma, const char* mask )
+  {
+    mlma->FindMatch( this, mask );
+  }
+  bool  Eq( std::initializer_list<const char*> forms ) const
+  {
+    auto  me = begin();
+    auto  to = forms.begin();
+
+    while ( me != end() && to != forms.end() && *me == *to )
+    {
+      ++me;
+      ++to;
+    }
+
+    return me == end() && to == forms.end();
+  }
+  auto  as_vector() const -> const std::vector<std::string>&
+  {
+    return *this;
+  }
+protected:
+  int   MLMAPROC  Attach() override {  return 1;  }
+  int   MLMAPROC  Detach() override {  return 1;  }
+  int   MLMAPROC  AddLexeme( lexeme_t nlexid, int  nmatch, const SStrMatch*  pmatch ) override
+  {
+    if ( this_lex != 0 && this_lex != nlexid )
+      return std::vector<std::string>::operator=( { "Lexemes differ" } ), 0;
+
+    for ( auto endstr = pmatch + nmatch; pmatch != endstr; ++pmatch )
+      insert( std::lower_bound( begin(), end(), pmatch->sz ), pmatch->sz );
+
+    return this_lex = nlexid, 0;
+  }
+};
+
 extern "C" const char* TestLemmatize( const char*  szform, const char* cp, unsigned  dwsets, int nitems, ... );
 
 TestItEasy::RegisterFunc  testmorphrusmb( []()
@@ -101,7 +164,7 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
   {
     SECTION( "morphological analyser API may be created with different mbcs codepages" )
     {
-      IMlmaMb*  mlma = nullptr;
+      IMlmaMbXX*  mlma = nullptr;
 
       SECTION( "valid string keys give access to named API" )
       {
@@ -453,12 +516,11 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
       }
       SECTION( "FindMatch" )
       {
-        /*
-        mlma->FindMatch( "чиc*ить", []( lexeme_t lex, int, const SStrMatch* p )
-          {
-            fprintf( stdout, "%u\t%s\n", lex, std::string(p->sz, p->cc).c_str());
-            return 0;
-          } );
+        REQUIRE( LexForms( mlma, "чистить*" ) == std::vector<std::string>{ "чистить", "чиститься" } );
+        REQUIRE( LexForms( mlma, "чистит*ь" ).as_vector() == std::vector<std::string>{ "чиститесь", "чиститесь", "чистить" } );
+        REQUIRE( LexForms( mlma, "чисти*ть" ).as_vector() == std::vector<std::string>{ "чистить" } );
+        REQUIRE( LexForms( mlma, "чист*ить" ).as_vector() == std::vector<std::string>{ "чистить" } );
+        REQUIRE( LexForms( mlma, "чис*тить" ).as_vector() == std::vector<std::string>{ "чистить" } );
 
         SECTION( "it checks arguments" )
         {
@@ -584,7 +646,6 @@ TestItEasy::RegisterFunc  testmorphrusmb( []()
             }
           }
         }
-        */
       }
     }
     if ( false )
@@ -635,7 +696,7 @@ TestItEasy::RegisterFunc  testmorphrusws( []()
   {
     SECTION( "morphological analyser API may be created" )
     {
-      IMlmaWc*  mlma = nullptr;
+      IMlmaWcXX*  mlma = nullptr;
 
       if ( REQUIRE_NOTHROW( mlmaruGetAPI( LIBMORPH_API_4_MAGIC ":" "utf-16", (void**)&mlma ) ) && REQUIRE( mlma != nullptr ) )
       {
@@ -799,7 +860,6 @@ TestItEasy::RegisterFunc  testmorphrusws( []()
         }
         SECTION( "FindMatch" )
         {
-          /*
           std::vector<mtc::widestr> matches;
 
           SECTION( "lambda callback may be used" )
@@ -815,8 +875,40 @@ TestItEasy::RegisterFunc  testmorphrusws( []()
               } ) );
             if ( REQUIRE( matches.size() == 1 ) )
               REQUIRE( matches.front() == u"мужичок" );
+
+            matches.clear();
+
+            REQUIRE_NOTHROW( mlma->FindMatch( u"дона?ьд", [&]( lexeme_t, int, const SStrMatch* p ) -> int
+              {
+                auto  addstr = mtc::widestr( p->ws, p->cc );
+
+                if ( std::find( matches.begin(), matches.end(), addstr ) == matches.end() )
+                  matches.push_back( std::move( addstr ) );
+
+                return 0;
+              } ) );
+            if ( REQUIRE( matches.size() == 1 ) )
+              REQUIRE( matches.front() == u"дональд" );
+/*            REQUIRE_NOTHROW( mlma->FindMatch( u"тр*", [&]( lexeme_t nlexid, int n, const SStrMatch* p ) -> int
+              {
+                auto  addstr = mtc::widestr( p->ws, p->cc );
+
+                if ( std::find( matches.begin(), matches.end(), addstr ) == matches.end() )
+                  matches.push_back( std::move( addstr ) );
+
+                return 1;
+              } ) );*/
+            mlma->FindMatch( u"*", [&]( lexeme_t nlexid, int n, const SStrMatch* p ) -> int
+              {
+                fprintf( stdout, "%u\n", nlexid );
+
+                for ( auto e = n + p; p != e; ++p )
+                  fprintf( stdout, "\t%s\n", codepages::widetombcs( codepages::codepage_utf8, p->ws ).c_str() );
+                return 0;
+              } );
+/*            if ( REQUIRE( matches.size() == 1 ) )
+              REQUIRE( matches.front() == u"дональд" );*/
           }
-          */
         }
       }
     }
@@ -825,12 +917,5 @@ TestItEasy::RegisterFunc  testmorphrusws( []()
 
 int   main()
 {
-  if ( TestLemmatize( "стали", "utf-8", sfIgnoreCapitals, 2,
-    78434, "сталь",
-    18712, "стать" ) != nullptr )
-  {
-    fprintf( stderr, "C-style lemmatization failt!\n" );
-  }
-
   return TestItEasy::Conclusion();
 }

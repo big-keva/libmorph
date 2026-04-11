@@ -32,6 +32,7 @@
 # include "scandict.hpp"
 # include "buildforms.hpp"
 # include "lemmatizer.hpp"
+# include "xmorph/mlfawide.hpp"
 # include <cstring>
 
 # if !defined( _WIN32_WCE )
@@ -65,15 +66,11 @@ namespace NAMESPACE
   //
   // the new api - IMlma interface class
   //
+  template <unsigned codepage>
   class  CMlfaMb: public IMlfaMb
   {
     static const auto CPS_1251 = codepages::codepage_1251;
     static const auto CPS_UTF8 = codepages::codepage_utf8;
-
-    const unsigned  codepage;
-
-  public:     // construction
-    CMlfaMb( unsigned cp = CPS_1251 ): codepage( cp ) {}
 
   public:
     int MLMAPROC  Attach() override {  return 1;  }
@@ -101,48 +98,18 @@ namespace NAMESPACE
 
   };
 
-  class  CMlfaCp final: public CMlfaMb
-  {
-    using CMlfaMb::CMlfaMb;
+  CMlfaMb<codepages::codepage_1251>                           mbInstance1251;
+  CMlfaMb<codepages::codepage_koi8>                           mbInstanceKoi8;
+  CMlfaMb<codepages::codepage_866>                            mbInstance866;
+  CMlfaMb<codepages::codepage_iso>                            mbInstanceIso;
+  CMlfaMb<codepages::codepage_mac>                            mbInstanceMac;
+  CMlfaMb<codepages::codepage_utf8>                           mbInstanceUtf8;
+  CMlfaWc<CMlfaMb<codepages::codepage_1251>, mbInstance1251>  wcInstanceMlfa;
 
-  public:
-    int MLMAPROC  Attach()  override;
-    int MLMAPROC  Detach()  override;
+  // CmlfaMb template implementation
 
-  protected:  // codepage
-    long      refcount = 0;
-
-  };
-
-  class CMlfaWc: public IMlfaWc
-  {
-  public:     // lifetime control
-    int MLMAPROC  Attach()  override  {  return 1;  }
-    int MLMAPROC  Detach()  override  {  return 1;  }
-
-  public:     // overridables
-    int MLMAPROC  GetWdInfo(
-      unsigned char*  pwinfo, unsigned uclass ) override;
-    int MLMAPROC  GetModels(
-      widechar*     models, size_t      samlen,
-      unsigned      uclass ) override;
-    int MLMAPROC  Lemmatize(
-      const widechar* pszstr, size_t    cchstr,
-      SStemInfoW*     output, size_t    cchout,
-      widechar*       plemma, size_t    clemma,
-      SGramInfo*      pgrams, size_t    ngrams, unsigned  dwsets )  override;
-    int MLMAPROC  BuildForm(
-      widechar*       output, size_t    cchout,
-      const widechar* lpstem, size_t    ccstem,
-      unsigned        nclass, formid_t  idform ) override;
-
-  };
-
-  CMlfaMb mlfaMbInstance;
-  CMlfaWc mlfaWcInstance;
-
-  int   CMlfaMb::GetWdInfo(
-    unsigned char*  pwinfo, unsigned uclass )
+  template <unsigned codepage>
+  int   CMlfaMb<codepage>::GetWdInfo( unsigned char*  pwinfo, unsigned uclass )
   {
     try
     {
@@ -157,10 +124,8 @@ namespace NAMESPACE
     }
   }
 
-  int   CMlfaMb::GetModels(
-    char*     models,
-    size_t    buflen,
-    unsigned  uclass )
+  template <unsigned codepage>
+  int   CMlfaMb<codepage>::GetModels( char* models, size_t  buflen, unsigned  nclass )
   {
     if ( models == nullptr || buflen == 0 )
       return ARGUMENT_FAILED;
@@ -171,7 +136,7 @@ namespace NAMESPACE
       uint8_t   clSets;
       int       fcount;
       auto      pclass =
-        ::FetchFrom( ::FetchFrom( ::FetchFrom( GetClass( uclass ),
+        ::FetchFrom( ::FetchFrom( ::FetchFrom( GetClass( nclass ),
           partSp ),
           clSets ),
           fcount );
@@ -215,7 +180,8 @@ namespace NAMESPACE
     }
   }
 
-  int   CMlfaMb::Lemmatize(
+  template <unsigned codepage>
+  int   CMlfaMb<codepage>::Lemmatize(
     const char* pszstr, size_t  cchstr,
     SStemInfoA* plemma, size_t  clemma,
     char*       pforms, size_t  cforms,
@@ -249,7 +215,8 @@ namespace NAMESPACE
     ON_ERRORS( -1 )
   }
 
-  int   CMlfaMb::BuildForm(
+  template <unsigned codepage>
+  int   CMlfaMb<codepage>::BuildForm(
     char*       output, size_t    cchout,
     const char* pszstr, size_t    cchstr,
     unsigned    nclass, formid_t  idform )
@@ -277,8 +244,9 @@ namespace NAMESPACE
     catch ( ... ) {  return -1;  }
   }
 
+  template <unsigned codepage>
   template <size_t N>
-  auto  CMlfaMb::ToCanonic( uint8_t (& output)[N], const char* pszstr, size_t cchstr ) const -> unsigned
+  auto  CMlfaMb<codepage>::ToCanonic( uint8_t (& output)[N], const char* pszstr, size_t cchstr ) const -> unsigned
   {
     char  mbsstr[N];
 
@@ -303,172 +271,36 @@ namespace NAMESPACE
       cchstr );
   }
 
-  // CMlmaCp implementation
-
-  int   CMlfaCp::Attach()
-  {
-    return ++refcount;
-  }
-
-  int   CMlfaCp::Detach()
-  {
-    long  rcount;
-    
-    if ( (rcount = --refcount) == 0 )
-      delete this;
-
-    return rcount;
-  }
-
-  // CMlfaWc wrapper implementation
-
-  int   CMlfaWc::GetWdInfo(
-    unsigned char*  pwinfo, unsigned uclass )
-  {
-    return mlfaMbInstance.GetWdInfo( pwinfo, uclass );
-  }
-
-  int   CMlfaWc::GetModels(
-    widechar*       models, size_t  modlen,
-    unsigned        uclass )
-  {
-    char  buffer[0x400];
-    auto  bufptr = buffer;
-    auto  modend = models + modlen;
-    int   mcount;
-
-    if ( (mcount = mlfaMbInstance.GetModels( buffer, std::min(sizeof(buffer), modlen), uclass )) <= 0 )
-      return mcount;
-
-    for ( int imodel = 0; imodel < mcount; ++imodel )
-    {
-      auto  lmodel = ToWidechar( models, modend - models, bufptr );
-
-      if ( lmodel == (size_t)-1 )
-        return LEMMBUFF_FAILED;
-
-      models += lmodel + 1;
-      bufptr += lmodel + 1;
-    }
-    return mcount;
-  }
-
-  int   CMlfaWc::Lemmatize(
-    const widechar* pwsstr, size_t  cchstr,
-    SStemInfoW*     output, size_t  outlim,
-    widechar*       plemma, size_t  clemma,
-    SGramInfo*      pgrams, size_t  ngrams, unsigned  dwsets )
-  {
-    SStemInfoA  stbuff[0x20];
-    char        szlemm[0x200];
-    char        szword[0xf0];
-    char*       lplemm;
-    size_t      ccword;
-    int         lcount;
-    int         lindex;
-
-  // get string length and convert to ansi
-    if ( (ccword = ToInternal( szword, pwsstr, cchstr )) == (size_t)-1 )
-      return WORDBUFF_FAILED;
-
-  // call default lemmatizer
-    if ( (lcount = mlfaMbInstance.Lemmatize( szword, ccword,
-      output != nullptr ? stbuff : nullptr, outlim <= 32 ? outlim : 32,
-      plemma != nullptr ? szlemm : nullptr, clemma <= sizeof(szlemm) ? clemma : sizeof(szlemm),
-      pgrams, ngrams, dwsets )) <= 0 )
-        return lcount;
-
-  // fill output data
-    if ( output != nullptr )
-      for ( auto mbstem = stbuff; mbstem != stbuff + lcount; ++mbstem )
-      {
-        *output++ = {
-          mbstem->plemma != nullptr ? plemma + (mbstem->plemma - szlemm) : nullptr,
-          mbstem->ccstem, mbstem->nclass,
-          mbstem->pgrams, mbstem->ngrams, mbstem->weight };
-      }
-
-  // fill lemmaized strings
-    if ( plemma != nullptr )
-      for ( lindex = 0, lplemm = szlemm; lindex < lcount; ++lindex )
-      {
-        auto  nccstr = ToWidechar( plemma, clemma, lplemm ) + 1;
-          plemma += nccstr;
-          clemma -= nccstr;
-          lplemm += nccstr;
-      }
-
-    return lcount;
-  }
-
-  int   CMlfaWc::BuildForm(
-    widechar*       output, size_t    cchout,
-    const widechar* plemma, size_t    clemma,
-    unsigned        nclass, formid_t  idform )
-  {
-    char  slemma[0x40];
-    char  szform[0x60];
-    char* lpform;
-    int   fcount;
-    int   findex;
-
-  // check form buffer
-    if ( output == nullptr )
-      return WORDBUFF_FAILED;
-
-  // create stem string
-    if ( plemma == nullptr )
-      return LEMMBUFF_FAILED;
-
-    if ( ToInternal( slemma, plemma, clemma ) == (size_t)-1 )
-      return WORDBUFF_FAILED;
-
-  // build the form
-    fcount = mlfaMbInstance.BuildForm( szform, std::min( cchout, sizeof(szform) - 1 ),
-      slemma, clemma, nclass, idform );
-
-  // convert created strings if available
-    for ( findex = 0, lpform = szform; findex < fcount; ++findex )
-    {
-      auto  cchstr = ToWidechar( output, cchout, lpform ) + 1;
-        output += cchstr;
-        cchout -= cchstr;
-        lpform += cchstr;
-    }
-
-    return fcount;
-  }
-
   struct
   {
-    unsigned    codepageId;
-    const char* codepageSz;
+    IMlfaMb*    instance;
+    const char* codepage;
   } codepageList[] =
   {
-    { codepages::codepage_1251, "Windows-1251" },
-    { codepages::codepage_1251, "Windows" },
-    { codepages::codepage_1251, "1251" },
-    { codepages::codepage_1251, "Win-1251" },
-    { codepages::codepage_1251, "Win" },
-    { codepages::codepage_1251, "Windows 1251" },
-    { codepages::codepage_1251, "Win 1251" },
-    { codepages::codepage_1251, "ansi" },
-    { codepages::codepage_koi8, "koi-8" },
-    { codepages::codepage_koi8, "koi8" },
-    { codepages::codepage_koi8, "20866" },
-    { codepages::codepage_866,  "dos" },
-    { codepages::codepage_866,  "oem" },
-    { codepages::codepage_866,  "866" },
-    { codepages::codepage_iso,  "28595" },
-    { codepages::codepage_iso,  "iso-88595" },
-    { codepages::codepage_iso,  "iso-8859-5" },
-    { codepages::codepage_mac,  "10007" },
-    { codepages::codepage_iso,  "mac" },
-    { codepages::codepage_utf8, "65001" },
-    { codepages::codepage_utf8, "utf-8" },
-    { codepages::codepage_utf8, "utf8" },
-    { unsigned(-1),             "utf-16" },
-    { unsigned(-1),             "utf16" }
+    { &mbInstance1251, "Windows-1251" },
+    { &mbInstance1251, "Windows" },
+    { &mbInstance1251, "1251" },
+    { &mbInstance1251, "Win-1251" },
+    { &mbInstance1251, "Win" },
+    { &mbInstance1251, "Windows 1251" },
+    { &mbInstance1251, "Win 1251" },
+    { &mbInstance1251, "ansi" },
+    { &mbInstanceKoi8, "koi-8" },
+    { &mbInstanceKoi8, "koi8" },
+    { &mbInstanceKoi8, "20866" },
+    { &mbInstance866,  "dos" },
+    { &mbInstance866,  "oem" },
+    { &mbInstance866,  "866" },
+    { &mbInstanceIso,  "28595" },
+    { &mbInstanceIso,  "iso-88595" },
+    { &mbInstanceIso,  "iso-8859-5" },
+    { &mbInstanceMac,  "10007" },
+    { &mbInstanceMac,  "mac" },
+    { &mbInstanceUtf8, "65001" },
+    { &mbInstanceUtf8, "utf-8" },
+    { &mbInstanceUtf8, "utf8" },
+    { (IMlfaMb*)&wcInstanceMlfa,  "utf-16" },
+    { (IMlfaMb*)&wcInstanceMlfa,  "utf16" }
   };
 
 }
@@ -491,37 +323,20 @@ extern "C"  int   MLMAPROC  mlfaenLoadMbAPI( IMlfaMb**  ptrAPI )
 {
   if ( ptrAPI == nullptr )
     return -1;
-  (*ptrAPI = (IMlfaMb*)&mlfaMbInstance)->Attach();
+  (*ptrAPI = &mbInstance1251)->Attach();
     return 0;
 }
 
 extern "C"  int   MLMAPROC  mlfaenLoadCpAPI( IMlfaMb**  ptrAPI, const char* codepage )
 {
-  CMlfaMb*  palloc;
-
   // check API pointer
   if ( ptrAPI == nullptr || codepage == nullptr || *codepage == '\0' )
     return EINVAL;
 
   // detect the codepage
   for ( auto& page: codepageList )
-    if ( strcasecmp( page.codepageSz, codepage ) == 0 )
-    {
-      // check invalid codepage
-      if ( page.codepageId == unsigned(-1) )
-        return EINVAL;
-
-      // check simple api id
-      if ( page.codepageId == codepages::codepage_1251 )
-        return mlfaenLoadMbAPI( ptrAPI );
-
-      // create new api object
-      if ( (palloc = new ( std::nothrow ) CMlfaCp( page.codepageId )) == nullptr )
-        return ENOMEM;
-
-      // return the result
-      return (*ptrAPI = palloc)->Attach(), 0;
-    }
+    if ( strcasecmp( page.codepage, codepage ) == 0 )
+      return (*ptrAPI = page.instance)->Attach(), 0;
 
   return *ptrAPI = nullptr, EINVAL;
 }
@@ -530,14 +345,12 @@ extern "C"  int   MLMAPROC  mlfaenLoadWcAPI( IMlfaWc**  ptrAPI )
 {
   if ( ptrAPI == nullptr )
     return -1;
-  (*ptrAPI = (IMlfaWc*)&mlfaWcInstance)->Attach();
+  (*ptrAPI = &wcInstanceMlfa)->Attach();
     return 0;
 }
 
 extern "C"  int   MLMAPROC  mlfaenGetAPI( const char* apiKey, void** ppvAPI )
 {
-  CMlfaMb*  palloc;
-
   // check call parameters
   if ( ppvAPI == nullptr )
     return EINVAL;
@@ -546,23 +359,8 @@ extern "C"  int   MLMAPROC  mlfaenGetAPI( const char* apiKey, void** ppvAPI )
 
   // detect the codepage
   for ( auto& page: codepageList )
-    if ( strcasecmp( page.codepageSz, apiKey + sizeof(LIBMORPH_API_4_MAGIC) ) == 0 )
-    {
-      // check invalid codepage
-      if ( page.codepageId == unsigned(-1) )
-        return mlfaenLoadWcAPI( (IMlfaWc**)ppvAPI );
-
-      // check simple api id
-      if ( page.codepageId == codepages::codepage_1251 )
-        return mlfaenLoadMbAPI( (IMlfaMb**)ppvAPI );
-
-      // create new api object
-      if ( (palloc = new ( std::nothrow ) CMlfaCp( page.codepageId )) == nullptr )
-        return ENOMEM;
-
-      // return the result
-      return static_cast<IMlfaMb*>( *ppvAPI = palloc )->Attach(), 0;
-    }
+    if ( strcasecmp( page.codepage, apiKey + sizeof(LIBMORPH_API_4_MAGIC) ) == 0 )
+      return reinterpret_cast<IMlfaMb*>( *ppvAPI = page.instance )->Attach(), 0;
 
   return *ppvAPI = nullptr, EINVAL;
 }

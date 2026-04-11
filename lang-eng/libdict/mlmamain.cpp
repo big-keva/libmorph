@@ -230,65 +230,6 @@ namespace NAMESPACE {
     ON_ERRORS( -1 )
   }
 
- /*
-  * CheckHelp( output, cchout, pszstr, cchstr )
-  *
-  * Реализация через FindMatch( ... ) требует предварительной обработки шаблона к форме
-  * 'либо одна звёздочка в конце, либо один знак вопроса где угодно'
-  */
-  /*
-  int   CMlmaMb::CheckHelp( char* output, size_t  cchout, const char* pszstr, size_t  cchstr )
-  {
-    CATCH_ALL
-      uint8_t locase[maximal::form_length];
-      uint8_t smatch[maximal::form_length];
-      auto    scheme = ToCanonic( locase, pszstr, cchstr );
-      size_t  qtrpos;       // позиция квантора в строке
-      size_t  keylen;       // длина поискового ключа
-      Charset achars;
-      int     nerror;
-
-    // check source string and length
-      if ( scheme == (unsigned)-1 || scheme == 0 )
-        return scheme == (unsigned)-1 ? WORDBUFF_FAILED : 0;
-
-    // check output buffer
-      if ( output == nullptr || cchout == 0 )
-        return ARGUMENT_FAILED;
-
-    // провериьт наличие и рассчитать позицию квантора
-      for ( auto  hasqtr = keylen = (qtrpos = size_t(-1)) + 1; keylen != (scheme >> 16); )
-      {
-        auto  chnext = locase[keylen++];
-
-        if ( chnext == '*' )
-        {
-          qtrpos = keylen - 1;
-          break;
-        }
-          else
-        if ( chnext == '?' )
-        {
-          if ( hasqtr++ == 0 )  qtrpos = keylen - 1;
-            else return ARGUMENT_FAILED;
-        }
-      }
-
-    // проверить наличие кванторов
-      if ( qtrpos != size_t(-1) && keylen != 0 )  locase[keylen] = '\0';
-        else return 0;
-
-    // scan the dictionary
-      if ( (nerror = Wild::ScanTree<uint8_t>(
-        MakeModelMatch( [&]( lexeme_t, const uint8_t* str, size_t len, const SGramInfo& )
-          {  return achars( qtrpos < len ? str[qtrpos] : uint8_t(0) ), 0;  } ),
-        libmorpheng::stemtree, { locase, scheme >> 16 }, smatch, 0 )) != 0 )
-      return nerror;
-
-      return achars( MbcsCoder( output, cchout, codepage ).object() );
-    ON_ERRORS( -1 )
-  }
-  */
   int   CMlmaMb::GetWdInfo( unsigned char* pwinfo, lexeme_t lexkey )
   {
     CATCH_ALL
