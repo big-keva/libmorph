@@ -74,7 +74,8 @@ namespace NAMESPACE
   //
   // the new api - IMlma interface class
   //
-  struct  CMlmaMb: public IMlmaMb
+  template <unsigned codepage>
+  struct  CMlmaMb: IMlmaMb
   {
     int MLMAPROC  Attach() override {  return 1;  }
     int MLMAPROC  Detach() override {  return 1;  }
@@ -95,39 +96,26 @@ namespace NAMESPACE
     int MLMAPROC  FindMatch( IMlmaMatch*    pienum,
                              const char*    pszstr, size_t    cchstr ) override;
 
-  public:     // construction
-    CMlmaMb( unsigned cp = codepages::codepage_1251 ): codepage( cp ) {}
-
   protected:
     template <size_t N>
     int           GetJocker( uint8_t (&)[N], const char*, size_t ) const;
     template <size_t N>
     unsigned      ToCanonic( uint8_t (&)[N], const char*, size_t ) const;
 
-  protected:  // codepage
-    unsigned  codepage;
-
   };
 
-  class CMlmaCp final: public CMlmaMb
-  {
-    int MLMAPROC  Attach() override;
-    int MLMAPROC  Detach() override;
-
-  public:     // construction
-    CMlmaCp( unsigned cp ): CMlmaMb( cp ) {}
-
-  protected:  // codepage
-    long      refcount = 0;
-
-  };
-
-  CMlmaMb                           mlmaMbInstance;
-  CMlmaWc<CMlmaMb, mlmaMbInstance>  mlmaWcInstance;
+  CMlmaMb<codepages::codepage_1251>                           mbInstance1251;
+  CMlmaMb<codepages::codepage_koi8>                           mbInstanceKoi8;
+  CMlmaMb<codepages::codepage_866>                            mbInstance866;
+  CMlmaMb<codepages::codepage_iso>                            mbInstanceISO;
+  CMlmaMb<codepages::codepage_mac>                            mbInstanceMac;
+  CMlmaMb<codepages::codepage_utf8>                           mbInstanceUtf8;
+  CMlmaWc<CMlmaMb<codepages::codepage_1251>, mbInstance1251>  wcInstanceMlma;
 
   // CMlmaMb implementation
 
-  int   CMlmaMb::CheckWord( const char* pszstr, size_t  cchstr, unsigned  dwsets )
+  template <unsigned codepage>
+  int   CMlmaMb<codepage>::CheckWord( const char* pszstr, size_t  cchstr, unsigned  dwsets )
   {
     CATCH_ALL
       uint8_t locase[maximal::form_length];
@@ -149,7 +137,8 @@ namespace NAMESPACE
     ON_ERRORS( -1 )
   }
 
-  int   CMlmaMb::Lemmatize( const char* pszstr, size_t  cchstr,
+  template <unsigned codepage>
+  int   CMlmaMb<codepage>::Lemmatize( const char* pszstr, size_t  cchstr,
                             SLemmInfoA* plemma, size_t  llemma,
                             char*       pforms, size_t  lforms,
                             SGramInfo*  pgrams, size_t  lgrams, unsigned  dwsets )
@@ -182,7 +171,8 @@ namespace NAMESPACE
     ON_ERRORS( -1 )
   }
 
-  int   CMlmaMb::BuildForm( char* output, size_t cchout, lexeme_t nlexid, formid_t idform )
+  template <unsigned codepage>
+  int   CMlmaMb<codepage>::BuildForm( char* output, size_t cchout, lexeme_t nlexid, formid_t idform )
   {
     CATCH_ALL
       uint8_t         lidkey[0x10];
@@ -213,7 +203,8 @@ namespace NAMESPACE
     ON_ERRORS( -1 )
   }
 
-  int   CMlmaMb::FindForms(
+  template <unsigned codepage>
+  int   CMlmaMb<codepage>::FindForms(
     char*       output, size_t    cchout,
     const char* pszstr, size_t    cchstr,
     formid_t    idform, unsigned  dwsets )
@@ -248,66 +239,8 @@ namespace NAMESPACE
     ON_ERRORS( -1 )
   }
 
- /*
-  * CheckHelp( output, cchout, pszstr, cchstr )
-  *
-  * Реализация через FindMatch( ... ) требует предварительной обработки шаблона к форме
-  * 'либо одна звёздочка в конце, либо один знак вопроса где угодно'
-  */
-  /*
-  int   CMlmaMb::CheckHelp( char* output, size_t  cchout, const char* pszstr, size_t  cchstr )
-  {
-    CATCH_ALL
-      uint8_t locase[maximal::form_length];
-      uint8_t smatch[maximal::form_length];
-      auto    scheme = ToCanonic( locase, pszstr, cchstr );
-      size_t  qtrpos;       // позиция квантора в строке
-      size_t  keylen;       // длина поискового ключа
-      Charset achars;
-      int     nerror;
-
-    // check source string and length
-      if ( scheme == (unsigned)-1 || scheme == 0 )
-        return scheme == (unsigned)-1 ? WORDBUFF_FAILED : 0;
-
-    // check output buffer
-      if ( output == nullptr || cchout == 0 )
-        return ARGUMENT_FAILED;
-
-    // провериьт наличие и рассчитать позицию квантора
-      for ( auto  hasqtr = keylen = (qtrpos = size_t(-1)) + 1; keylen != (scheme >> 16); )
-      {
-        auto  chnext = locase[keylen++];
-
-        if ( chnext == '*' )
-        {
-          qtrpos = keylen - 1;
-          break;
-        }
-          else
-        if ( chnext == '?' )
-        {
-          if ( hasqtr++ == 0 )  qtrpos = keylen - 1;
-            else return ARGUMENT_FAILED;
-        }
-      }
-
-    // проверить наличие кванторов
-      if ( qtrpos != size_t(-1) && keylen != 0 )  locase[keylen] = '\0';
-        else return 0;
-
-    // scan the dictionary
-      if ( (nerror = Wild::ScanTree<uint8_t>(
-        MakeModelMatch( [&]( lexeme_t, const uint8_t* str, size_t len, const SGramInfo& )
-          {  return achars( qtrpos < len ? str[qtrpos] : uint8_t(0) ), 0;  } ),
-        stemtree, { locase, scheme >> 16 }, smatch, 0 )) != 0 )
-      return nerror;
-
-      return achars( MbcsCoder( output, cchout, codepage ).object() );
-    ON_ERRORS( -1 )
-  }
-  */
-  int   CMlmaMb::GetWdInfo( unsigned char* pwinfo, lexeme_t lexkey )
+  template <unsigned codepage>
+  int   CMlmaMb<codepage>::GetWdInfo( unsigned char* pwinfo, lexeme_t lexkey )
   {
     CATCH_ALL
       byte_t        lidkey[0x10];
@@ -332,7 +265,8 @@ namespace NAMESPACE
     ON_ERRORS( -1 )
   }
 
-  int   CMlmaMb::FindMatch( IMlmaMatch*  pmatch, const char* pszstr, size_t cchstr )
+  template <unsigned codepage>
+  int   CMlmaMb<codepage>::FindMatch( IMlmaMatch*  pmatch, const char* pszstr, size_t cchstr )
   {
     CATCH_ALL
       char      cpsstr[maximal::form_length];
@@ -421,8 +355,9 @@ namespace NAMESPACE
     ON_ERRORS( -1 )
   }
 
+  template <unsigned codepage>
   template <size_t N>
-  auto  CMlmaMb::ToCanonic( uint8_t (& output)[N], const char* pszstr, size_t cchstr ) const -> unsigned
+  auto  CMlmaMb<codepage>::ToCanonic( uint8_t (& output)[N], const char* pszstr, size_t cchstr ) const -> unsigned
   {
     char  mbsstr[N];
 
@@ -447,52 +382,36 @@ namespace NAMESPACE
       cchstr );
   }
 
-  // CMlmaCp implementation
-
-  int   CMlmaCp::Attach()
-  {
-    return ++refcount;
-  }
-
-  int   CMlmaCp::Detach()
-  {
-    long  rcount;
-    
-    if ( (rcount = --refcount) == 0 )
-      delete this;
-    return rcount;
-  }
-
   static const struct
   {
-    const unsigned    codepageId;
-    const char* const codepageSz;
+    IMlmaMb*          instance;
+    const char* const codepage;
   } codepageList[] =
   {
-    { codepages::codepage_1251, "Windows-1251" },
-    { codepages::codepage_1251, "Windows" },
-    { codepages::codepage_1251, "1251" },
-    { codepages::codepage_1251, "Win-1251" },
-    { codepages::codepage_1251, "Win" },
-    { codepages::codepage_1251, "Windows 1251" },
-    { codepages::codepage_1251, "Win 1251" },
-    { codepages::codepage_1251, "ansi" },
-    { codepages::codepage_koi8, "koi-8" },
-    { codepages::codepage_koi8, "koi8" },
-    { codepages::codepage_koi8, "20866" },
-    { codepages::codepage_866,  "dos" },
-    { codepages::codepage_866,  "oem" },
-    { codepages::codepage_866,  "866" },
-    { codepages::codepage_iso,  "28595" },
-    { codepages::codepage_iso,  "iso-88595" },
-    { codepages::codepage_iso,  "iso-8859-5" },
-    { codepages::codepage_mac,  "10007" },
-    { codepages::codepage_iso,  "mac" },
-    { codepages::codepage_utf8, "65001" },
-    { codepages::codepage_utf8, "utf-8" },
-    { codepages::codepage_utf8, "utf8" },
-    { unsigned(-1),             "utf-16" },
-    { unsigned(-1),             "utf16" }
+    { &mbInstance1251, "Windows-1251" },
+    { &mbInstance1251, "Windows" },
+    { &mbInstance1251, "1251" },
+    { &mbInstance1251, "Win-1251" },
+    { &mbInstance1251, "Win" },
+    { &mbInstance1251, "Windows 1251" },
+    { &mbInstance1251, "Win 1251" },
+    { &mbInstance1251, "ansi" },
+    { &mbInstanceKoi8, "koi-8" },
+    { &mbInstanceKoi8, "koi8" },
+    { &mbInstanceKoi8, "20866" },
+    { &mbInstance866,  "dos" },
+    { &mbInstance866,  "oem" },
+    { &mbInstance866,  "866" },
+    { &mbInstanceISO,  "28595" },
+    { &mbInstanceISO,  "iso-88595" },
+    { &mbInstanceISO,  "iso-8859-5" },
+    { &mbInstanceMac,  "10007" },
+    { &mbInstanceMac,  "mac" },
+    { &mbInstanceUtf8, "65001" },
+    { &mbInstanceUtf8, "utf-8" },
+    { &mbInstanceUtf8, "utf8" },
+    { (IMlmaMb*)&wcInstanceMlma, "utf-16" },
+    { (IMlmaMb*)&wcInstanceMlma, "utf16" }
   };
 
 }
@@ -515,36 +434,23 @@ extern "C"  int   MLMAPROC  mlmaruLoadMbAPI( IMlmaMb**  ptrAPI )
 {
   if ( ptrAPI == nullptr )
     return EINVAL;
-  (*ptrAPI = (IMlmaMb*)&mlmaMbInstance)->Attach();
+  (*ptrAPI = &mbInstance1251)->Attach();
     return 0;
 }
 
 extern "C"  int   MLMAPROC  mlmaruLoadCpAPI( IMlmaMb**  ptrAPI, const char* codepage )
 {
-  CMlmaMb*  palloc;
-
 // check API pointer
   if ( ptrAPI == nullptr || codepage == nullptr || *codepage == '\0' )
     return EINVAL;
 
 // detect the codepage
   for ( auto& page: codepageList )
-    if ( strcasecmp( page.codepageSz, codepage ) == 0 )
+    if ( strcasecmp( page.codepage, codepage ) == 0 )
     {
-    // check invalid codepage
-      if ( page.codepageId == unsigned(-1) )
+      if ( page.instance == (IMlmaMb*)&wcInstanceMlma )
         return EINVAL;
-
-    // check simple api id
-      if ( page.codepageId == codepages::codepage_1251 )
-        return mlmaruLoadMbAPI( ptrAPI );
-
-    // create new api object
-      if ( (palloc = new ( std::nothrow ) CMlmaCp( page.codepageId )) == nullptr )
-        return ENOMEM;
-
-    // return the result
-      return (*ptrAPI = palloc)->Attach(), 0;
+      return (*ptrAPI = page.instance)->Attach(), 0;
     }
 
   return *ptrAPI = nullptr, EINVAL;
@@ -554,14 +460,12 @@ extern "C"  int   MLMAPROC  mlmaruLoadWcAPI( IMlmaWc**  ptrAPI )
 {
   if ( ptrAPI == nullptr )
     return EINVAL;
-  (*ptrAPI = (IMlmaWc*)&mlmaWcInstance)->Attach();
+  (*ptrAPI = &wcInstanceMlma)->Attach();
     return 0;
 }
 
 extern "C"  int   MLMAPROC  mlmaruGetAPI( const char* apiKey, void** ppvAPI )
 {
-  CMlmaMb*  palloc;
-
   // check call parameters
   if ( ppvAPI == nullptr )
     return EINVAL;
@@ -570,23 +474,8 @@ extern "C"  int   MLMAPROC  mlmaruGetAPI( const char* apiKey, void** ppvAPI )
 
   // detect the codepage
   for ( auto& page: codepageList )
-    if ( strcasecmp( page.codepageSz, apiKey + sizeof(LIBMORPH_API_4_MAGIC) ) == 0 )
-    {
-      // check invalid codepage
-      if ( page.codepageId == unsigned(-1) )
-        return mlmaruLoadWcAPI( (IMlmaWc**)ppvAPI );
-
-      // check simple api id
-      if ( page.codepageId == codepages::codepage_1251 )
-        return mlmaruLoadMbAPI( (IMlmaMb**)ppvAPI );
-
-      // create new api object
-      if ( (palloc = new ( std::nothrow ) CMlmaCp( page.codepageId )) == nullptr )
-        return ENOMEM;
-
-      // return the result
-      return static_cast<IMlmaMb*>( *ppvAPI = palloc )->Attach(), 0;
-    }
+    if ( strcasecmp( page.codepage, apiKey + sizeof(LIBMORPH_API_4_MAGIC) ) == 0 )
+      return reinterpret_cast<IMlmaMb*>( *ppvAPI = page.instance )->Attach(), 0;
 
   return *ppvAPI = nullptr, EINVAL;
 }
