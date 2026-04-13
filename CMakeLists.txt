@@ -134,6 +134,8 @@ set(CPACK_PACKAGE_CONTACT       "Andrew Kovalenko <keva@rambler.ru>")
 set(CPACK_DEB_COMPONENT_INSTALL ON)
 set(CPACK_RPM_COMPONENT_INSTALL ON)
 
+add_subdirectory(pyrusmorph)
+
 # Генераторы в зависимости от системы
 if(WIN32)
     set(CPACK_GENERATOR "ZIP")
