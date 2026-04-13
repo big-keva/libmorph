@@ -24,9 +24,9 @@ RUN git clone https://github.com/big-keva/libmorph && \
     cmake -B build -S ../ && cmake --build build -j$(nproc) && \
     cmake --install build --component ApiDev --prefix=/usr/local && \
     cmake --install build --component RusDev --prefix=/usr/local && \
+    cmake --install build --component EngDev --prefix=/usr/local && \
     cd ../../ && rm -rf libmorph
 
-# Устанавливаем cibuildwheel для всех Python версий
 RUN for pyver in /opt/python/cp*/bin/python; do \
         $pyver -m pip install --upgrade pip cibuildwheel build; \
     done
