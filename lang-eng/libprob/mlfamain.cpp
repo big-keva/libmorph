@@ -271,38 +271,6 @@ namespace NAMESPACE
       cchstr );
   }
 
-  struct
-  {
-    IMlfaMb*    instance;
-    const char* codepage;
-  } codepageList[] =
-  {
-    { &mbInstance1251, "Windows-1251" },
-    { &mbInstance1251, "Windows" },
-    { &mbInstance1251, "1251" },
-    { &mbInstance1251, "Win-1251" },
-    { &mbInstance1251, "Win" },
-    { &mbInstance1251, "Windows 1251" },
-    { &mbInstance1251, "Win 1251" },
-    { &mbInstance1251, "ansi" },
-    { &mbInstanceKoi8, "koi-8" },
-    { &mbInstanceKoi8, "koi8" },
-    { &mbInstanceKoi8, "20866" },
-    { &mbInstance866,  "dos" },
-    { &mbInstance866,  "oem" },
-    { &mbInstance866,  "866" },
-    { &mbInstanceIso,  "28595" },
-    { &mbInstanceIso,  "iso-88595" },
-    { &mbInstanceIso,  "iso-8859-5" },
-    { &mbInstanceMac,  "10007" },
-    { &mbInstanceMac,  "mac" },
-    { &mbInstanceUtf8, "65001" },
-    { &mbInstanceUtf8, "utf-8" },
-    { &mbInstanceUtf8, "utf8" },
-    { (IMlfaMb*)&wcInstanceMlfa,  "utf-16" },
-    { (IMlfaMb*)&wcInstanceMlfa,  "utf16" }
-  };
-
 }
 
 /*
@@ -329,16 +297,8 @@ extern "C"  int   MLMAPROC  mlfaenLoadMbAPI( IMlfaMb**  ptrAPI )
 
 extern "C"  int   MLMAPROC  mlfaenLoadCpAPI( IMlfaMb**  ptrAPI, const char* codepage )
 {
-  // check API pointer
-  if ( ptrAPI == nullptr || codepage == nullptr || *codepage == '\0' )
-    return EINVAL;
-
-  // detect the codepage
-  for ( auto& page: codepageList )
-    if ( strcasecmp( page.codepage, codepage ) == 0 )
-      return (*ptrAPI = page.instance)->Attach(), 0;
-
-  return *ptrAPI = nullptr, EINVAL;
+  (void)codepage;
+  return mlfaenLoadMbAPI( ptrAPI );
 }
 
 extern "C"  int   MLMAPROC  mlfaenLoadWcAPI( IMlfaWc**  ptrAPI )
@@ -346,7 +306,7 @@ extern "C"  int   MLMAPROC  mlfaenLoadWcAPI( IMlfaWc**  ptrAPI )
   if ( ptrAPI == nullptr )
     return -1;
   (*ptrAPI = &wcInstanceMlfa)->Attach();
-    return 0;
+  return 0;
 }
 
 extern "C"  int   MLMAPROC  mlfaenGetAPI( const char* apiKey, void** ppvAPI )
@@ -358,9 +318,11 @@ extern "C"  int   MLMAPROC  mlfaenGetAPI( const char* apiKey, void** ppvAPI )
     return EINVAL;
 
   // detect the codepage
-  for ( auto& page: codepageList )
-    if ( strcasecmp( page.codepage, apiKey + sizeof(LIBMORPH_API_4_MAGIC) ) == 0 )
-      return reinterpret_cast<IMlfaMb*>( *ppvAPI = page.instance )->Attach(), 0;
+  if ( strcasecmp( "utf-16", apiKey + sizeof(LIBMORPH_API_4_MAGIC) ) == 0
+    || strcasecmp( "utf16",  apiKey + sizeof(LIBMORPH_API_4_MAGIC) ) == 0 )
+  {
+    return mlfaenLoadWcAPI( (IMlfaWc**)ppvAPI );
+  }
 
-  return *ppvAPI = nullptr, EINVAL;
+  return mlfaenLoadMbAPI( (IMlfaMb**)ppvAPI );
 }
