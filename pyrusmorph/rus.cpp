@@ -105,18 +105,18 @@ PYBIND11_MODULE(pyrusmorph, m)
     .def_readonly( "grams", &WcLemmInfo::grams );
 
   py::class_<MbStemInfo>(m, "MbStemInfo")
-    .def_readonly( "stemLen", &MbStemInfo::stemLen )
-    .def_readonly( "lexType", &MbStemInfo::lexType )
-    .def_readonly( "fWeight", &MbStemInfo::fWeight )
-    .def_readonly( "stLemma", &MbStemInfo::stLemma )
-    .def_readonly( "grammar", &MbStemInfo::grammar );
+    .def_readonly( "fProb", &MbStemInfo::fWeight )
+    .def_readonly( "lemma", &MbStemInfo::stLemma )
+    .def_readonly( "lStem", &MbStemInfo::stemLen )
+    .def_readonly( "clsId", &MbStemInfo::lexType )
+    .def_readonly( "grams", &MbStemInfo::grammar );
 
   py::class_<WcStemInfo>(m, "WcStemInfo")
-    .def_readonly( "stemLen", &WcStemInfo::stemLen )
-    .def_readonly( "lexType", &WcStemInfo::lexType )
-    .def_readonly( "fWeight", &WcStemInfo::fWeight )
-    .def_readonly( "stLemma", &WcStemInfo::stLemma )
-    .def_readonly( "grammar", &WcStemInfo::grammar );
+    .def_readonly( "fProb", &WcStemInfo::fWeight )
+    .def_readonly( "lemma", &WcStemInfo::stLemma )
+    .def_readonly( "lStem", &WcStemInfo::stemLen )
+    .def_readonly( "clsId", &WcStemInfo::lexType )
+    .def_readonly( "grams", &WcStemInfo::grammar );
 
   py::class_<MbStrMatch>(m, "MbStrMatch")
     .def_property_readonly( "text", []( const MbStrMatch& s )
