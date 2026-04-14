@@ -116,4 +116,40 @@ print_findmatch("до?ал?д")
 
 print_findmatch("ко*ро*ва")
 
-help(pyrusmorph)
+def print_stematize(str, flags):
+    stemlist = fuzzy.lemmatize(str, 0)
+ 
+    print(f"{str}")
+    if len(stemlist) != 0:
+        for stem in stemlist:
+            stemform = stem.lemma[:stem.lStem] + "|" + stem.lemma[stem.lStem:]
+            print(f"  {stem.fProb:6.4}\t{stemform}\t{stem.clsId}")
+
+            for gram in stem.grams:
+                print(f"    {partOfSpeech[gram.wdInfo & 0x3f]}  {gram.idForm:2d}")
+    else:
+        print("unknown word")
+
+print_stematize("командировочка", 0)
+
+def print_stemforms(stem, clsid, idform):
+    formlist = fuzzy.build_form(stem, clsid, idform)
+ 
+    if len(formlist) != 0:
+        for form in formlist:
+            print(f"  {form}")
+    else:
+        print("unknown word")
+
+print_stemforms("командировоч", 14, 5)
+
+def print_samples(clsid):
+    samples = fuzzy.get_sample(clsid)
+
+    if len(samples) != 0:
+        for sample in samples:
+            print(f"\t{sample}");
+
+print_samples(14)
+
+# help(pyrusmorph)
