@@ -1,10 +1,10 @@
 import time
 import re
-import pyrusmorph
+import pymorphy3
+from pymorphy3.units.by_lookup import DictionaryAnalyzer
 
-def benchmark_libmorph(file_path, encoding='utf-8'):
-    morph = pyrusmorph.mlmaruWc()
-    fuzzy = pyrusmorph.mlfaruWc()
+def benchmark_pymorphy3(file_path, encoding='utf-8'):
+    morph = pymorphy3.MorphAnalyzer(units=[[DictionaryAnalyzer()]])
     
     # 1. Загрузка текста
     try:
@@ -28,14 +28,10 @@ def benchmark_libmorph(file_path, encoding='utf-8'):
     start_time = time.perf_counter()
 
     for word in words:
-        result = morph.lemmatize(word, pyrusmorph.SF_IGNORE_CAPITALS)
-        # Проверяем, опознано ли слово (есть ли оно в словаре)
-        # Если score высокий и нет пометки 'UNKN', слово считается известным
-        if len(result) == 0:
-            result = fuzzy.lemmatize(word, pyrusmorph.SF_IGNORE_CAPITALS)
+        result = morph.parse(word)
 
-        if len(result) != 0:
-           known_count += 1
+        if result and not any(tag.startswith('UNKN') for tag in result[0].tag._grammemes_tuple):
+            known_count += 1
 
     end_time = time.perf_counter()
     
@@ -51,4 +47,4 @@ def benchmark_libmorph(file_path, encoding='utf-8'):
     print(f"Скорость:               {words_per_sec:.0f} слов/сек")
     print("-" * 30)
 
-benchmark_libmorph('sample.txt')
+benchmark_pymorphy3('sample.txt')
