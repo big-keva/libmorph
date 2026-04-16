@@ -1,0 +1,8 @@
+build
+*.deb
+morphapi
+morpheng
+morphrus
+morphapi-dev
+morpheng-dev
+morphrus-dev
