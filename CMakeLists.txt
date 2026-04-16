@@ -135,6 +135,7 @@ set(CPACK_DEB_COMPONENT_INSTALL ON)
 set(CPACK_RPM_COMPONENT_INSTALL ON)
 
 add_subdirectory(pyrusmorph)
+add_subdirectory(pyengmorph)
 
 # Генераторы в зависимости от системы
 if(WIN32)
