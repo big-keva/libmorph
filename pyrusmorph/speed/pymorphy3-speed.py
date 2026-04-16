@@ -4,7 +4,7 @@ import pymorphy3
 from pymorphy3.units.by_lookup import DictionaryAnalyzer
 
 def benchmark_pymorphy3(file_path, encoding='utf-8'):
-    morph = pymorphy3.MorphAnalyzer(units=[[DictionaryAnalyzer()]])
+    morph = pymorphy3.MorphAnalyzer()# (units=[[DictionaryAnalyzer()]])
     
     # 1. Загрузка текста
     try:
@@ -28,10 +28,11 @@ def benchmark_pymorphy3(file_path, encoding='utf-8'):
     start_time = time.perf_counter()
 
     for word in words:
-        result = morph.parse(word)
+        if len(word) > 1:
+            result = morph.parse(word)
 
-        if result and not any(tag.startswith('UNKN') for tag in result[0].tag._grammemes_tuple):
-            known_count += 1
+            if result and not any(tag.startswith('UNKN') for tag in result[0].tag._grammemes_tuple):
+                known_count += 1
 
     end_time = time.perf_counter()
     
