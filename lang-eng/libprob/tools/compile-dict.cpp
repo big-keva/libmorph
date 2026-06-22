@@ -1,6 +1,6 @@
 /******************************************************************************
 
-  libfuzzyrus - fuzzy morphological analyser for Russian.
+  libfuzzyrus - fuzzy morphological analyser for English.
 
   Copyright (c) 1994-2026 Andrew Kovalenko aka Keva
 
@@ -134,7 +134,7 @@ auto  Get1251Str( const mtc::zmap& z, const char* k ) -> std::string
 # define STR_TO_TEXT( x ) #x
 # define MAKE_STRING( x ) STR_TO_TEXT( x )
 
-const char about[] = "compile-dict v2.0 - create russian probability morphology dictionary\n"
+const char about[] = "compile-dict v2.0 - create english probability morphology dictionary\n"
   "Usage: %s [options] source output\n"
   "options are:\n"
   "\t"  "-ns[pace]=namespace-name, default is \"" MAKE_STRING( LIBMORPH_NAMESPACE ) "\".\n";
