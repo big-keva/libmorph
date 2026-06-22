@@ -1,9 +1,10 @@
 # include <api.hpp>
+# include <cstring>
 # include <vector>
 # include <cstdio>
 # include <cerrno>
-#include <numeric>
-#include <rus.h>
+# include <numeric>
+# include <eng.h>
 
 struct  PspEntry: std::vector<double>
 {
@@ -12,33 +13,6 @@ struct  PspEntry: std::vector<double>
 
 std::vector<PspEntry> pspfidMatrix;
 double                totalLexemes = 0.0;
-
-auto  MapVerbFid( uint8_t fid ) -> uint8_t
-{
-  return (fid >= 6 && fid <= 17) ? fid + 12 : fid;
-}
-
-auto  ToPartOfSp( uint8_t psp ) -> uint8_t
-{
-  switch ( psp & 0x3f )
-  {
-    case 1: case 2: case 3: case 4: case 5: case 6:
-      return 1;
-    case 7: case 8: case 9:
-      return 7;
-    case 13: case 14: case 15:
-      return 13;
-    case 16: case 17: case 18:
-      return 16;
-    case 25: case 26:
-      return 25;
-    case 38: case 39: case 40: case 41:
-    case 42: case 44: case 45: case 46:
-      return psp;
-    default:
-      return 0;
-  }
-}
 
 int   Accumulate( IMlmaMbXX& morpho, FILE* infile )
 {
@@ -52,10 +26,10 @@ int   Accumulate( IMlmaMbXX& morpho, FILE* infile )
     {
       const char* srcorg;
 
-      while ( *srctop != '\0' && (unsigned char)*srctop <= 0xc0 )
+      while ( *srctop != '\0' && (unsigned char)*srctop < 0x41 )
         ++srctop;
 
-      for ( srcorg = srctop; (unsigned char)*srctop >= 0xc0 || *srctop == '-'; ++srctop )
+      for ( srcorg = srctop; (unsigned char)*srctop >= 0x41 || *srctop == '-' || *srctop == '\''; ++srctop )
         (void)NULL;
 
       if ( srctop - srcorg > 3 )
@@ -71,15 +45,13 @@ int   Accumulate( IMlmaMbXX& morpho, FILE* infile )
 
           for ( int i = 0; i < lcount; ++i )
           {
-            auto  partSp = ToPartOfSp( lemmas[i].pgrams->wdInfo );
+            auto  partSp = lemmas[i].pgrams->wdInfo;
 
-            // suppress non-exclusive imperatives
-            if ( partSp == 1 && lemmas[i].pgrams->idForm == 2 && lcount > 1 )
-              continue;
             if ( lemmas[i].pgrams->idForm == 0xff )
               continue;
-            // suppress other words
-            if ( partSp == 0 )
+
+            // suppress other words except 1, 2, 3, 4, 17
+            if ( partSp == 0 || (partSp > 4 && partSp < 17) || (partSp > 17) )
               continue;
 
             // reserve and increment psp
@@ -91,9 +63,7 @@ int   Accumulate( IMlmaMbXX& morpho, FILE* infile )
             // list the forms for this lexeme
             for ( unsigned g = 0; g < lemmas[i].ngrams; ++g )
             {
-              auto  formid = partSp == 1 ? MapVerbFid(
-                lemmas[i].pgrams[g].idForm ) :
-                lemmas[i].pgrams[g].idForm;
+              auto  formid = lemmas[i].pgrams[g].idForm;
 
               if ( pspfidMatrix[partSp].size() <= formid )
                 pspfidMatrix[partSp].resize( formid + 1 );
@@ -145,15 +115,17 @@ void  DumpMatrix( FILE* out )
 {
   const char*  prefix = "";
 
+  fputs( "namespace NAMESPACE {\n\n", out );
+
   for ( size_t i = 0; i != pspfidMatrix.size(); ++i )
     DumpRanges( out, pspfidMatrix[i], i );
 
-  fprintf( out, "  static struct\n"
+  fprintf( out, "  struct tagPspProbTable\n"
                 "  {\n"
-                "    const float     weight;\n"
-                "    const float*    ranges;\n"
-                "    const uint16_t  maxLen;\n"
-                "  } pspfid_Table[%d] =\n"
+                "    const float           weight;\n"
+                "    const float*          ranges;\n"
+                "    const unsigned short  maxLen;\n"
+                "  } pspfidProbTable[%d] =\n"
                 "  {", int(pspfidMatrix.size()) );
 
   for ( unsigned i = 0; i != pspfidMatrix.size(); ++i, prefix = "," )
@@ -170,15 +142,22 @@ void  DumpMatrix( FILE* out )
       prefix );
   }
   fprintf( out, "\n  };\n" );
+
+  fputs( "\n}\n", out );
 }
 
-int   main()
+int   main( int argc, char* argv[] )
 {
   IMlmaMbXX*  morpho;
+  int         nerror;
 
-  mlmaruGetAPI( LIBMORPH_API_4_MAGIC ":" "1251", (void**)&morpho );
+  mlmaenGetAPI( LIBMORPH_API_4_MAGIC ":" "utf-8", (void**)&morpho );
 
-  Accumulate( *morpho, "/home/keva/dev/libmorph/contrib/moonycode/text/kondrashov.txt" );
+  if ( argc < 2 )
+    return fprintf( stderr, "usage: %s sample-text.txt\n", argv[0] ), EINVAL;
+
+  if ( (nerror = Accumulate( *morpho, argv[1] )) != 0 )
+    return nerror;
 
   double  glsumm = 0.0f;
 
