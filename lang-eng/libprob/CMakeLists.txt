@@ -79,11 +79,11 @@ if(NOT EXISTS "${InflexSRC}")
     COMMAND ${MakeClasses} ${DicSrc} > "${InflexSRC}"
     COMMENT "Generating ${InflexSRC} using {${DicSrc}} because it is missing")
 
-  add_custom_target(generate_mclass ALL
+  add_custom_target(eng_generate_mclass ALL
     DEPENDS "${InflexSRC}"
     COMMENT "Ensuring mclass.json exists")
 
-  add_dependencies(fuzzyeng-objset generate_mclass)
+  add_dependencies(fuzzyeng-objset eng_generate_mclass)
 endif()
 
 #
